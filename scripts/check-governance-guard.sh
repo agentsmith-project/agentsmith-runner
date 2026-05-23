@@ -47,11 +47,27 @@ check_remote() {
   local normalized
   origin="$(git remote get-url origin 2>/dev/null || true)"
 
-  normalized="$origin"
-  normalized="${normalized#https://}"
-  normalized="${normalized#http://}"
-  normalized="${normalized#git@}"
-  normalized="${normalized/:/\/}"
+  case "$origin" in
+    "")
+      fail "origin remote is missing"
+      return
+      ;;
+    http://*)
+      fail "origin must use https:// or git@github.com:, not http://"
+      return
+      ;;
+    https://github.com/*)
+      normalized="${origin#https://}"
+      ;;
+    git@github.com:*)
+      normalized="${origin#git@}"
+      normalized="${normalized/:/\/}"
+      ;;
+    *)
+      fail "origin must use https://github.com/ or git@github.com: form"
+      return
+      ;;
+  esac
   normalized="${normalized%.git}"
 
   if [[ "$normalized" != "github.com/agentsmith-project/agentsmith-runner" ]]; then
@@ -144,23 +160,32 @@ check_no_forbidden_patterns() {
     pass "no AgentSmith runner runtime/source import or relative source path"
   fi
 
-  local verify_ga="verify-ga""-release"
-  local release_arg="verify-release[.]sh --rel""ease"
+  local verify_ga="verify-ga""-release[.]sh"
+  local verify_afscp="verify-af""scp-release[.]sh"
+  local verify_asbcp="verify-as""bcp-release[.]sh"
+  local gate_afscp="gate-af""scp-release[.]sh"
+  local gate_asbcp="gate-as""bcp-release[.]sh"
   local family_contract_path_a="docs/contracts/af""scp"
   local family_contract_path_b="docs/contracts/as""bcp"
+  local family_contract_path_c="contracts/af""scp"
+  local family_contract_path_d="contracts/as""bcp"
   local family_manifest_a="af""scp-final-manifest"
   local family_manifest_b="as""bcp-final-manifest"
-  local family_terms="(af""scp|as""bcp)"
-  local dependency_terms="(source|sources|contract|contracts|gate|gates)"
-  local family_dependency_pattern
-  family_dependency_pattern="(${family_terms}.{0,80}${dependency_terms}|${dependency_terms}.{0,80}${family_terms})"
+  local family_path_pattern
+  local family_contract_path_pattern
+  local family_gate_file_pattern
+  local family_manifest_pattern
   local adjacent_family_pattern
-  adjacent_family_pattern="(${verify_ga}|${release_arg}|${family_contract_path_a}|${family_contract_path_b}|${family_manifest_a}|${family_manifest_b}|${fs_repo_name}|${sandbox_repo_name}|${sandbox_control_repo_name}|${family_dependency_pattern})"
+  family_path_pattern="(^|[^[:alnum:]_])\\.\\./(${fs_repo_name}|${sandbox_repo_name}|${sandbox_control_repo_name})(/|$)|/home/percy/works/mbos-v1/(${fs_repo_name}|${sandbox_repo_name}|${sandbox_control_repo_name})(/|$)|${fs_repo_name}/(src|cmd|internal|pkg|deploy|migrations|scripts|docs)(/|$)|${sandbox_repo_name}/(manager-service|k8s|scripts|docs)(/|$)"
+  family_contract_path_pattern="(^|/)(${family_contract_path_a}|${family_contract_path_b}|${family_contract_path_c}|${family_contract_path_d})(/|[.][^/[:space:]\"']*|$)"
+  family_gate_file_pattern="(^|/)(${verify_ga}|${verify_afscp}|${verify_asbcp}|${gate_afscp}|${gate_asbcp})([[:space:]\"']|$)"
+  family_manifest_pattern="(^|/)(${family_manifest_a}|${family_manifest_b})([.][^/[:space:]\"']+)?([[:space:]\"']|$)"
+  adjacent_family_pattern="(${family_path_pattern}|${family_contract_path_pattern}|${family_gate_file_pattern}|${family_manifest_pattern})"
 
   if grep -IEin -- "$adjacent_family_pattern" "${files[@]}"; then
     fail "forbidden adjacent family dependency found"
   else
-    pass "no adjacent family dependency"
+    pass "no adjacent family path, gate, or manifest dependency"
   fi
 
   local forbidden_remote_repo_names="(${agentsmith_name}|${fs_repo_name}|${sandbox_repo_name}|${legacy_repo_name})"

@@ -45,6 +45,7 @@ This bootstrap slice also does not move the existing AgentSmith runner runtime, 
 - Keep runner contract truth in the AgentSmith contract flow until an explicit shared contract package is published for consumption.
 - Do not import AgentSmith product source or use sibling repo source paths as a runtime dependency.
 - Do not copy implementation assets from adjacent family control-plane repos.
+- AFSCP and ASBCP are bootstrap discipline references only, not dependencies.
 - Do not use mutable tags as release proof; future release adoption must be digest-pinned and provenance-backed.
 - Do not store secrets, credentials, tokens, private keys, or placeholder secrets in this repo.
 
