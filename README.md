@@ -22,6 +22,10 @@ This repo owns, after the bootstrap boundary is accepted:
 
 This repo only consumes the AgentSmith runner contract. AgentSmith and its shared contract flow remain the source of truth for product objects, API semantics, protocol schemas, fixtures, and compatibility rules.
 
+## Owner Metadata
+
+Owning team metadata lives in [OWNERS.md](OWNERS.md). This repo does not use a CODEOWNERS system during bootstrap.
+
 ## Non-Goals
 
 This repo does not own:
@@ -43,6 +47,9 @@ This bootstrap slice also does not move the existing AgentSmith runner runtime, 
 
 - Keep AgentSmith product truth in AgentSmith.
 - Keep runner contract truth in the AgentSmith contract flow until an explicit shared contract package is published for consumption.
+- Runner code must not define Context Store scopes, Files/file-library behavior, managed credential resolution, execution ticket issuance, or permission semantics.
+- Runner code may only consume the published AgentSmith runner contract package and fixtures for product semantics.
+- Builtin skills runtime may only implement projection consumption and local execution. It must not add permission or credential resolution semantics.
 - Do not import AgentSmith product source or use sibling repo source paths as a runtime dependency.
 - Do not copy implementation assets from adjacent family control-plane repos.
 - AFSCP and ASBCP are bootstrap discipline references only, not dependencies.

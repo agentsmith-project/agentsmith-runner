@@ -81,6 +81,7 @@ check_remote() {
 check_required_files() {
   local files=(
     README.md
+    OWNERS.md
     AGENTS.md
     DEVELOPMENT.md
     docs/RELEASE_GATES.md
@@ -101,6 +102,14 @@ check_required_files() {
   done
 }
 
+check_owner_team_metadata() {
+  require_file OWNERS.md
+  require_grep "Owning team" OWNERS.md "OWNERS declares owning team"
+  require_grep "AgentSmith Runner Maintainers" OWNERS.md "OWNERS names runner maintainers"
+  require_grep "not a CODEOWNERS system" OWNERS.md "OWNERS avoids CODEOWNERS governance"
+  require_grep "OWNERS[.]md" README.md "README points to owner metadata"
+}
+
 check_scope_and_non_goals() {
   require_grep "Runner execution process" README.md "README declares runner execution process scope"
   require_grep "Builtin skills runtime" README.md "README declares skills runtime scope"
@@ -115,6 +124,17 @@ check_scope_and_non_goals() {
   require_grep "Managed credentials" README.md "README excludes managed credentials"
   require_grep "Audit or usage|audit/usage" README.md "README excludes audit/usage"
   require_grep "Frontend management surface|frontend management surface" README.md "README excludes frontend management surface"
+}
+
+check_runner_specific_fail_fast_guard() {
+  require_grep "must not define Context Store scopes" README.md "README blocks Context Store scope definitions"
+  require_grep "Files/file-library behavior" README.md "README blocks Files/file-library behavior definitions"
+  require_grep "managed credential resolution" README.md "README blocks managed credential resolution"
+  require_grep "execution ticket issuance" README.md "README blocks execution ticket issuance"
+  require_grep "permission semantics" README.md "README blocks permission semantics"
+  require_grep "published AgentSmith runner contract package and fixtures" README.md "README requires published contract package and fixtures consumption"
+  require_grep "projection consumption and local execution" README.md "README limits builtin skills runtime"
+  require_grep "must not add permission or credential resolution semantics" AGENTS.md "AGENTS blocks runtime permission or resolution semantics"
 }
 
 check_quick_not_release() {
@@ -267,7 +287,9 @@ check_no_ecosystem_bootstrap_files() {
 
 check_remote
 check_required_files
+check_owner_team_metadata
 check_scope_and_non_goals
+check_runner_specific_fail_fast_guard
 check_quick_not_release
 check_local_handoff_documented
 check_no_forbidden_patterns

@@ -35,6 +35,8 @@ This repo is responsible for:
 
 This repo only consumes the AgentSmith runner contract. It does not define Agent task API semantics, Agent Runners API semantics, Context Store scopes, file library behavior, managed credential resolution, audit/usage records, or frontend management behavior.
 
+Runner-specific fail-fast guard: this repo must not define Context Store scopes, Files/file-library behavior, managed credential resolution, execution ticket issuance, or permission semantics. It may only consume the published AgentSmith runner contract package and fixtures. Builtin skills runtime may only implement projection consumption and local execution.
+
 ## Commands
 
 Current quick verification:

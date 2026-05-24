@@ -16,6 +16,13 @@ The repo is for runner execution process, builtin skills runtime, runner image, 
 
 It is not responsible for Agent task API, Agent Runners API, Context Store, Files/file library, managed credentials, audit/usage, frontend management surface, product permissions, workspace/project governance, product release readiness, or the source of truth for the runner contract.
 
+## Runner-Specific Guard
+
+- Do not define Context Store scopes, Files/file-library behavior, managed credential resolution, execution ticket issuance, or permission semantics in this repo.
+- Consume only the published AgentSmith runner contract package and fixtures for product semantics.
+- Builtin skills runtime may only implement projection consumption and local execution. It must not add permission or credential resolution semantics.
+- Keep owner/team metadata in `OWNERS.md`. Do not introduce a CODEOWNERS system during bootstrap.
+
 ## Bootstrap Rules
 
 - Do not move runtime code, Dockerfiles, product contracts, AgentSmith gates, or product tests during bootstrap.

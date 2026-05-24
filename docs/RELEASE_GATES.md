@@ -11,8 +11,10 @@ bash scripts/verify-release.sh --quick
 Quick mode validates only the bootstrap governance skeleton and boundary guardrails:
 
 - Canonical repo identity.
+- Owner/team metadata.
 - Required governance files.
 - Scope and non-goals.
+- Runner-specific fail-fast guard.
 - Release gate entrypoint exists.
 - Quick mode explicitly remains separate from release readiness.
 - No sibling repo source dependency.
