@@ -37,6 +37,8 @@ This repo only consumes the AgentSmith runner contract. It does not define Agent
 
 Runner-specific fail-fast guard: this repo must not define Context Store scopes, Files/file-library behavior, managed credential resolution, execution ticket issuance, or permission semantics. It may only consume the published AgentSmith runner contract package and fixtures. Builtin skills runtime may only implement projection consumption and local execution.
 
+Contract-consumer/source-boundary guard: future implementation may reference only the published `@mbos/agent-runner-contract` package for runner contract semantics. It must not consume the contract through local dependency protocols, sibling AgentSmith source paths, other `@mbos` packages, moved runner packages, or legacy runner source.
+
 ## Commands
 
 Current quick verification:
@@ -44,6 +46,8 @@ Current quick verification:
 ```bash
 bash scripts/verify-release.sh --quick
 ```
+
+Quick verification includes the contract-consumer/source-boundary check. It remains a bootstrap guard only, not release readiness.
 
 Script syntax check:
 
@@ -61,5 +65,7 @@ The local checkout at `/home/percy/works/mbos-v1/agentsmith-runner` is a workspa
 ## Release Posture
 
 Quick verification proves only that the bootstrap governance surface is intact. It does not prove runtime behavior, image quality, contract compatibility, or release readiness.
+
+Local diagnostics, dev diagnostics, and backend-real diagnostics can become focused evidence later, but they are not release proof for this repository.
 
 The full release gate is a future repo-local authority. Until it exists, no change in this repo may claim that a runner image is releasable, adopted by AgentSmith, or ready for production.

@@ -135,6 +135,49 @@ check_runner_specific_fail_fast_guard() {
   require_grep "published AgentSmith runner contract package and fixtures" README.md "README requires published contract package and fixtures consumption"
   require_grep "projection consumption and local execution" README.md "README limits builtin skills runtime"
   require_grep "must not add permission or credential resolution semantics" AGENTS.md "AGENTS blocks runtime permission or resolution semantics"
+  require_grep "@mbos/agent-runner-contract" docs/contracts/README.md "contracts docs name the published contract package consumer"
+  require_grep "fixtures.*provenance|provenance.*fixtures" docs/contracts/README.md "contracts docs require fixtures and provenance"
+}
+
+check_contract_consumer_source_boundary() {
+  local files=()
+  mapfile -t files < <(scan_files)
+
+  local mbos_scope="@m""bos/"
+  local allowed_contract_pkg="${mbos_scope}agent-runner-contract"
+  local mbos_package_pattern="${mbos_scope}[A-Za-z0-9._-]+"
+  local forbidden_mbos_hits
+  forbidden_mbos_hits="$(grep -IEno -- "$mbos_package_pattern" "${files[@]}" | grep -Ev ":${allowed_contract_pkg}$" || true)"
+
+  if [[ -n "$forbidden_mbos_hits" ]]; then
+    echo "$forbidden_mbos_hits"
+    fail "forbidden @mbos package reference found"
+  else
+    pass "only published runner contract package is allowed under @mbos"
+  fi
+
+  local local_protocol="(file|link|workspace):"
+  local local_contract_pattern
+  local_contract_pattern="(${allowed_contract_pkg}[^[:cntrl:]]*${local_protocol}|${local_protocol}[^[:cntrl:]]*${allowed_contract_pkg})"
+
+  if grep -IEn -- "$local_contract_pattern" "${files[@]}"; then
+    fail "contract package must not be consumed through local dependency protocols"
+  else
+    pass "contract package is not consumed through local dependency protocols"
+  fi
+
+  local agentsmith_name="agent""smith"
+  local legacy_repo_name="agent""smith-codex-runner"
+  local agent_task_pkg="packages/agent-task""-runner"
+  local agent_runner_pkg="packages/agent""-runner"
+  local source_boundary_pattern
+  source_boundary_pattern="(\\.\\./${agentsmith_name}(/|$)|/home/percy/works/mbos-v1/${agentsmith_name}(/|$)|${agent_task_pkg}|${agent_runner_pkg}|${legacy_repo_name})"
+
+  if grep -IEn -- "$source_boundary_pattern" "${files[@]}"; then
+    fail "forbidden runner contract/source boundary reference found"
+  else
+    pass "no forbidden AgentSmith sibling source or legacy runner reference"
+  fi
 }
 
 check_quick_not_release() {
@@ -169,10 +212,8 @@ check_no_forbidden_patterns() {
   local legacy_repo_name="agent""smith-codex-runner"
   local agent_task_pkg="packages/agent-task""-runner"
   local agent_runner_pkg="packages/agent""-runner"
-  local quote_class="[\"']"
-  local mbos_scope="@m""bos/"
   local source_path_pattern
-  source_path_pattern="(\\.\\./${agentsmith_name}(/|$)|\\.\\./${fs_repo_name}(/|$)|\\.\\./${sandbox_repo_name}(/|$)|/home/percy/works/mbos-v1/${agentsmith_name}(/|$)|${agent_task_pkg}|${agent_runner_pkg}|from ${quote_class}${mbos_scope}|require\\(${quote_class}${mbos_scope})"
+  source_path_pattern="(\\.\\./${agentsmith_name}(/|$)|\\.\\./${fs_repo_name}(/|$)|\\.\\./${sandbox_repo_name}(/|$)|/home/percy/works/mbos-v1/${agentsmith_name}(/|$)|${agent_task_pkg}|${agent_runner_pkg})"
 
   if grep -IEn -- "$source_path_pattern" "${files[@]}"; then
     fail "forbidden AgentSmith or sibling repo source path/import found"
@@ -290,6 +331,7 @@ check_required_files
 check_owner_team_metadata
 check_scope_and_non_goals
 check_runner_specific_fail_fast_guard
+check_contract_consumer_source_boundary
 check_quick_not_release
 check_local_handoff_documented
 check_no_forbidden_patterns

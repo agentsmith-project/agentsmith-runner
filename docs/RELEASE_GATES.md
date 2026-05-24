@@ -15,10 +15,13 @@ Quick mode validates only the bootstrap governance skeleton and boundary guardra
 - Required governance files.
 - Scope and non-goals.
 - Runner-specific fail-fast guard.
+- Contract-consumer/source-boundary guard.
 - Release gate entrypoint exists.
 - Quick mode explicitly remains separate from release readiness.
 - No sibling repo source dependency.
 - No AgentSmith runner runtime/source migration.
+- No local-protocol contract consumption.
+- No non-contract `@mbos` package consumption.
 - No adjacent family repo dependency or copied governance implementation.
 - No raw secret placeholders.
 - No mutable or tag-only release claim.
@@ -42,6 +45,7 @@ During bootstrap, full release mode is intentionally not implemented and must fa
 - Passing CI quick mode is not release readiness.
 - Team signoff is not release readiness.
 - A local image tag is not release readiness.
+- Local, dev, or backend-real diagnostics are not release proof.
 - A mutable tag is not release readiness.
 - AgentSmith product readiness is not owned by this repo.
 - Runner image adoption by AgentSmith cannot happen from this repo without a future digest-pinned release manifest and AgentSmith lock update.
