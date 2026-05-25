@@ -27,7 +27,7 @@ It is not responsible for Agent task API, Agent Runners API, Context Store, File
 
 - Do not move runtime code, Dockerfiles, product contracts, AgentSmith gates, or product tests during bootstrap.
 - Do not import sibling repo source or rely on sibling repo relative paths for runtime behavior.
-- Do not copy implementation assets from AgentSmith, adjacent family repos, or legacy runner repos.
+- Do not copy implementation assets from AgentSmith, adjacent family repos, or retired runner repos.
 - Keep scripts KISS, fail closed, and simple. Bash, grep, and find are enough for the current quick gate.
 - Keep all content ASCII.
 - Do not add package managers, package manifests, generated lockfiles, or vendored dependencies unless a later implementation workstream explicitly owns them.

@@ -37,7 +37,7 @@ This repo only consumes the AgentSmith runner contract. It does not define Agent
 
 Runner-specific fail-fast guard: this repo must not define Context Store scopes, Files/file-library behavior, managed credential resolution, execution ticket issuance, or permission semantics. It may only consume the published AgentSmith runner contract package and fixtures. Builtin skills runtime may only implement projection consumption and local execution.
 
-Contract-consumer/source-boundary guard: future implementation may reference only the published `@mbos/agent-runner-contract` package for runner contract semantics. It must not consume the contract through local dependency protocols, sibling AgentSmith source paths, other `@mbos` packages, moved runner packages, or legacy runner source.
+Contract-consumer/source-boundary guard: future implementation may reference only the published `@mbos/agent-runner-contract` package for runner contract semantics. It must not consume the contract through local dependency protocols, sibling AgentSmith source paths, other `@mbos` packages, moved runner packages, or removed old runner source.
 
 ## Commands
 

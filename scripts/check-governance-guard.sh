@@ -167,16 +167,16 @@ check_contract_consumer_source_boundary() {
   fi
 
   local agentsmith_name="agent""smith"
-  local legacy_repo_name="agent""smith-codex-runner"
+  local retired_repo_name="agent""smith-codex-runner"
   local agent_task_pkg="packages/agent-task""-runner"
   local agent_runner_pkg="packages/agent""-runner"
   local source_boundary_pattern
-  source_boundary_pattern="(\\.\\./${agentsmith_name}(/|$)|/home/percy/works/mbos-v1/${agentsmith_name}(/|$)|${agent_task_pkg}|${agent_runner_pkg}|${legacy_repo_name})"
+  source_boundary_pattern="(\\.\\./${agentsmith_name}(/|$)|/home/percy/works/mbos-v1/${agentsmith_name}(/|$)|${agent_task_pkg}|${agent_runner_pkg}|${retired_repo_name})"
 
   if grep -IEn -- "$source_boundary_pattern" "${files[@]}"; then
     fail "forbidden runner contract/source boundary reference found"
   else
-    pass "no forbidden AgentSmith sibling source or legacy runner reference"
+    pass "no forbidden AgentSmith sibling source or retired runner reference"
   fi
 }
 
@@ -209,7 +209,7 @@ check_no_forbidden_patterns() {
   local fs_repo_name="${agentsmith_name}-fs-control""-plane"
   local sandbox_repo_name="mbos-sandbox""-v1"
   local sandbox_control_repo_name="${agentsmith_name}-sandbox-control""-plane"
-  local legacy_repo_name="agent""smith-codex-runner"
+  local retired_repo_name="agent""smith-codex-runner"
   local agent_task_pkg="packages/agent-task""-runner"
   local agent_runner_pkg="packages/agent""-runner"
   local source_path_pattern
@@ -249,7 +249,7 @@ check_no_forbidden_patterns() {
     pass "no adjacent family path, gate, or manifest dependency"
   fi
 
-  local forbidden_remote_repo_names="(${agentsmith_name}|${fs_repo_name}|${sandbox_repo_name}|${legacy_repo_name})"
+  local forbidden_remote_repo_names="(${agentsmith_name}|${fs_repo_name}|${sandbox_repo_name}|${retired_repo_name})"
   local forbidden_remote_repo_path="([^[:space:]\"'/:]+/)?${forbidden_remote_repo_names}"
   local remote_repo_boundary="([.]git)?([/#?[:space:]\"']|$)"
   local checkout_remote_dependency_pattern="repository:[[:space:]]*[\"']?${forbidden_remote_repo_path}${remote_repo_boundary}"
@@ -295,12 +295,12 @@ check_no_forbidden_patterns() {
     pass "no mutable/tag-only release claim"
   fi
 
-  local legacy_pattern="(${legacy_repo_name}.*canonical|canonical.*${legacy_repo_name})"
+  local retired_runner_canonical_pattern="(${retired_repo_name}.*canonical|canonical.*${retired_repo_name})"
 
-  if grep -IEn -- "$legacy_pattern" "${files[@]}"; then
-    fail "legacy runner repo canonical claim found"
+  if grep -IEn -- "$retired_runner_canonical_pattern" "${files[@]}"; then
+    fail "retired runner repo canonical claim found"
   else
-    pass "no legacy runner canonical claim"
+    pass "no retired runner canonical claim"
   fi
 }
 

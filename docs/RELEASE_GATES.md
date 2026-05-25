@@ -25,7 +25,7 @@ Quick mode validates only the bootstrap governance skeleton and boundary guardra
 - No adjacent family repo dependency or copied governance implementation.
 - No raw secret placeholders.
 - No mutable or tag-only release claim.
-- No legacy runner repo canonical claim.
+- No retired runner repo canonical claim.
 
 Quick mode is not release readiness. Quick mode must not be described as a release gate, production approval, image adoption proof, or AgentSmith lock approval.
 

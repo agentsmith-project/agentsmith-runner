@@ -10,4 +10,4 @@ Current phase: bootstrap-only/docs-governance-first.
 | R-004 | Adjacent family repo references become implementation dependencies. | Open | ADR marks them as non-dependency references; quick guard blocks dependency patterns. |
 | R-005 | Secret placeholders or raw credentials enter bootstrap docs. | Open | Quick guard scans for common raw secret placeholder patterns. |
 | R-006 | Mutable image tags or tag-only claims become release proof. | Open | RELEASE_GATES blocks mutable and tag-only release claims; future releases must be digest-pinned. |
-| R-007 | Legacy runner repository becomes a second canonical truth. | Open | Quick guard rejects legacy canonical claims; canonical repo identity is fixed here. |
+| R-007 | Retired runner repository becomes a second canonical truth. | Open | Quick guard rejects retired runner canonical claims; canonical repo identity is fixed here. |
