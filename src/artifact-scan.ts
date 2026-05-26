@@ -203,8 +203,6 @@ function shouldSkipWorkspaceEntry(relPath: string, entry: Dirent): boolean {
     || top === '.cargo'
     || top === '.rustup'
     || top === '.ipython'
-    || top === '.trash'
-    || top === '.minio.sys'
   ) return true;
   if (top === '.git' || top === 'node_modules') return true;
   if (entry.name.startsWith('.DS_Store')) return true;

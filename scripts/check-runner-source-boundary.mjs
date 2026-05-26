@@ -130,7 +130,11 @@ const FORBIDDEN_RUNNER_PRODUCT_SEMANTIC_PATTERNS = [
   },
   {
     label: 'usage_tokens payload field',
-    pattern: /\busage_tokens\s*:/,
+    pattern: /(?:\busage_tokens\b|["']usage_tokens["']|\[\s*["']usage_tokens["']\s*\])\s*:/,
+  },
+  {
+    label: 'Files/file-library reserved namespace policy',
+    pattern: /\.minio\.sys|file[- ]library reserved namespace/i,
   },
   {
     label: 'workspace access release fence payload field',
@@ -302,6 +306,31 @@ function runSelfTest() {
       label: 'indirect usage token payload field',
       text: 'sendFrame("agent.response.done", id, { usage_tokens: estimatedUsageTokens });',
       expected: 'usage_tokens payload field',
+    },
+    {
+      label: 'computed usage token payload field',
+      text: "const payload = { ['usage_tokens']: estimatedUsageTokens };",
+      expected: 'usage_tokens payload field',
+    },
+    {
+      label: 'quoted usage token payload field',
+      text: 'const payload = { "usage_tokens": estimatedUsageTokens };',
+      expected: 'usage_tokens payload field',
+    },
+    {
+      label: 'storage backend reserved path constant',
+      text: "const reservedNamespace = '.minio.sys';",
+      expected: 'Files/file-library reserved namespace policy',
+    },
+    {
+      label: 'hyphenated file-library reserved namespace prose',
+      text: 'Skip file-library reserved namespace roots before reporting workspace diffs.',
+      expected: 'Files/file-library reserved namespace policy',
+    },
+    {
+      label: 'spaced file library reserved namespace prose',
+      text: 'Skip file library reserved namespace roots before reporting workspace diffs.',
+      expected: 'Files/file-library reserved namespace policy',
     },
     {
       label: 'workspace access release fence payload',

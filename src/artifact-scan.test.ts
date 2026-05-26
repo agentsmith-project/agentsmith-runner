@@ -89,12 +89,10 @@ describe('scanArtifactsDirectory', () => {
 });
 
 describe('workspace file snapshots', () => {
-  it('filters file-library reserved namespaces and runtime/cache roots from workspace diffs', async () => {
+  it('filters runner runtime and local tool roots from workspace diffs', async () => {
     const visibleRoot = mkdtempSync(join(tmpdir(), 'runner-workspace-scan-'));
     try {
       const runtimeRoot = join(visibleRoot, '.runner-runtime');
-      mkdirSync(join(visibleRoot, '.trash'), { recursive: true });
-      mkdirSync(join(visibleRoot, '.minio.sys'), { recursive: true });
       mkdirSync(join(visibleRoot, '.cache'), { recursive: true });
       mkdirSync(join(visibleRoot, '.config'), { recursive: true });
       mkdirSync(join(visibleRoot, '.local'), { recursive: true });
@@ -103,8 +101,6 @@ describe('workspace file snapshots', () => {
       mkdirSync(join(visibleRoot, '.mbos'), { recursive: true });
       mkdirSync(runtimeRoot, { recursive: true });
       writeFileSync(join(visibleRoot, 'user.txt'), 'user file');
-      writeFileSync(join(visibleRoot, '.trash', 'deleted.txt'), 'reserved');
-      writeFileSync(join(visibleRoot, '.minio.sys', 'meta.bin'), 'reserved');
       writeFileSync(join(visibleRoot, '.cache', 'tool-cache'), 'cache');
       writeFileSync(join(visibleRoot, '.config', 'tool.json'), 'config');
       writeFileSync(join(visibleRoot, '.local', 'state.db'), 'local');
@@ -117,8 +113,6 @@ describe('workspace file snapshots', () => {
       const changes = diffWorkspaceFileSnapshots(new Map(), after);
 
       expect(changes.added).toEqual(['user.txt']);
-      expect(JSON.stringify(changes)).not.toContain('.trash');
-      expect(JSON.stringify(changes)).not.toContain('.minio.sys');
       expect(JSON.stringify(changes)).not.toContain('.cache');
       expect(JSON.stringify(changes)).not.toContain('.config');
       expect(JSON.stringify(changes)).not.toContain('.runner-runtime');
