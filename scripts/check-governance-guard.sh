@@ -106,6 +106,8 @@ check_required_files() {
     docs/RISK_REGISTER.md
     .github/pull_request_template.md
     .github/workflows/ci.yml
+    Dockerfile
+    .dockerignore
     package.json
     tsconfig.json
     vitest.config.ts
@@ -116,6 +118,7 @@ check_required_files() {
     scripts/check-start-guard-clean-deps.mjs
     scripts/check-runner-source-boundary.mjs
     scripts/test-runner-runtime-fast.sh
+    scripts/test-runner-image-smoke.sh
     scripts/check-runner-release-manifest.mjs
     scripts/test-runner-release-manifest.sh
   )
@@ -286,6 +289,39 @@ check_release_manifest_skeleton_not_release() {
   require_grep "Release manifest skeleton mode is not release readiness" scripts/verify-release.sh "verify entrypoint says manifest mode is not release readiness"
 }
 
+check_image_smoke_not_release() {
+  require_grep "bash scripts/verify-release[.]sh --image-smoke --artifact-root <dir>" README.md "README documents image smoke command"
+  require_grep "Image smoke is not release readiness" README.md "README says image smoke is not release readiness"
+  require_grep "no GHCR publish|does not publish" README.md "README keeps image smoke out of GHCR publish"
+  require_grep "no release manifest|does not generate.*release manifest" README.md "README keeps image smoke out of release manifest generation"
+  require_grep "no AgentSmith adoption|does not.*AgentSmith adoption" README.md "README keeps image smoke out of AgentSmith adoption"
+
+  require_grep "bash scripts/verify-release[.]sh --image-smoke --artifact-root <dir>" DEVELOPMENT.md "DEVELOPMENT documents image smoke command"
+  require_grep "Image smoke is not release readiness" DEVELOPMENT.md "DEVELOPMENT says image smoke is not release readiness"
+  require_grep "explicit.*artifact root|artifact root.*explicit" DEVELOPMENT.md "DEVELOPMENT requires explicit artifact root for image smoke"
+
+  require_grep "bash scripts/verify-release[.]sh --image-smoke --artifact-root <artifact-root>" docs/RELEASE_GATES.md "RELEASE_GATES documents image smoke command"
+  require_grep "Image smoke is not release readiness" docs/RELEASE_GATES.md "RELEASE_GATES says image smoke is not release readiness"
+  require_grep "no-push|does not publish" docs/RELEASE_GATES.md "RELEASE_GATES keeps image smoke no-push"
+
+  require_grep "bash scripts/verify-release[.]sh --image-smoke --artifact-root <artifact-root>" docs/READINESS_EVIDENCE.md "readiness evidence documents image smoke command"
+  require_grep "Image smoke is not release readiness" docs/READINESS_EVIDENCE.md "readiness evidence says image smoke is not release readiness"
+  require_grep "not release readiness" docs/READINESS_EVIDENCE.md "readiness evidence keeps focused image smoke separate from release readiness"
+
+  require_grep "bash scripts/verify-release[.]sh --image-smoke --artifact-root <artifact-root>" docs/runbooks/README.md "runbooks document image smoke command"
+  require_grep "Image smoke is not release readiness" docs/runbooks/README.md "runbooks say image smoke is not release readiness"
+  require_grep "does not publish|no GHCR publish" docs/runbooks/README.md "runbooks keep image smoke out of publish"
+
+  require_grep "bash scripts/verify-release[.]sh --image-smoke --artifact-root <dir>" scripts/verify-release.sh "verify entrypoint supports image smoke"
+  require_grep "Image smoke is not release readiness" scripts/verify-release.sh "verify entrypoint says image smoke is not release readiness"
+  require_grep "test-runner-image-smoke[.]sh" scripts/verify-release.sh "verify entrypoint delegates image smoke to focused script"
+  require_grep "runner-image-smoke" .github/workflows/ci.yml "CI has focused image smoke job"
+  require_grep "repository:[[:space:]]*agentsmith-project/agentsmith" .github/workflows/ci.yml "CI explicitly checks out AgentSmith as artifact producer"
+  require_grep "npm run build -w @mbos/agent-runner-contract" .github/workflows/ci.yml "CI builds runner contract artifact package"
+  require_grep "npx tsx scripts/governance/runner-contract-artifact[.]ts" .github/workflows/ci.yml "CI generates explicit runner contract artifact root"
+  require_grep "bash scripts/verify-release[.]sh --image-smoke --artifact-root" .github/workflows/ci.yml "CI runs focused image smoke with artifact root"
+}
+
 check_local_handoff_documented() {
   require_grep "/home/percy/works/mbos-v1/agentsmith-runner" README.md "local sibling checkout path documented"
   require_grep "workspace convention" README.md "local sibling checkout is a workspace convention"
@@ -351,7 +387,11 @@ check_no_forbidden_patterns() {
   local raw_contract_gate_dependency_pattern="https?://raw[.]githubusercontent[.]com/[^[:space:]\"']+/[^[:space:]\"']+/[^[:space:]\"']+/(docs/contracts/|contracts/|[^[:space:]\"']*(gate|verify-[^/[:space:]\"']*release)[^[:space:]\"']*)"
   local remote_dependency_pattern="(${checkout_remote_dependency_pattern}|${git_remote_dependency_pattern}|${raw_remote_dependency_pattern}|${raw_contract_gate_dependency_pattern})"
 
-  if grep -IEin -- "$remote_dependency_pattern" "${files[@]}"; then
+  local remote_dependency_hits
+  remote_dependency_hits="$(grep -IEin -- "$remote_dependency_pattern" "${files[@]}" | grep -Ev '^\./\.github/workflows/ci[.]yml:[0-9]+:[[:space:]]*repository:[[:space:]]*agentsmith-project/agentsmith[[:space:]]*$' || true)"
+
+  if [[ -n "$remote_dependency_hits" ]]; then
+    echo "$remote_dependency_hits"
     fail "forbidden remote source, contract, or gate dependency found"
   else
     pass "no forbidden remote source, contract, or gate dependency"
@@ -429,6 +469,7 @@ check_contract_consumer_source_boundary
 check_quick_not_release
 check_start_guard_not_release
 check_release_manifest_skeleton_not_release
+check_image_smoke_not_release
 check_local_handoff_documented
 check_no_forbidden_patterns
 check_no_ecosystem_bootstrap_files

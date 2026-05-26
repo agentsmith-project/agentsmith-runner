@@ -2,7 +2,7 @@
 
 This directory holds focused operator and developer runbook notes for the runner repo.
 
-Current status: P5.3b first half. Runtime fast checks are available, but no runner image build, deploy, publish, release, or adoption runbook is authoritative yet.
+Current status: P5 focused runner work. Runtime fast checks and a focused no-push image smoke are available, but no runner image deploy, publish, release, or adoption runbook is authoritative yet.
 
 ## P5.3b Runtime Fast Diagnostic
 
@@ -17,6 +17,18 @@ The command runs the source-boundary guard, TypeScript checking, runner unit tes
 Do not use this as an image build, GHCR publish step, backend-real proof, AgentSmith adoption step, or reason to update locks. Runtime fast gate is not release readiness.
 
 Pre-GA, install runtime fast dependencies from an explicit runner contract artifact package. A plain `npm install` is not sufficient while `@mbos/agent-runner-contract` is unpublished.
+
+## P5 Runner Image Smoke
+
+Use this only when a formal runner contract artifact root has been supplied:
+
+```bash
+bash scripts/verify-release.sh --image-smoke --artifact-root <artifact-root>
+```
+
+The command first validates the artifact root with `--contract-consumer`, builds a temporary Docker context, injects the descriptor-referenced tgz into the Docker build, builds `dist/index.js` inside the image, and runs the image without `MBOS_AGENT_WS_URL`/`MBOS_AGENT_KEY`. It must finish with `image smoke passed`.
+
+Image smoke is not release readiness. Do not use it as a release gate, GHCR publish step, registry login step, release manifest generator, AgentSmith adoption step, lock update reason, or backend-real proof. It does not publish anything.
 
 ## P5.0 Contract Consumer Diagnostic
 
@@ -52,12 +64,12 @@ bash scripts/verify-release.sh --start-guard
 
 The command runs quick governance, shell syntax checks, source-boundary validation, `node --check` for Node checkers, the local consumer self-test, and the local manifest self-test. Contract and manifest checks use generated temporary fixtures only and do not require a supplied artifact root or manifest artifact.
 
-Start guard is not release readiness. It intentionally excludes runtime fast checks until clean CI has explicit contract artifact acquisition. Do not use it as a release gate, image publish step, AgentSmith adoption step, or reason to update locks.
+Start guard is not release readiness. It intentionally excludes runtime fast checks and image smoke. Do not use it as a release gate, image publish step, AgentSmith adoption step, or reason to update locks.
 
 ## Future Runbook Areas
 
 - Local runner development setup.
-- Runner image build and smoke.
+- Runner image deploy and publish.
 - Builtin skills runtime diagnostics beyond the fast unit gate.
 - Contract conformance execution.
 - Release evidence generation.

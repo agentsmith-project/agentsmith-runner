@@ -10,7 +10,7 @@ This repository is the canonical AgentSmith runner repository:
 - Remote URL: `https://github.com/agentsmith-project/agentsmith-runner.git`
 - Default branch: `main`
 
-Current phase: P5.3b first half. Runtime source, builtin skills, and focused dev/fast checks live here; image build/publish, release readiness, AgentSmith adoption locks, and product semantics do not.
+Current phase: P5 focused runner work. Runtime source, builtin skills, focused dev/fast checks, and focused no-push image build/start smoke live here; image publish, release readiness, AgentSmith adoption locks, and product semantics do not.
 
 The repo is for runner execution process, builtin skills runtime, runner image, runner CI, and runner contract conformance tests. It only consumes the AgentSmith runner contract.
 
@@ -24,9 +24,10 @@ It is not responsible for Agent task API, Agent Runners API, Context Store, File
 - Builtin skills runtime may only implement projection consumption and local execution. It must not add permission or credential resolution semantics.
 - Keep owner/team metadata in `OWNERS.md`. Do not introduce a CODEOWNERS system during bootstrap.
 
-## P5.3b Rules
+## P5 Rules
 
-- Do not move Dockerfiles, product contracts, AgentSmith gates, AgentSmith product tests, image publish steps, or release readiness authority during P5.3b first half.
+- Do not move product contracts, AgentSmith gates, AgentSmith product tests, image publish steps, release manifests, AgentSmith adoption locks, or release readiness authority during P5 focused image smoke work.
+- Keep image smoke no-push and local-only; it must consume an explicit runner contract artifact root and must not log in to registries.
 - Do not import sibling repo source or rely on sibling repo relative paths for runtime behavior.
 - Do not copy implementation assets from adjacent family repos or retired runner repos.
 - Keep scripts KISS, fail closed, and simple.
@@ -58,6 +59,12 @@ Use the runtime fast gate for runner source and builtin skills changes:
 
 ```bash
 bash scripts/test-runner-runtime-fast.sh
+```
+
+Use the focused image smoke only with an explicit runner contract artifact root:
+
+```bash
+bash scripts/verify-release.sh --image-smoke --artifact-root <dir>
 ```
 
 These commands are not release readiness and must not be described as release gates.

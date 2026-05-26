@@ -31,3 +31,52 @@ jobs:
           node-version: '24'
       - name: Verify runner skeleton startup guard
         run: bash scripts/verify-release.sh --start-guard
+
+  runner-image-smoke:
+    name: Runner image smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout agentsmith-runner
+        uses: actions/checkout@v6
+        with:
+          path: agentsmith-runner
+
+      - name: Checkout AgentSmith contract artifact producer
+        uses: actions/checkout@v6
+        with:
+          repository: agentsmith-project/agentsmith
+          path: agentsmith-contract-producer
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: agentsmith-contract-producer/package-lock.json
+
+      - name: Install AgentSmith producer dependencies
+        working-directory: agentsmith-contract-producer
+        run: npm ci
+
+      - name: Build runner contract artifact package
+        working-directory: agentsmith-contract-producer
+        run: npm run build -w @mbos/agent-runner-contract
+
+      - name: Produce explicit runner contract artifact root
+        working-directory: agentsmith-contract-producer
+        run: |
+          set -euo pipefail
+          producer_sha="$(git rev-parse HEAD)"
+          GITHUB_REPOSITORY=agentsmith-project/agentsmith \
+          GITHUB_SHA="$producer_sha" \
+          GITHUB_WORKFLOW="Runner Contract Artifact" \
+          GITHUB_RUN_ID="$GITHUB_RUN_ID" \
+          GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT" \
+          GITHUB_JOB=produce-runner-contract-artifact \
+            npx tsx scripts/governance/runner-contract-artifact.ts \
+              --output-dir "$GITHUB_WORKSPACE/artifacts/runner-contract"
+
+      - name: Verify no-push runner image smoke
+        working-directory: agentsmith-runner
+        run: bash scripts/verify-release.sh --image-smoke --artifact-root "$GITHUB_WORKSPACE/artifacts/runner-contract"

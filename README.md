@@ -1,6 +1,6 @@
 # AgentSmith Runner
 
-AgentSmith Runner is the implementation home for the AgentSmith managed runner execution process. P5.3b first-half scope lands repo-local runtime source, builtin skills, and a focused dev/fast runtime gate while keeping Docker image work, release readiness, AgentSmith adoption locks, and product semantics out of scope.
+AgentSmith Runner is the implementation home for the AgentSmith managed runner execution process. Current P5 scope has repo-local runtime source, builtin skills, a focused dev/fast runtime gate, and a focused no-push image build/start smoke while keeping release readiness, AgentSmith adoption locks, and product semantics out of scope.
 
 Canonical repository identity: `github.com/agentsmith-project/agentsmith-runner`
 
@@ -41,7 +41,7 @@ This repo does not own:
 - Frontend management surface.
 - AgentSmith product release readiness.
 
-This P5.3b first-half slice does not move runner Dockerfiles, product tests, product contracts, AgentSmith release gates, image build/publish steps, AgentSmith adoption locks, or release readiness authority.
+This P5 image-smoke slice adds only a repo-local Dockerfile and focused build/start smoke. It does not move product tests, product contracts, AgentSmith release gates, image publish steps, AgentSmith adoption locks, release manifests, or release readiness authority.
 
 ## Boundary Rules
 
@@ -83,6 +83,18 @@ It runs the repo-local source boundary guard, TypeScript checking, Vitest runner
 
 Pre-GA runtime fast requires local dev dependencies plus an explicit `@mbos/agent-runner-contract` artifact package input. It is not ordinary npm install from a public registry, sibling source, or a file/link/workspace local protocol.
 
+## P5 Runner Image Smoke
+
+The focused image smoke is:
+
+```bash
+bash scripts/verify-release.sh --image-smoke --artifact-root <dir>
+```
+
+The artifact root must contain `runner-contract-artifact.json` and the tgz named by that descriptor. The smoke first runs `--contract-consumer`, then builds a temporary Docker context, injects the explicit contract tgz into the image build, runs a no-push local image with `--network=none`, and expects missing `MBOS_AGENT_WS_URL`/`MBOS_AGENT_KEY` to fail fast with `Usage`.
+
+Image smoke is not release readiness. It is no GHCR publish, no registry login, no release manifest, no AgentSmith adoption, no lock update, and no release-ready claim. It proves only that a clean local image can build from the explicit contract artifact and start far enough to reject missing required runner env.
+
 ## P5.1/P5.3a/P5.3b Start Guard
 
 The start guard is CI-safe startup coverage for source-boundary, contract consumer skeleton, and runner release manifest skeleton:
@@ -93,7 +105,7 @@ bash scripts/verify-release.sh --start-guard
 
 This runs quick governance, shell syntax checks, source-boundary validation, Node checker syntax checks, `bash scripts/test-runner-contract-consumer.sh`, and `bash scripts/test-runner-release-manifest.sh`. The contract and manifest self-tests use only local temporary fixtures and do not require an external artifact root or manifest artifact.
 
-Start guard is not release readiness. It intentionally excludes the runtime fast gate until clean CI has explicit contract artifact acquisition, and it does not replace full release mode, image evidence, runtime evidence, AgentSmith adoption evidence, or an AgentSmith lock update.
+Start guard is not release readiness. It intentionally excludes the runtime fast gate and image smoke, and it does not replace full release mode, image evidence, runtime evidence, AgentSmith adoption evidence, or an AgentSmith lock update.
 
 ## P5.3a Runner Release Manifest Skeleton
 
@@ -133,4 +145,4 @@ When team members enter this repo, first claim non-overlapping workstreams befor
 - `CI gate`: quick governance guard, future release gate design, workflow hardening.
 - `implementation`: runner process, skills runtime, runner image, conformance tests.
 
-All workstreams are bound by this README, [AGENTS.md](AGENTS.md), [DEVELOPMENT.md](DEVELOPMENT.md), and [docs/RELEASE_GATES.md](docs/RELEASE_GATES.md). Quick gate and runtime fast gate success only open repo-local focused work; they do not approve release, adoption, or AgentSmith lock updates.
+All workstreams are bound by this README, [AGENTS.md](AGENTS.md), [DEVELOPMENT.md](DEVELOPMENT.md), and [docs/RELEASE_GATES.md](docs/RELEASE_GATES.md). Quick gate, runtime fast gate, and image smoke success only open repo-local focused work; they do not approve release, adoption, or AgentSmith lock updates.

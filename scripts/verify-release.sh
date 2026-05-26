@@ -7,6 +7,7 @@ Usage:
   bash scripts/verify-release.sh --quick
   bash scripts/verify-release.sh --start-guard
   bash scripts/verify-release.sh --contract-consumer --artifact-root <dir>
+  bash scripts/verify-release.sh --image-smoke --artifact-root <dir>
   bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
   bash scripts/verify-release.sh
 
@@ -15,6 +16,7 @@ Current bootstrap status:
   --start-guard validates quick governance plus source-boundary, contract-consumer, and release-manifest startup checks.
     It intentionally excludes runtime fast checks until CI has explicit contract artifact acquisition.
   --contract-consumer validates an explicit runner contract artifact root only.
+  --image-smoke builds a local no-push runner image from an explicit runner contract artifact root and checks missing-env Usage only.
   --release-manifest validates an explicit runner release manifest skeleton only.
   Full release mode is intentionally not implemented during bootstrap.
 USAGE
@@ -53,6 +55,7 @@ if [[ "${1:-}" == "--start-guard" ]]; then
   bash -n "$repo_root/scripts/check-governance-guard.sh"
   bash -n "$repo_root/scripts/test-runner-runtime-fast.sh"
   bash -n "$repo_root/scripts/test-runner-contract-consumer.sh"
+  bash -n "$repo_root/scripts/test-runner-image-smoke.sh"
   bash -n "$repo_root/scripts/test-runner-release-manifest.sh"
 
   echo "start guard: running quick governance guard"
@@ -101,6 +104,17 @@ if [[ "${1:-}" == "--contract-consumer" ]]; then
   exit 0
 fi
 
+if [[ "${1:-}" == "--image-smoke" ]]; then
+  if [[ $# -ne 3 || "${2:-}" != "--artifact-root" ]]; then
+    echo "error: --image-smoke requires exactly --artifact-root <dir>" >&2
+    usage >&2
+    exit 2
+  fi
+
+  bash "$repo_root/scripts/test-runner-image-smoke.sh" --artifact-root "$3"
+  exit 0
+fi
+
 if [[ "${1:-}" == "--release-manifest" ]]; then
   if [[ $# -ne 3 || "${2:-}" != "--manifest" ]]; then
     echo "error: --release-manifest requires exactly --manifest <manifest-path>" >&2
@@ -126,12 +140,14 @@ This repo currently supports only:
   bash scripts/verify-release.sh --quick
   bash scripts/verify-release.sh --start-guard
   bash scripts/verify-release.sh --contract-consumer --artifact-root <dir>
+  bash scripts/verify-release.sh --image-smoke --artifact-root <dir>
   bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
 
 Quick mode is not release readiness.
 Start guard is not release readiness.
 Runtime fast checks are separate until clean CI has explicit contract artifact acquisition.
 Contract consumer mode is not release readiness.
+Image smoke is not release readiness.
 Release manifest skeleton mode is not release readiness.
 MESSAGE
 exit 2

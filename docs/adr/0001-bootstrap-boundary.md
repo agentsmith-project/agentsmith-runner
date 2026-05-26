@@ -26,7 +26,9 @@ The repository will include:
 - CI workflow that runs the quick governance guard.
 - Bash quick guard with no package dependencies.
 
-The repository will not include runtime code, Dockerfile, copied contracts, copied gates, image publication, release readiness claims, or AgentSmith adoption lock changes during bootstrap.
+At bootstrap creation, the repository did not include runtime code, Dockerfile, copied contracts, copied gates, image publication, release readiness claims, or AgentSmith adoption lock changes.
+
+ADR 0001 is the historical record of the bootstrap boundary. Current P5 focused runner work allows repo-local runtime source and a no-push Dockerfile/image smoke, but still does not allow image publish, release manifest generation, AgentSmith adoption, release readiness claims, or AgentSmith product semantics to move into this repo.
 
 Local handoff uses `/home/percy/works/mbos-v1/agentsmith-runner` as a checkout beside AgentSmith. That path is a workspace convention only; no runtime behavior, scripts, CI, release evidence, or source path dependency may rely on it. Release provenance remains the canonical GitHub repository.
 

@@ -1,6 +1,6 @@
 # Readiness Evidence
 
-Current phase: P5.3b first half.
+Current phase: P5 focused runner work.
 
 ## Bootstrap Evidence
 
@@ -18,13 +18,15 @@ Current phase: P5.3b first half.
 | P5.3b builtin skills | present | builtin-skills/ |
 | P5.3b runtime fast gate | focused diagnostic | scripts/test-runner-runtime-fast.sh |
 | P5.3b source boundary guard | focused diagnostic | scripts/check-runner-source-boundary.mjs |
+| P5 runner Dockerfile | present | Dockerfile |
+| P5 runner image smoke | focused diagnostic | scripts/verify-release.sh --image-smoke --artifact-root <artifact-root> |
 | P5.1 start guard | focused diagnostic | scripts/verify-release.sh --start-guard |
 | Quick verify entrypoint present | present | scripts/verify-release.sh |
 | CI quick guard present | present | .github/workflows/ci.yml |
 | CI runner start guard present | present | .github/workflows/ci.yml |
 | Full release gate | not implemented | docs/RELEASE_GATES.md |
 | Runtime behavior evidence | focused only | scripts/test-runner-runtime-fast.sh |
-| Runner image evidence | not implemented | future implementation workstream |
+| Runner image evidence | focused only | scripts/verify-release.sh --image-smoke --artifact-root <artifact-root> |
 | Contract conformance evidence | not implemented | future contracts and CI gate workstreams |
 | Provenance-backed release manifest artifact | not implemented | future CI gate workstream |
 | Local, dev, or backend-real diagnostics as release proof | rejected | docs/RELEASE_GATES.md |
@@ -56,6 +58,20 @@ Expected success output includes `runner runtime fast checks passed`.
 This evidence proves only that the repo-local runner source passes TypeScript and focused unit tests, and that builtin skill unit tests pass. It is not Docker image evidence, backend-real runtime evidence, AgentSmith adoption evidence, an AgentSmith lock update, or release readiness.
 
 Runtime fast gate is not release readiness. Pre-GA, it also requires an explicitly supplied contract artifact package because `@mbos/agent-runner-contract` is not published to npm yet.
+
+## P5 Image Smoke Focused Evidence
+
+The focused image smoke is:
+
+```bash
+bash scripts/verify-release.sh --image-smoke --artifact-root <artifact-root>
+```
+
+Expected success output includes `image smoke passed` and `Image smoke is not release readiness`.
+
+This evidence proves only that a supplied contract artifact root passes the contract consumer diagnostic, a temporary Docker build context can inject the referenced tgz, the image can build `dist/index.js` without local ignored `dist/`, and the container exits with `Usage` when required runner env is missing.
+
+Image smoke is not release readiness. It is not GHCR publish evidence, not registry login evidence, not release manifest generation, not provenance-backed release evidence, not backend-real runtime evidence, not AgentSmith adoption evidence, and not an AgentSmith lock update.
 
 ## P5.0 Focused Evidence
 
@@ -105,4 +121,4 @@ bash scripts/verify-release.sh --start-guard
 
 Expected success output includes `runner start guard passed` and `Start guard is not release readiness`. It runs quick governance, shell syntax checks, source-boundary validation, consumer and manifest syntax checks, and the local consumer and manifest self-tests without an external artifact root or manifest artifact.
 
-Start guard is not release readiness. It intentionally excludes runtime fast checks until clean CI has explicit contract artifact acquisition.
+Start guard is not release readiness. It intentionally excludes runtime fast checks and image smoke.

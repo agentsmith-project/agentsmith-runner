@@ -24,6 +24,7 @@ Allowed now:
 - Run the P5.1 start guard with local negative fixtures and no external artifact root.
 - Run the P5.3a runner release manifest skeleton checker against an explicit manifest supplied by the caller.
 - Run the P5.3b runtime fast gate against repo-local runner source and builtin skills.
+- Run the P5 focused image smoke against an explicit runner contract artifact root.
 
 Not allowed now:
 
@@ -57,6 +58,16 @@ The runner release manifest skeleton does not download or unpack contract artifa
 
 This checker fixes the manifest adoption shape only. It is not a contract source of truth, not a runtime conformance test, not image evidence, not AgentSmith adoption, and not release readiness. AgentSmith should consume a future provenance-backed manifest plus lock state rather than local runner source.
 
+## P5 Image Smoke Contract Input
+
+```bash
+bash scripts/verify-release.sh --image-smoke --artifact-root <artifact-root>
+```
+
+Image smoke accepts only an explicit artifact root containing `runner-contract-artifact.json` and the referenced tgz. It first runs the contract consumer diagnostic, then injects that tgz into a no-push Docker build and checks missing runner env fails fast with `Usage`.
+
+Image smoke is not release readiness. It is not release manifest generation, not AgentSmith adoption, not image publish, not registry login, and not a contract source of truth.
+
 ## P5.1 Start Guard
 
 ```bash
@@ -65,7 +76,7 @@ bash scripts/verify-release.sh --start-guard
 
 Start guard runs quick governance, shell syntax checks, source-boundary validation, consumer and manifest syntax checks, and both local skeleton self-tests. The consumer self-test builds only temporary fixtures and covers rejection of legacy descriptor fields, artifact filename escape, artifact URI drift, sha256 drift, npm SRI drift, local or non-empty package dependencies, and source/test files inside the tgz. The manifest self-test uses temporary JSON fixtures and covers image digest pinning, producer repo drift, contract artifact metadata, protocol drift, semver drift, subject hash drift, local path or credential-like leakage, and unknown fields.
 
-Start guard is not release readiness. It intentionally excludes runtime fast checks until clean CI has explicit contract artifact acquisition. It is a CI startup guard for local skeleton checks, not proof of runtime compatibility, image release quality, AgentSmith adoption, or lock update.
+Start guard is not release readiness. It intentionally excludes runtime fast checks and image smoke. It is a CI startup guard for local skeleton checks, not proof of runtime compatibility, image release quality, AgentSmith adoption, publish, release manifest generation, or lock update.
 
 ## Future Conformance Areas
 

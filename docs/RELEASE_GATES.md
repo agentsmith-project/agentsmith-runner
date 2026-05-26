@@ -1,6 +1,6 @@
 # Release Gates
 
-Current phase: P5.3b first half, with repo-local runner runtime source, builtin skills, and focused fast checks.
+Current phase: P5 focused runner work, with repo-local runner runtime source, builtin skills, focused fast checks, and a no-push image build/start smoke.
 
 ## Quick Mode
 
@@ -58,6 +58,16 @@ This explicit mode is a focused consumer skeleton for a supplied runner contract
 
 Contract consumer mode is not release readiness. It does not replace quick mode, full release mode, image evidence, adoption evidence, or AgentSmith product readiness. It must not read sibling source trees or consume local dependency protocols.
 
+## P5 Runner Image Smoke Mode
+
+```bash
+bash scripts/verify-release.sh --image-smoke --artifact-root <artifact-root>
+```
+
+This explicit mode is a focused no-push image build/start smoke for a supplied runner contract artifact root. It first runs `--contract-consumer --artifact-root <artifact-root>`, parses `runner-contract-artifact.json` for the tgz filename, copies repo source and the tgz into a temporary Docker context, builds `dist/index.js` inside the image, and runs the image with `--network=none` and no `MBOS_AGENT_WS_URL`/`MBOS_AGENT_KEY`. The expected runtime result is exit code 1 with `Usage` on stderr.
+
+Image smoke is not release readiness. It does not publish an image, log in to a registry, push to GHCR, generate a release manifest, produce provenance, update AgentSmith adoption, update an AgentSmith lock, or replace the future full release gate.
+
 ## P5.3a Runner Release Manifest Skeleton Mode
 
 ```bash
@@ -78,13 +88,14 @@ bash scripts/verify-release.sh --start-guard
 
 Start guard runs quick governance, shell syntax checks, source-boundary validation, `node --check` for the source-boundary, contract consumer, and release manifest checkers, `bash scripts/test-runner-contract-consumer.sh`, and `bash scripts/test-runner-release-manifest.sh`. It is intended for CI startup coverage of local skeleton checks. Contract and manifest self-tests use only local temporary fixtures and must not require an external artifact root or manifest artifact.
 
-Start guard is not release readiness. It intentionally excludes runtime fast checks until clean CI has explicit contract artifact acquisition, and it does not replace full release mode, external artifact validation, image evidence, runtime evidence, adoption evidence, AgentSmith product readiness, or an AgentSmith lock update.
+Start guard is not release readiness. It intentionally excludes runtime fast checks and image smoke, and it does not replace full release mode, external artifact validation, image evidence, runtime evidence, adoption evidence, AgentSmith product readiness, or an AgentSmith lock update.
 
 ## Non-Gates
 
 - Bootstrap quick mode is not release readiness.
 - P5.3b runtime fast gate is not release readiness.
 - P5.0 contract consumer mode is not release readiness.
+- P5 runner image smoke is not release readiness.
 - P5.3a release manifest skeleton mode is not release readiness.
 - P5.1 start guard is not release readiness.
 - Passing CI quick mode is not release readiness.

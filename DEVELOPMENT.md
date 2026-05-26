@@ -1,10 +1,10 @@
 # Development
 
-This repository is intentionally narrow during P5.3b. The current goal is to make runner runtime source, builtin skills, and dev/fast checks repo-local while keeping release, image, adoption, and product semantics out of scope.
+This repository is intentionally narrow during P5. The current goal is to make runner runtime source, builtin skills, dev/fast checks, and focused no-push image build/start smoke repo-local while keeping release, adoption, and product semantics out of scope.
 
 ## Current Phase
 
-P5.3b first half: runner runtime source and builtin skills have a repo-local fast gate.
+P5 focused runner work: runner runtime source and builtin skills have a repo-local fast gate, and the runner image has a focused build/start smoke.
 
 Allowed now:
 
@@ -21,11 +21,13 @@ Allowed now:
 - Runner runtime source under `src/`.
 - Builtin skills under `builtin-skills/`.
 - P5.3b runtime fast gate.
+- Dockerfile plus focused image smoke that consumes an explicit runner contract artifact root.
 
 Not allowed now:
 
-- Runner Dockerfile migration.
-- Docker image build or publish.
+- Docker image publish.
+- Registry login or GHCR push.
+- Release manifest generation from image smoke.
 - AgentSmith adoption lock updates.
 - Release readiness claims.
 - Product API, Context Store, Files, managed credential, audit, usage, or frontend management code.
@@ -75,6 +77,16 @@ bash scripts/verify-release.sh --contract-consumer --artifact-root <artifact-roo
 
 This command expects a caller-supplied artifact root containing external descriptor `runner-contract-artifact.json` and the tgz referenced by the descriptor. It validates descriptor release truth, CI artifact provenance, sha256, npm SRI integrity, the package manifest v1 inside the tgz, and a temporary npm install from the tgz before running import and guard smokes. It rejects legacy `local_pack_manifest` and is not release readiness.
 
+P5 runner image smoke:
+
+```bash
+bash scripts/verify-release.sh --image-smoke --artifact-root <dir>
+```
+
+This command requires an explicit artifact root containing `runner-contract-artifact.json` and the referenced tgz. It first runs `--contract-consumer`, then builds a temporary Docker context, injects the contract tgz as a build input, builds a local image with a unique non-`latest` tag, and runs it without `MBOS_AGENT_WS_URL`/`MBOS_AGENT_KEY` to confirm fail-fast `Usage`.
+
+Image smoke is not release readiness. It does not publish to GHCR, log in to a registry, generate a release manifest, update AgentSmith adoption, update locks, or prove backend-real behavior.
+
 P5.3a runner release manifest skeleton diagnostic:
 
 ```bash
@@ -91,6 +103,7 @@ Script syntax check:
 bash -n scripts/verify-release.sh
 bash -n scripts/check-governance-guard.sh
 bash -n scripts/test-runner-runtime-fast.sh
+bash -n scripts/test-runner-image-smoke.sh
 bash -n scripts/test-runner-contract-consumer.sh
 bash -n scripts/test-runner-release-manifest.sh
 node --check scripts/check-runner-source-boundary.mjs
@@ -106,7 +119,7 @@ bash scripts/verify-release.sh --start-guard
 
 Start guard runs quick governance, shell syntax checks, source-boundary validation, consumer and manifest Node syntax checks, and the local consumer and manifest self-tests with generated temporary fixtures. The consumer and manifest self-tests do not require an external artifact root or manifest artifact.
 
-Start guard is not release readiness. It intentionally excludes runtime fast checks until clean CI has explicit contract artifact acquisition. Runtime fast checks require repo-local Node dependencies, but they must not introduce generated lockfiles or local dependency protocols. The P5.0 consumer diagnostic uses Node and npm only inside a temporary consumer workspace where needed.
+Start guard is not release readiness. It intentionally excludes runtime fast checks and image smoke. Runtime fast checks require repo-local Node dependencies, and image smoke requires Docker plus an explicit contract artifact root; neither may introduce generated lockfiles or local dependency protocols. The P5.0 consumer diagnostic uses Node and npm only inside a temporary consumer workspace where needed.
 
 ## Local Workspace Handoff
 
@@ -114,7 +127,7 @@ The local checkout at `/home/percy/works/mbos-v1/agentsmith-runner` is a workspa
 
 ## Release Posture
 
-Quick verification proves only that the governance surface is intact. Runtime fast checks prove only repo-local type/unit and builtin skill fast behavior. Neither proves image quality, backend-real behavior, AgentSmith adoption, or release readiness.
+Quick verification proves only that the governance surface is intact. Runtime fast checks prove only repo-local type/unit and builtin skill fast behavior. Image smoke proves only a clean local image build/start fail-fast path with an explicit contract artifact. None of these prove image release quality, backend-real behavior, AgentSmith adoption, or release readiness.
 
 Local diagnostics, dev diagnostics, and backend-real diagnostics can become focused evidence later, but they are not release proof for this repository.
 
