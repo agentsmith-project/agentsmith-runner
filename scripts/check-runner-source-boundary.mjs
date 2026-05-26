@@ -112,6 +112,30 @@ const FORBIDDEN_RUNNER_PRODUCT_SEMANTIC_PATTERNS = [
     label: 'managed credential refresh helper',
     pattern: /refresh_managed_credential|refresh-managed-credential/,
   },
+  {
+    label: 'workspace access product endpoint',
+    pattern: /workspace-access(?:\/release)?/,
+  },
+  {
+    label: 'task HOME binding product payload schema',
+    pattern: /\btask_home_binding\b/,
+  },
+  {
+    label: 'AFSCP provider binding schema',
+    pattern: /\bafscp\b/i,
+  },
+  {
+    label: 'raw workspace storage payload field',
+    pattern: /\b(?:metadata_url|storage_bucket_url|recommended_mount_path|recommended_mount_commands|filesystem_name|workspace_dir_name|mount_command|mount_commands)\b/,
+  },
+  {
+    label: 'usage_tokens payload field',
+    pattern: /\busage_tokens\s*:/,
+  },
+  {
+    label: 'workspace access release fence payload field',
+    pattern: /\b(?:holder_id|binding_generation|lease_epoch)\b/,
+  },
 ];
 
 function addError(message) {
@@ -235,6 +259,102 @@ function checkProductSemanticPatterns() {
       }
     }
   }
+}
+
+function collectProductSemanticPatternErrors(relativePath, text) {
+  const violations = [];
+  for (const { label, pattern } of FORBIDDEN_RUNNER_PRODUCT_SEMANTIC_PATTERNS) {
+    if (pattern.test(text)) {
+      violations.push(`${relativePath} defines forbidden ${label}`);
+    }
+  }
+  return violations;
+}
+
+function runSelfTest() {
+  const negativeCases = [
+    {
+      label: 'workspace access endpoint',
+      text: 'await fetch(`/tasks/${taskId}/workspace-access/release`);',
+      expected: 'workspace access product endpoint',
+    },
+    {
+      label: 'task HOME binding payload',
+      text: 'return { task_home_binding: binding };',
+      expected: 'task HOME binding product payload schema',
+    },
+    {
+      label: 'AFSCP provider binding',
+      text: "const binding = { provider: 'afscp' };",
+      expected: 'AFSCP provider binding schema',
+    },
+    {
+      label: 'raw storage payload',
+      text: "const payload = { metadata_url: 'postgres://example' };",
+      expected: 'raw workspace storage payload field',
+    },
+    {
+      label: 'usage token payload field',
+      text: 'sendFrame("agent.response.done", id, { usage_tokens: Math.max(1, userPrompt.length) });',
+      expected: 'usage_tokens payload field',
+    },
+    {
+      label: 'indirect usage token payload field',
+      text: 'sendFrame("agent.response.done", id, { usage_tokens: estimatedUsageTokens });',
+      expected: 'usage_tokens payload field',
+    },
+    {
+      label: 'workspace access release fence payload',
+      text: [
+        'await releaseTaskWorkspaceAccess(context, {',
+        "  holder_id: 'holder_1',",
+        "  binding_generation: '1',",
+        "  lease_epoch: 'lease_1',",
+        '});',
+      ].join('\n'),
+      expected: 'workspace access release fence payload field',
+    },
+  ];
+  const positiveCases = [
+    {
+      label: 'formal workspace path fields',
+      text: [
+        "const context = {",
+        "  workspace_binding_mode: 'file_library',",
+        "  workspace_file_library_id: 'flib_1',",
+        "  task_home_path: '/home/task_1',",
+        "  workspace_path: '/home/task_1/workspace',",
+        "  artifacts_path: '/home/task_1/workspace/.artifacts',",
+        "  library_root_path: '.',",
+        '};',
+      ].join('\n'),
+    },
+  ];
+  const selfTestErrors = [];
+  for (const testCase of negativeCases) {
+    const violations = collectProductSemanticPatternErrors(`self-test/${testCase.label}.ts`, testCase.text);
+    if (!violations.some((violation) => violation.includes(testCase.expected))) {
+      selfTestErrors.push(`self-test failed to reject ${testCase.label}`);
+    }
+  }
+  for (const testCase of positiveCases) {
+    const violations = collectProductSemanticPatternErrors(`self-test/${testCase.label}.ts`, testCase.text);
+    if (violations.length > 0) {
+      selfTestErrors.push(`self-test false positive for ${testCase.label}: ${violations.join('; ')}`);
+    }
+  }
+  if (selfTestErrors.length > 0) {
+    for (const error of selfTestErrors) {
+      console.error(`error: ${error}`);
+    }
+    process.exit(1);
+  }
+  console.log('runner source boundary self-test passed');
+}
+
+if (process.argv.includes('--self-test')) {
+  runSelfTest();
+  process.exit(0);
 }
 
 checkRequiredPaths();

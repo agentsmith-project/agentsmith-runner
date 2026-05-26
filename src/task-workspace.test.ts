@@ -1,18 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mkdirMock, fetchMock, spawnMock } = vi.hoisted(() => ({
+const { mkdirMock, fetchMock } = vi.hoisted(() => ({
   mkdirMock: vi.fn(),
   fetchMock: vi.fn(),
-  spawnMock: vi.fn(),
-}));
-
-vi.mock('node:child_process', () => ({
-  execFile: vi.fn(),
-  spawn: spawnMock,
-  default: {
-    execFile: vi.fn(),
-    spawn: spawnMock,
-  },
 }));
 
 vi.mock('node:fs/promises', () => ({
@@ -25,9 +15,7 @@ vi.mock('node:fs/promises', () => ({
 import {
   buildTaskWorkspacePaths,
   clearPreparedTaskWorkspaces,
-  fetchTaskWorkspaceAccess,
   prepareTaskWorkspace,
-  releaseTaskWorkspaceAccess,
   resolveAgentTaskRunnerMode,
   resolveTaskCwd,
   shouldRetryTaskWorkspaceWriteFailure,
@@ -38,11 +26,6 @@ const TASK_WORKSPACE = `${TASK_HOME}/workspace`;
 const TASK_ARTIFACTS = `${TASK_WORKSPACE}/.artifacts`;
 const TASK_FILE_LIBRARY_ID = 'flib_1';
 const TASK_HOME_SEGMENT = 'task_1';
-const HOLDER_ID = 'holder_task_1';
-const BINDING_GENERATION = '1';
-const LEASE_EPOCH = 'lease_epoch_1';
-const ISSUED_AT = '2026-05-09T00:00:00.000Z';
-const EXPIRES_AT = '2026-05-09T00:15:00.000Z';
 
 function taskExecutionContext(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -63,48 +46,11 @@ function taskExecutionContext(overrides: Record<string, unknown> = {}): Record<s
   };
 }
 
-function taskHomeBinding(overrides: Record<string, unknown> = {}): Record<string, unknown> {
-  return {
-    binding_id: 'thb_task_1',
-    provider: 'afscp',
-    mode: 'pre_mounted',
-    task_id: 'task_1',
-    file_library_id: TASK_FILE_LIBRARY_ID,
-    task_home_segment: TASK_HOME_SEGMENT,
-    generation: BINDING_GENERATION,
-    holder: {
-      holder_id: HOLDER_ID,
-      holder_kind: 'runner_workspace',
-      binding_generation: BINDING_GENERATION,
-      lease_epoch: LEASE_EPOCH,
-      issued_at: ISSUED_AT,
-      expires_at: EXPIRES_AT,
-    },
-    paths: {
-      task_home_path: TASK_HOME,
-      workspace_path: TASK_WORKSPACE,
-      artifacts_path: TASK_ARTIFACTS,
-      library_root_path: '.',
-    },
-    ...overrides,
-  };
-}
-
-function workspaceAccessPayload(overrides: Record<string, unknown> = {}): Record<string, unknown> {
-  return {
-    task_home_binding: taskHomeBinding(),
-    ...overrides,
-  };
-}
-
 describe('task-workspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearPreparedTaskWorkspaces();
     mkdirMock.mockResolvedValue(undefined);
-    spawnMock.mockImplementation(() => {
-      throw new Error('juicefs_spawn_must_not_be_called');
-    });
     vi.stubGlobal('fetch', fetchMock);
     fetchMock.mockReset();
     delete process.env.MBOS_AGENT_TASK_RUNNER_MODE;
@@ -155,60 +101,7 @@ describe('task-workspace', () => {
     });
   });
 
-  it('fetches only the opaque task HOME binding contract', async () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify(workspaceAccessPayload()), { status: 200 }));
-
-    const payload = await fetchTaskWorkspaceAccess(taskExecutionContext());
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:20000/api/v1/workspaces/ws_default/projects/proj_1/tasks/task_1/workspace-access',
-      expect.objectContaining({
-        method: 'POST',
-        headers: { Authorization: 'Bearer test-token' },
-      }),
-    );
-    expect(payload.task_home_binding).toMatchObject({
-      provider: 'afscp',
-      mode: 'pre_mounted',
-      paths: {
-        task_home_path: TASK_HOME,
-        workspace_path: TASK_WORKSPACE,
-        artifacts_path: TASK_ARTIFACTS,
-        library_root_path: '.',
-      },
-    });
-    expect(JSON.stringify(payload)).not.toMatch(/metadata_url|storage_bucket_url|filesystem_name|recommended_mount|juicefs/i);
-  });
-
-  it('releases workspace access with the holder fence only', async () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ released: true }), { status: 200 }));
-
-    await releaseTaskWorkspaceAccess(taskExecutionContext(), {
-      holderId: HOLDER_ID,
-      fileLibraryId: TASK_FILE_LIBRARY_ID,
-      bindingGeneration: BINDING_GENERATION,
-      leaseEpoch: LEASE_EPOCH,
-    });
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:20000/api/v1/workspaces/ws_default/projects/proj_1/tasks/task_1/workspace-access/release',
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({
-          holder_id: HOLDER_ID,
-          file_library_id: TASK_FILE_LIBRARY_ID,
-          binding_generation: BINDING_GENERATION,
-          lease_epoch: LEASE_EPOCH,
-        }),
-      }),
-    );
-  });
-
-  it('consumes pre-mounted task HOME binding without spawning juicefs', async () => {
-    fetchMock
-      .mockResolvedValueOnce(new Response(JSON.stringify(workspaceAccessPayload()), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ released: true }), { status: 200 }));
-
+  it('uses path fields directly for file-library execution contexts without backend calls', async () => {
     const resolved = await prepareTaskWorkspace({
       executionContext: taskExecutionContext(),
       username: 'alice',
@@ -217,56 +110,25 @@ describe('task-workspace', () => {
 
     expect(resolved.cwd).toBe(TASK_WORKSPACE);
     expect(resolved.source).toBe('path_fields');
-    expect(resolved.lease).toMatchObject({
-      mountPath: TASK_HOME,
-      holderId: HOLDER_ID,
-      fileLibraryId: TASK_FILE_LIBRARY_ID,
-      bindingGeneration: BINDING_GENERATION,
-      leaseEpoch: LEASE_EPOCH,
-    });
     expect(mkdirMock).toHaveBeenCalledWith(TASK_WORKSPACE, { recursive: true });
     expect(mkdirMock).toHaveBeenCalledWith(TASK_ARTIFACTS, { recursive: true });
-    expect(spawnMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
 
     await resolved.release();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it.each(['developer_connector_unavailable', 'developer_connector'])(
-    'rejects unsupported task HOME binding mode %s',
-    async (mode) => {
-      fetchMock
-        .mockResolvedValueOnce(new Response(JSON.stringify(workspaceAccessPayload({
-          task_home_binding: taskHomeBinding({ mode }),
-        })), { status: 200 }));
-
-      await expect(prepareTaskWorkspace({
-        executionContext: taskExecutionContext(),
-        username: 'alice',
-        taskId: 'task_1',
-      })).rejects.toThrow('task_workspace_access_binding_mode_invalid');
-
-      expect(spawnMock).not.toHaveBeenCalled();
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-    },
-  );
-
-  it('rejects workspace-access payloads that still include raw storage material', async () => {
-    fetchMock
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ...workspaceAccessPayload(),
-        metadata_url: 'postgres://juicefs-meta',
-      }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ released: true }), { status: 200 }));
-
+  it('rejects execution contexts without formal path truth before touching the filesystem', async () => {
     await expect(prepareTaskWorkspace({
-      executionContext: taskExecutionContext(),
+      executionContext: taskExecutionContext({
+        workspace_path: undefined,
+      }),
       username: 'alice',
       taskId: 'task_1',
-    })).rejects.toThrow('task_workspace_access_raw_storage_field:metadata_url');
+    })).rejects.toThrow('task_execution_context_invalid');
 
-    expect(spawnMock).not.toHaveBeenCalled();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(mkdirMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('uses path fields directly for pre-mounted execution contexts', async () => {
@@ -284,7 +146,6 @@ describe('task-workspace', () => {
     expect(resolved.cwd).toBe(TASK_WORKSPACE);
     expect(resolved.source).toBe('path_fields');
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(spawnMock).not.toHaveBeenCalled();
   });
 
   it('recognizes retryable task-root write failures', () => {

@@ -67,6 +67,9 @@ if [[ "${1:-}" == "--start-guard" ]]; then
   echo "start guard: checking runner source boundary syntax"
   node --check "$repo_root/scripts/check-runner-source-boundary.mjs"
 
+  echo "start guard: running runner source boundary self-test"
+  node "$repo_root/scripts/check-runner-source-boundary.mjs" --self-test
+
   echo "start guard: checking runner source boundary"
   node "$repo_root/scripts/check-runner-source-boundary.mjs"
 

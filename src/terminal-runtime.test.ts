@@ -191,7 +191,7 @@ describe('terminal-runtime', () => {
     process.env.PATH = '/usr/bin:/bin';
     prepareTaskWorkspaceMock.mockResolvedValue({
       cwd: TASK_WORKSPACE,
-      source: 'file_library_mount',
+      source: 'path_fields',
       paths: {
         mode: 'managed_local',
         taskHome: TASK_HOME,

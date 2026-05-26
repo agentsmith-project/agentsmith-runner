@@ -137,7 +137,7 @@ const {
     prepareTaskWorkspaceAssetsMock: vi.fn(async () => ({ artifactsDir: '/home/task_1/workspace/.artifacts' })),
     prepareTaskWorkspaceMock: vi.fn(async () => ({
       cwd: '/home/task_1/workspace',
-      source: 'file_library_mount' as const,
+      source: 'path_fields' as const,
       paths: {
         mode: 'managed_local' as const,
         taskHome: '/home/task_1',
@@ -966,6 +966,11 @@ describe('agentsmith-runner entry lifecycle', () => {
     expect(resolveRunnerSuccessPolicyMock).toHaveBeenCalledWith(expect.objectContaining({
       visibleAgentChars: 'Standard Responses output.'.length,
     }));
+    const doneFrame = readSentFrames(socket).find((frame) => (
+      frame.type === 'agent.response.done'
+      && frame.request_id === requestId
+    ));
+    expect(doneFrame?.payload).toEqual({ finish_reason: 'stop' });
     expect(readSentFrames(socket).some((frame) => (
       frame.type === 'agent.response.error'
       && frame.request_id === requestId
