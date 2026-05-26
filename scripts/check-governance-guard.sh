@@ -337,7 +337,7 @@ check_runner_image_publish_focused_evidence() {
   require_grep "packages:[[:space:]]*write" "$workflow" "runner image publish has packages write permission"
   require_grep "actions:[[:space:]]*read" "$workflow" "runner image publish has actions read permission"
 
-  require_grep "actions/download-artifact@v7" "$workflow" "runner image publish downloads artifact with v7"
+  require_grep "actions/download-artifact@v8[.]0[.]1" "$workflow" "runner image publish downloads artifact with pinned v8.0.1"
   require_grep "name:[[:space:]]*agentsmith-runner-contract-artifact" "$workflow" "runner image publish downloads formal AgentSmith artifact name"
   require_grep "repository:[[:space:]]*agentsmith-project/agentsmith" "$workflow" "runner image publish downloads from AgentSmith repo"
   require_grep "run-id:.*agentsmith_contract_run_id" "$workflow" "runner image publish uses supplied AgentSmith run id"
@@ -366,7 +366,7 @@ check_runner_image_publish_focused_evidence() {
 
   require_grep "write-runner-release-manifest[.]mjs" "$workflow" "runner image publish generates release manifest"
   require_grep "verify-release[.]sh --release-manifest --manifest artifacts/runner-release/runner-release-manifest[.]json" "$workflow" "runner image publish verifies release manifest"
-  require_grep "actions/upload-artifact@v7" "$workflow" "runner image publish uploads manifest artifact with v7"
+  require_grep "actions/upload-artifact@v7[.]0[.]1" "$workflow" "runner image publish uploads manifest artifact with pinned v7.0.1"
   require_grep "name:[[:space:]]*runner-release-manifest" "$workflow" "runner image publish artifact name is runner-release-manifest"
   require_grep "Focused publish evidence only" "$workflow" "runner image publish labels evidence as focused"
   require_grep "not release readiness" "$workflow" "runner image publish says it is not release readiness"
