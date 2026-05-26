@@ -13,7 +13,7 @@ SHARED_RUNTIME_DIR = Path(__file__).resolve().parents[2] / ".mbos-runtime"
 if str(SHARED_RUNTIME_DIR) not in sys.path:
     sys.path.insert(0, str(SHARED_RUNTIME_DIR))
 
-from capability_runtime import resolve_simple_credential_dependency
+from capability_runtime import resolve_projected_fields
 
 
 PROXY_ENV_VARS = [
@@ -27,8 +27,8 @@ PROXY_ENV_VARS = [
     "NO_PROXY",
 ]
 
-def load_simple_jira_credentials_from_context() -> tuple[str | None, str | None]:
-    resolved = resolve_simple_credential_dependency(__file__, "jira-auth")
+def load_jira_credentials_from_projection() -> tuple[str | None, str | None]:
+    resolved = resolve_projected_fields(__file__, "jira-auth")
     base_url = resolved.get("base_url")
     token = resolved.get("token")
     return (
@@ -42,123 +42,23 @@ def clear_proxy_env() -> None:
         os.environ.pop(key, None)
 
 
-def load_env_like_text(text: str) -> dict[str, str]:
-    values: dict[str, str] = {}
-    for raw_line in text.splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        values[key.strip()] = value.strip()
-    return values
-
-
-def find_credential_dir(start: Path | None = None) -> Path:
-    configured = os.environ.get("MBOS_TASK_CREDENTIAL_DIR", "").strip()
-    if configured:
-        configured_path = Path(configured).expanduser()
-        if not configured_path.is_absolute():
-            configured_path = (start or Path.cwd()).resolve() / configured_path
-        configured_path = configured_path.resolve()
-        jira_path = configured_path / "jira"
-        if jira_path.is_dir():
-            return jira_path
-
-    current = (start or Path.cwd()).resolve()
-    for base in [current, *current.parents]:
-        for candidate in (
-            base / ".mbos" / "credentials" / "jira",
-            base / ".codex" / "credential" / "jira",
-        ):
-            if candidate.is_dir():
-                return candidate
-    raise FileNotFoundError(
-        "Could not find .mbos/credentials/jira or .codex/credential/jira in the current directory or its parents."
-    )
-
-
-def flatten_json(prefix: str, value):
-    if isinstance(value, dict):
-        for key, inner in value.items():
-            next_prefix = f"{prefix}.{key}" if prefix else str(key)
-            yield from flatten_json(next_prefix, inner)
-    elif isinstance(value, list):
-        for idx, inner in enumerate(value):
-            next_prefix = f"{prefix}[{idx}]"
-            yield from flatten_json(next_prefix, inner)
-    else:
-        yield prefix, value
-
-
-def discover_credentials(credential_dir: Path) -> dict[str, list[str]]:
-    discovered = {"token_candidates": [], "base_url_candidates": []}
-    for path in sorted(p for p in credential_dir.rglob("*") if p.is_file()):
-        try:
-            text = path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            continue
-
-        # JSON-like files
-        try:
-            parsed = json.loads(text)
-        except json.JSONDecodeError:
-            parsed = None
-
-        if parsed is not None:
-            for key, value in flatten_json("", parsed):
-                if not isinstance(value, str):
-                    continue
-                key_lower = key.lower()
-                value_strip = value.strip()
-                if "token" in key_lower and value_strip:
-                    discovered["token_candidates"].append(value_strip)
-                if "url" in key_lower and value_strip.startswith(("http://", "https://")):
-                    discovered["base_url_candidates"].append(value_strip)
-
-        # env-like or plain text files
-        for key, value in load_env_like_text(text).items():
-            key_lower = key.lower()
-            value_strip = value.strip()
-            if "token" in key_lower and value_strip:
-                discovered["token_candidates"].append(value_strip)
-            if "url" in key_lower and value_strip.startswith(("http://", "https://")):
-                discovered["base_url_candidates"].append(value_strip)
-
-        # last-resort plain text URL scan
-        for line in text.splitlines():
-            line = line.strip()
-            if line.startswith(("http://", "https://")):
-                discovered["base_url_candidates"].append(line)
-
-    # preserve order, remove duplicates
-    for name in discovered:
-        unique = []
-        seen = set()
-        for item in discovered[name]:
-            if item not in seen:
-                unique.append(item)
-                seen.add(item)
-        discovered[name] = unique
-    return discovered
-
-
 def resolve_auth(args) -> tuple[str, str]:
     if args.base_url and args.token:
         return args.base_url, args.token
 
-    context_base_url, context_token = load_simple_jira_credentials_from_context()
-    base_url = args.base_url or context_base_url
-    token = args.token or context_token
+    projected_base_url, projected_token = load_jira_credentials_from_projection()
+    base_url = args.base_url or projected_base_url
+    token = args.token or projected_token
     if base_url and token:
         return base_url, token
 
     if not base_url:
         raise RuntimeError(
-            "Jira base URL not found. Configure the 'jira-auth' runtime credential bundle in AgentSmith or pass --base-url."
+            "Jira base URL not found. Ask AgentSmith to project 'jira-auth' for this run or pass --base-url."
         )
     if not token:
         raise RuntimeError(
-            "Jira token not found. Configure the 'jira-auth' runtime credential bundle in AgentSmith or pass --token."
+            "Jira token not found. Ask AgentSmith to project 'jira-auth' for this run or pass --token."
         )
     return base_url, token
 
@@ -310,7 +210,7 @@ def cmd_edit_fields(args):
 
 def build_parser():
     parser = argparse.ArgumentParser(
-        description="Common Jira operations over REST API with Bearer token auth from AgentSmith Context Store."
+        description="Common Jira operations over REST API with Bearer token auth from a request projection or CLI args."
     )
     parser.add_argument("--base-url", default=None, help="Jira base URL, for example https://jira.example.com")
     parser.add_argument("--token", default=None, help="Bearer token")

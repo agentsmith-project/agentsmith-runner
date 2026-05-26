@@ -17,7 +17,7 @@ const DEPENDENCY_FIELDS = [
   'optionalDependencies',
   'peerDependencies',
 ];
-const LOCAL_DEPENDENCY_PROTOCOL = /^(?:file|link|workspace):/;
+const LOCAL_DEPENDENCY_PROTOCOL = /^(?:file|link|portal|workspace):/;
 const mbosScope = '@m' + 'bos/';
 const FORBIDDEN_DEPENDENCY_NAMES = new Set([
   `${mbosScope}agent-task-runner`,
@@ -58,6 +58,59 @@ const FORBIDDEN_SOURCE_PATTERNS = [
   {
     label: 'non-contract @mbos package import',
     pattern: new RegExp(`['"]${mbosScope}(?!agent-runner-contract(?:['"/]))[^'"]+['"]`),
+  },
+];
+const PRODUCT_SEMANTIC_SCAN_ROOTS = [
+  'src',
+  'builtin-skills',
+];
+const contextEndpoint = '/con' + 'text';
+const managedCredentialKeyPrefix = 'managed_' + 'credentials.';
+const managedCredentialEndpoint = `${contextEndpoint}/managed-credentials/`;
+const FORBIDDEN_RUNNER_PRODUCT_SEMANTIC_PATTERNS = [
+  {
+    label: 'Context Store product scope schema',
+    pattern: /project_member/,
+  },
+  {
+    label: 'Context Store writable scope schema',
+    pattern: /writable_scopes/,
+  },
+  {
+    label: 'Context Store provider capability schema',
+    pattern: /["']context_store["']/,
+  },
+  {
+    label: 'managed credential refresh capability schema',
+    pattern: /managed_credential_refresh/,
+  },
+  {
+    label: 'managed credential dependency schema',
+    pattern: /managed_credential/,
+  },
+  {
+    label: 'Context Store scope parser',
+    pattern: /SkillContextScope|readScopeArray|--scope/,
+  },
+  {
+    label: 'Context Store query construction',
+    pattern: /ContextStoreClient|build_query|scope=/,
+  },
+  {
+    label: 'direct Context Store endpoint',
+    pattern: new RegExp(`["']${contextEndpoint}(?:/list)?["']`),
+  },
+  {
+    label: 'managed credential refresh endpoint',
+    pattern: new RegExp(managedCredentialEndpoint),
+  },
+  {
+    label: 'managed credential key semantics',
+    pattern: new RegExp(managedCredentialKeyPrefix.replace('.', '[.]')),
+  },
+  {
+    label: 'managed credential refresh helper',
+    pattern: /refresh_managed_credential|refresh-managed-credential/,
   },
 ];
 
@@ -125,7 +178,7 @@ function checkPackageDependencies() {
         continue;
       }
       if (LOCAL_DEPENDENCY_PROTOCOL.test(specifier.trim())) {
-        addError(`package.json ${field}.${name} must not use file:, link:, or workspace:`);
+        addError(`package.json ${field}.${name} must not use file:, link:, portal:, or workspace:`);
       }
     }
   }
@@ -160,9 +213,34 @@ function checkSourcePatterns() {
   }
 }
 
+function checkProductSemanticPatterns() {
+  for (const scanRoot of PRODUCT_SEMANTIC_SCAN_ROOTS) {
+    const absoluteRoot = join(repoRoot, scanRoot);
+    let stat;
+    try {
+      stat = statSync(absoluteRoot);
+    } catch {
+      continue;
+    }
+    const files = stat.isDirectory()
+      ? listTextFiles(absoluteRoot)
+      : [absoluteRoot];
+    for (const file of files) {
+      const relativePath = relative(repoRoot, file);
+      const text = readFileSync(file, 'utf8');
+      for (const { label, pattern } of FORBIDDEN_RUNNER_PRODUCT_SEMANTIC_PATTERNS) {
+        if (pattern.test(text)) {
+          addError(`${relativePath} defines forbidden ${label}`);
+        }
+      }
+    }
+  }
+}
+
 checkRequiredPaths();
 checkPackageDependencies();
 checkSourcePatterns();
+checkProductSemanticPatterns();
 
 if (errors.length > 0) {
   for (const error of errors) {

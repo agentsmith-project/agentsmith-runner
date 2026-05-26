@@ -72,7 +72,7 @@ const FORBIDDEN_LIFECYCLE_SCRIPTS = [
   'prepack',
   'postpack',
 ];
-const LOCAL_DEPENDENCY_PROTOCOL = /(?:^|[^\w.+-])(file|link|workspace):/;
+const LOCAL_DEPENDENCY_PROTOCOL = /(?:^|[^\w.+-])(file|link|portal|workspace):/;
 const ALLOWED_TARBALL_DIRECTORIES = new Set(['package/', 'package/dist/']);
 const ALLOWED_DIST_FILE = /^dist\/[^/]+(?:\.js|\.d\.ts)$/;
 const PACKAGE_MANIFEST_FIELDS = new Set([

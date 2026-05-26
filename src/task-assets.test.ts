@@ -68,19 +68,18 @@ describe('prepareTaskWorkspaceAssets', () => {
       expect(agents).not.toContain('auth material');
       expect(agents).not.toContain('mutable auth');
       expect(agents).toContain('The current working directory is `$HOME/workspace`');
-      expect(agents).toContain('capability-aware builtin skills');
-      expect(agents).toContain('member/task context');
-      expect(agents).toContain('inspect project_member context');
+      expect(agents).toContain('opaque dependency names');
+      expect(agents).toContain('request-scoped projections');
+      expect(agents).toContain('fail fast instead of searching workspace files');
       expect(runtime).not.toContain('HOME == cwd');
       expect(runtime).not.toContain('runner-private runtime home');
       expect(runtime).not.toContain('separate from `cwd`');
       expect(runtime).not.toContain('auth material');
       expect(runtime).not.toContain('mutable auth');
       expect(runtime).toContain('persistent task HOME');
-      expect(runtime).toContain('project_member');
-      expect(runtime).toContain('machine-readable capability contracts');
-      expect(runtime).toContain('read project_member');
-      expect(runtime).toContain('write member/task');
+      expect(runtime).toContain('request-scoped dependency projections');
+      expect(runtime).toContain('opaque dependency name');
+      expect(runtime).toContain('formal runner contract artifacts');
       expect(() => readFileSync(join(workspace, '.mbos', 'task-inputs.json'), 'utf8')).toThrow();
     } finally {
       rmSync(cwd, { recursive: true, force: true });

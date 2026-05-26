@@ -4,10 +4,10 @@
   "dependencies": [
     {
       "name": "feishu-managed-user",
-      "kind": "managed_credential",
-      "provider": "feishu",
-      "scope": "member",
-      "refresh_supported": true
+      "kind": "opaque_projection",
+      "provider_label": "feishu",
+      "expected_fields": ["access_token", "uat", "token", "feishu_mcp_endpoint"],
+      "required": true
     }
   ]
 }

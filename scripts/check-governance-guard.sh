@@ -192,7 +192,7 @@ check_contract_consumer_source_boundary() {
     pass "only formal runner contract package is allowed under @mbos"
   fi
 
-  local local_protocol="(file|link|workspace):"
+  local local_protocol="(file|link|portal|workspace):"
   local local_contract_pattern
   local_contract_pattern="(${allowed_contract_pkg}[^[:cntrl:]]*${local_protocol}|${local_protocol}[^[:cntrl:]]*${allowed_contract_pkg})"
 

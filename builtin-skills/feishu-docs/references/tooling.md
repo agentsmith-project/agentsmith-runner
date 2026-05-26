@@ -9,9 +9,9 @@ python3 ~/.agents/skills/feishu-docs/scripts/feishu_mcp.py call-tool search-doc 
 
 Credential source:
 
-- Resolve the `feishu-managed-user` runtime dependency, which currently projects the current workspace member's `managed_credentials.feishu`
+- Resolve the `feishu-managed-user` request projection by dependency name, or pass `--access-token` explicitly
 - Do not browse workspace files for Feishu credentials
-- If the managed connection is missing or stale, reconnect or refresh it in AgentSmith
+- If the connection is missing or stale, reconnect or refresh it in AgentSmith
 
 Known tool names from the current Feishu remote MCP setup:
 
@@ -42,4 +42,4 @@ Known tool names from the current Feishu remote MCP setup:
   `search-user,get-user,fetch-file,search-doc,create-doc,fetch-doc,update-doc,list-docs,get-comments,add-comments`
 - `call-tool` defaults the whitelist to the tool being called
 - For multi-step work, widen `--allowed-tools` only to the minimum needed
-- If auth expires, run `python3 ~/.agents/skills/feishu-docs/scripts/feishu_mcp.py refresh-token`
+- If auth expires, refresh the connection in AgentSmith and rerun the helper

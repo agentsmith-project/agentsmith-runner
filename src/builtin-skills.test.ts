@@ -107,10 +107,10 @@ describe('builtin-skills', () => {
           dependencies: [
             {
               name: 'feishu-managed-user',
-              kind: 'managed_credential',
-              provider: 'feishu',
-              scope: 'member',
-              refresh_supported: true,
+              kind: 'opaque_projection',
+              provider_label: 'feishu',
+              expected_fields: ['access_token'],
+              required: true,
             },
           ],
         }),
@@ -125,12 +125,10 @@ describe('builtin-skills', () => {
           dependencies: [
             {
               name: 'jira-auth',
-              kind: 'simple_credential_bundle',
-              scopes: ['task', 'member'],
-              fields: [
-                { name: 'base_url', keys: ['credentials.jira_base_url', 'credentials.jira_url'], required: true },
-                { name: 'token', keys: ['credentials.jira_token', 'credentials.jira_api_token'], required: true },
-              ],
+              kind: 'opaque_projection',
+              provider_label: 'jira',
+              expected_fields: ['base_url', 'token'],
+              required: true,
             },
           ],
         }),
@@ -144,7 +142,7 @@ describe('builtin-skills', () => {
       expect(result.missing).toEqual([]);
       expect(result.skillContracts['jira-ops']?.dependencies?.[0]).toMatchObject({
         name: 'jira-auth',
-        kind: 'simple_credential_bundle',
+        kind: 'opaque_projection',
       });
     } finally {
       rmSync(sourceRoot, { recursive: true, force: true });
@@ -210,10 +208,10 @@ describe('builtin-skills', () => {
           dependencies: [
             {
               name: 'feishu-managed-user',
-              kind: 'managed_credential',
-              provider: 'feishu',
-              scope: 'member',
-              refresh_supported: true,
+              kind: 'opaque_projection',
+              provider_label: 'feishu',
+              expected_fields: ['access_token'],
+              required: true,
             },
           ],
         }),
@@ -413,57 +411,46 @@ describe('builtin-skills', () => {
     }
   });
 
-  it('parses project_member as a first-class skill capability scope', () => {
+  it('parses opaque projection dependency descriptors', () => {
     const contract = parseBuiltinSkillCapabilityContract({
       version: 1,
-      skill_name: 'mbos-context',
+      skill_name: 'feishu-docs',
       dependencies: [
         {
-          name: 'project-personal-feishu',
-          kind: 'managed_credential',
-          provider: 'feishu',
-          scope: 'project_member',
-          refresh_supported: true,
-        },
-      ],
-      provides: [
-        {
-          kind: 'context_store',
-          scopes: ['member', 'task', 'project_member', 'project', 'workspace'],
-          direct_access: true,
-          writable_scopes: ['member', 'task'],
+          name: 'feishu-managed-user',
+          kind: 'opaque_projection',
+          provider_label: 'feishu',
+          expected_fields: ['access_token', 'uat'],
+          required: true,
         },
       ],
     });
 
     expect(contract.dependencies[0]).toMatchObject({
-      name: 'project-personal-feishu',
-      scope: 'project_member',
-    });
-    expect(contract.provides?.[0]).toMatchObject({
-      scopes: ['member', 'task', 'project_member', 'project', 'workspace'],
+      name: 'feishu-managed-user',
+      kind: 'opaque_projection',
+      provider_label: 'feishu',
+      expected_fields: ['access_token', 'uat'],
+      required: true,
     });
   });
 
-  it('ships mbos-context with project_member readable but not agent-writable', async () => {
+  it('ships mbos-context without product policy capability definitions', async () => {
     const config = resolveBuiltinSkillsConfigWithArgs({
       fileExists: (target: string) => target !== '/etc/codex/skills',
     });
     const contract = await readBuiltinSkillCapabilityContract(join(config.sourceDir, 'mbos-context'));
-    expect(contract.provides?.[0]).toMatchObject({
-      kind: 'context_store',
-      scopes: ['member', 'task', 'project_member', 'project', 'workspace'],
-      writable_scopes: ['member', 'task'],
-    });
+    expect(contract.dependencies).toEqual([]);
+    expect('provides' in contract).toBe(false);
   });
 
-  it('documents project_member as readable-only for agent execution in mbos-context skill docs', () => {
+  it('documents mbos-context as projection inspection only', () => {
     const config = resolveBuiltinSkillsConfigWithArgs({
       fileExists: (target: string) => target !== '/etc/codex/skills',
     });
     const skillDoc = readFileSync(join(config.sourceDir, 'mbos-context', 'SKILL.md'), 'utf8');
-    expect(skillDoc).toContain('read or write member/task');
-    expect(skillDoc).toContain('read project_member');
-    expect(skillDoc).not.toContain('write member/task/project_member');
+    expect(skillDoc).toContain('request projections');
+    expect(skillDoc).toContain('Do not infer write policy');
+    expect(skillDoc).toContain('--dependency');
   });
 });

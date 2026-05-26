@@ -8,20 +8,13 @@ Use:
 python3 ~/.agents/skills/feishu-docs/scripts/feishu_mcp.py call-tool <tool-name> --params '<json object>'
 ```
 
-Agent tasks now expose the current user's managed Feishu connection through the `feishu-managed-user` runtime dependency backed by AgentSmith Context Store:
-
-```text
-scope=member
-key=managed_credentials.feishu
-```
-
-The helper script resolves that managed connection automatically through the shared runtime helper as the current workspace member's managed credential projection.
+AgentSmith may expose a Feishu connection to the runner as an opaque `feishu-managed-user` request projection. The helper consumes that projection by dependency name, or accepts an explicit token with `--access-token`.
 
 ## Credential Contract
 
 - `tools-list` / `call-tool` need an access token for `X-Lark-MCP-UAT`.
-- `refresh-token` refreshes the managed Feishu connection through AgentSmith.
-- If required values are missing, reconnect or repair the managed Feishu connection in AgentSmith instead of editing workspace files.
+- Context policy and credential resolution are owned by AgentSmith or formal contract artifacts, not this runner repo.
+- If required values are missing, reconnect or repair the Feishu connection in AgentSmith instead of editing workspace files.
 
 ## Return Format
 

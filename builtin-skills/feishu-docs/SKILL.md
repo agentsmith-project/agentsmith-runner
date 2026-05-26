@@ -1,13 +1,13 @@
 ---
 name: feishu-docs
-description: Use for Feishu/Lark/飞书 document and wiki tasks when Codex should search, read, create, update, or comment on Feishu docs without registering a Codex MCP server. Trigger on requests about Feishu docs, Lark docs, knowledge base/wiki pages, comments, document search, or when the current runner session has AgentSmith-managed Feishu credentials available through Context Store.
+description: Use for Feishu/Lark/飞书 document and wiki tasks when Codex should search, read, create, update, or comment on Feishu docs without registering a Codex MCP server. Trigger on requests about Feishu docs, Lark docs, knowledge base/wiki pages, comments, document search, or when the current runner session has a Feishu request projection.
 ---
 
 # Feishu Docs
 
 ## Overview
 
-Call Feishu remote MCP directly over HTTP through a local helper script. The helper resolves the machine-readable `feishu-managed-user` managed credential dependency from AgentSmith runtime context instead of browsing workspace files or registering Feishu as a Codex MCP server.
+Call Feishu remote MCP directly over HTTP through a local helper script. The helper consumes the opaque `feishu-managed-user` request projection supplied by AgentSmith, or an explicit `--access-token`, instead of browsing workspace files or registering Feishu as a Codex MCP server.
 
 ## Quick Start
 
@@ -22,11 +22,11 @@ The helper script now defaults to the full Feishu tool whitelist. For tighter co
 
 ## Workflow
 
-1. Confirm the current runner session satisfies the `feishu-managed-user` managed credential dependency. If not, fail fast and ask the user to connect or refresh Feishu from AgentSmith.
+1. Confirm the current runner session has the `feishu-managed-user` request projection or pass `--access-token` explicitly.
 2. If the request is vague about the target document, start with `search-doc`.
 3. If the user provides a doc URL or doc id, use `fetch-doc`.
 4. For edits, call only the specific mutation tool needed, for example `update-doc` or `add-comments`.
-5. If the call fails with auth-related errors, run `python3 ~/.agents/skills/feishu-docs/scripts/feishu_mcp.py refresh-token` from the workspace and retry once.
+5. If the call fails with auth-related errors, refresh the connection in AgentSmith and rerun.
 
 ## Commands
 
@@ -54,12 +54,6 @@ Update a doc with an explicit narrow whitelist:
 python3 ~/.agents/skills/feishu-docs/scripts/feishu_mcp.py call-tool update-doc --allowed-tools 'fetch-doc,update-doc' --params '{"doc_id":"docx123","requests":[]}'
 ```
 
-Refresh the current workspace token:
-
-```bash
-python3 ~/.agents/skills/feishu-docs/scripts/feishu_mcp.py refresh-token
-```
-
 ## Tool Selection
 
 Read [tooling.md](references/tooling.md) first to choose the right reference file.
@@ -83,8 +77,7 @@ Practical defaults:
 
 ## Failure Recovery
 
-- If token or auth errors appear, run `python3 ~/.agents/skills/feishu-docs/scripts/feishu_mcp.py refresh-token`
-- If refresh fails, reconnect or refresh the managed Feishu connection in AgentSmith
+- If token or auth errors appear, reconnect or refresh Feishu in AgentSmith, then rerun the helper
 - Do not re-register Feishu as a Codex MCP server for this skill; use the helper script directly
 
 ## Resources

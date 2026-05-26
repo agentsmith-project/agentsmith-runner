@@ -8,11 +8,12 @@ Current builtin set:
 - `feishu-docs`
 - `jira-ops`
 
-Runtime dependency contract:
+Runtime dependency descriptors:
 
 - each builtin skill keeps natural-language guidance in `SKILL.md`
-- each builtin skill also ships `capabilities.json` for machine-readable dependency metadata
+- each builtin skill may ship `capabilities.json` with opaque dependency names and expected fields
 - shared deterministic helpers live under `.mbos-runtime/`
+- AgentSmith and formal contract artifacts own policy and credential resolution semantics
 
 Runtime behavior:
 
