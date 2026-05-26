@@ -12,8 +12,10 @@ Current phase: bootstrap-only/docs-governance-first.
 | Contract-consumer/source-boundary guard present | present | scripts/check-governance-guard.sh |
 | P5.0 contract artifact consumer skeleton | focused diagnostic | scripts/check-runner-contract-consumer.mjs |
 | Runner contract consumer self-test | focused diagnostic | scripts/test-runner-contract-consumer.sh |
+| P5.1 start guard | focused diagnostic | scripts/verify-release.sh --start-guard |
 | Quick verify entrypoint present | present | scripts/verify-release.sh |
 | CI quick guard present | present | .github/workflows/ci.yml |
+| CI contract consumer start guard present | present | .github/workflows/ci.yml |
 | Full release gate | not implemented | docs/RELEASE_GATES.md |
 | Runtime behavior evidence | not implemented | future implementation workstream |
 | Runner image evidence | not implemented | future implementation workstream |
@@ -53,4 +55,14 @@ The repo-local consumer self-test is:
 bash scripts/test-runner-contract-consumer.sh
 ```
 
-It builds temporary fixture artifacts only under a temp directory, covers package manifest v1 acceptance, legacy `local_pack_manifest` rejection, source path leak handling, and other positive and negative consumer cases. It is not run by `bash scripts/verify-release.sh --quick`.
+It builds temporary fixture artifacts only under a temp directory, covers package manifest v1 acceptance, legacy `local_pack_manifest` rejection, artifact filename and URI drift, digest drift, package dependency rejection, source/test entry rejection, source path leak handling, and other positive and negative consumer cases. It is not run by `bash scripts/verify-release.sh --quick`.
+
+The P5.1 start guard is:
+
+```bash
+bash scripts/verify-release.sh --start-guard
+```
+
+Expected success output includes `contract consumer start guard passed` and `Start guard is not release readiness`. It runs quick governance, shell syntax checks, the consumer syntax check, and the local consumer self-test without an external artifact root.
+
+Start guard is not release readiness.

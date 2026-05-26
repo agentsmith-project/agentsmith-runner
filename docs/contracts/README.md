@@ -21,6 +21,7 @@ Allowed now:
 - Document conformance test categories.
 - Document fail-closed compatibility expectations.
 - Run the P5.0 consumer skeleton against an explicit artifact root supplied by the caller.
+- Run the P5.1 start guard with local negative fixtures and no external artifact root.
 
 Not allowed now:
 
@@ -43,6 +44,16 @@ Inside the tgz, `package/contract-artifact.json` must be package manifest v1: `a
 The consumer checks the tgz hash and npm SRI integrity, rejects legacy `local_pack_manifest`, installs only that tgz in a temporary npm workspace, and runs a smoke that imports the package root, `@mbos/agent-runner-contract/artifact`, and `@mbos/agent-runner-contract/contract-artifact.json`. The smoke verifies positive fixture/spec behavior and negative rejection for unsupported protocol and removed legacy fields.
 
 This skeleton is intentionally not a second contract authority and not release readiness.
+
+## P5.1 Start Guard
+
+```bash
+bash scripts/verify-release.sh --start-guard
+```
+
+Start guard runs quick governance, shell syntax checks, the consumer syntax check, and the local consumer self-test. The self-test builds only temporary fixtures and covers rejection of legacy descriptor fields, artifact filename escape, artifact URI drift, sha256 drift, npm SRI drift, local or non-empty package dependencies, and source/test files inside the tgz.
+
+Start guard is not release readiness. It is a CI startup guard for the consumer skeleton, not proof of runtime compatibility or image release quality.
 
 ## Future Conformance Areas
 

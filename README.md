@@ -70,6 +70,18 @@ bash scripts/verify-release.sh --quick
 
 Quick mode is not release readiness. The full repo-local release gate is a future authority and is not implemented in this bootstrap stage.
 
+## P5.1 Start Guard
+
+P5.1 adds a CI-safe startup guard for the contract consumer skeleton:
+
+```bash
+bash scripts/verify-release.sh --start-guard
+```
+
+This runs quick governance, shell syntax checks, `node --check scripts/check-runner-contract-consumer.mjs`, and `bash scripts/test-runner-contract-consumer.sh`. It uses only local temporary fixtures and does not require an external artifact root.
+
+Start guard is not release readiness. It does not replace full release mode, image evidence, runtime evidence, or AgentSmith adoption evidence.
+
 ## P5.0 Contract Consumer Skeleton
 
 P5.0 adds an explicit runner contract artifact consumer diagnostic:
@@ -80,7 +92,7 @@ bash scripts/verify-release.sh --contract-consumer --artifact-root <artifact-roo
 
 The artifact root must contain external descriptor `runner-contract-artifact.json` and the tgz named by that descriptor. The external descriptor remains the release truth for descriptor schema, CI artifact provenance, artifact URI binding, sha256, npm SRI integrity, and subject hash. The tgz must carry package manifest v1 at `package/contract-artifact.json`: `agentsmith.runner-contract-package-manifest/v1`, `runner_contract_package_manifest`, package identity, entrypoints, and `release_provenance` pointing back to `runner-contract-artifact.json`.
 
-The consumer rejects legacy `local_pack_manifest`, verifies installability from the tgz, and runs a small import smoke for `@mbos/agent-runner-contract`.
+The consumer rejects legacy `local_pack_manifest`, descriptor and URI drift, digest drift, local or non-empty dependencies, source/test files in the tgz, verifies installability from the tgz, and runs a small import smoke for `@mbos/agent-runner-contract`.
 
 This mode is intentionally not release readiness. It does not migrate runtime code, build a runner image, publish anything, update an AgentSmith lock, read sibling source trees, or allow local dependency protocols.
 

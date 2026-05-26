@@ -23,4 +23,7 @@ Claimed workstream:
 
 ```bash
 bash scripts/verify-release.sh --quick
+bash scripts/verify-release.sh --start-guard
 ```
+
+Start guard is not release readiness; use it only as focused consumer startup evidence.

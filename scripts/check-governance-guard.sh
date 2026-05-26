@@ -194,6 +194,27 @@ check_quick_not_release() {
   fi
 }
 
+check_start_guard_not_release() {
+  require_grep "bash scripts/verify-release[.]sh --start-guard" README.md "README documents start guard command"
+  require_grep "Start guard is not release readiness" README.md "README says start guard is not release readiness"
+  require_grep "bash scripts/verify-release[.]sh --start-guard" DEVELOPMENT.md "DEVELOPMENT documents start guard command"
+  require_grep "Start guard is not release readiness" DEVELOPMENT.md "DEVELOPMENT says start guard is not release readiness"
+  require_grep "bash scripts/verify-release[.]sh --start-guard" docs/RELEASE_GATES.md "RELEASE_GATES documents start guard command"
+  require_grep "Start guard is not release readiness" docs/RELEASE_GATES.md "RELEASE_GATES says start guard is not release readiness"
+  require_grep "bash scripts/verify-release[.]sh --start-guard" docs/contracts/README.md "contracts docs document start guard command"
+  require_grep "Start guard is not release readiness" docs/contracts/README.md "contracts docs say start guard is not release readiness"
+  require_grep "bash scripts/verify-release[.]sh --start-guard" docs/runbooks/README.md "runbooks document start guard command"
+  require_grep "Start guard is not release readiness" docs/runbooks/README.md "runbooks say start guard is not release readiness"
+  require_grep "bash scripts/verify-release[.]sh --start-guard" docs/READINESS_EVIDENCE.md "readiness evidence documents start guard command"
+  require_grep "Start guard is not release readiness" docs/READINESS_EVIDENCE.md "readiness evidence says start guard is not release readiness"
+  require_grep "bash scripts/verify-release[.]sh --start-guard" .github/pull_request_template.md "PR template asks for start guard evidence"
+  require_grep "not release readiness" .github/pull_request_template.md "PR template keeps start guard separate from release readiness"
+  require_grep "contract-consumer-start-guard" .github/workflows/ci.yml "CI has contract consumer start guard job"
+  require_grep "node-version:[[:space:]]*['\"]?24['\"]?" .github/workflows/ci.yml "CI start guard sets up Node 24"
+  require_grep "bash scripts/verify-release[.]sh --start-guard" .github/workflows/ci.yml "CI runs start guard verification"
+  require_grep "verify-release[.]sh --start-guard" scripts/verify-release.sh "verify entrypoint supports start guard"
+}
+
 check_local_handoff_documented() {
   require_grep "/home/percy/works/mbos-v1/agentsmith-runner" README.md "local sibling checkout path documented"
   require_grep "workspace convention" README.md "local sibling checkout is a workspace convention"
@@ -333,6 +354,7 @@ check_scope_and_non_goals
 check_runner_specific_fail_fast_guard
 check_contract_consumer_source_boundary
 check_quick_not_release
+check_start_guard_not_release
 check_local_handoff_documented
 check_no_forbidden_patterns
 check_no_ecosystem_bootstrap_files

@@ -49,10 +49,21 @@ This explicit mode is a focused consumer skeleton for a supplied runner contract
 
 Contract consumer mode is not release readiness. It does not replace quick mode, full release mode, image evidence, adoption evidence, or AgentSmith product readiness. It must not read sibling source trees or consume local dependency protocols.
 
+## P5.1 Start Guard
+
+```bash
+bash scripts/verify-release.sh --start-guard
+```
+
+Start guard runs quick governance, shell syntax checks, `node --check scripts/check-runner-contract-consumer.mjs`, and `bash scripts/test-runner-contract-consumer.sh`. It is intended for CI startup coverage of the consumer skeleton and uses only local temporary fixtures. It must not require an external artifact root.
+
+Start guard is not release readiness. It does not replace full release mode, external artifact validation, image evidence, runtime evidence, adoption evidence, or AgentSmith product readiness.
+
 ## Non-Gates
 
 - Bootstrap quick mode is not release readiness.
 - P5.0 contract consumer mode is not release readiness.
+- P5.1 start guard is not release readiness.
 - Passing CI quick mode is not release readiness.
 - Team signoff is not release readiness.
 - A local image tag is not release readiness.

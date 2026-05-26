@@ -16,6 +16,18 @@ The command validates external descriptor shape, CI artifact provenance, tgz dig
 
 Do not use this as a release gate, image publish step, AgentSmith adoption step, or reason to update locks. The command consumes only the artifact root and must not read sibling source trees.
 
+## P5.1 Contract Consumer Start Guard
+
+Use this for CI startup coverage of the consumer skeleton:
+
+```bash
+bash scripts/verify-release.sh --start-guard
+```
+
+The command runs quick governance, shell syntax checks, `node --check scripts/check-runner-contract-consumer.mjs`, and the local consumer self-test. It uses generated temporary fixtures only and does not require a supplied artifact root.
+
+Start guard is not release readiness. Do not use it as a release gate, image publish step, AgentSmith adoption step, or reason to update locks.
+
 ## Future Runbook Areas
 
 - Local runner development setup.

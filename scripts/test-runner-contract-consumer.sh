@@ -187,6 +187,18 @@ if (mode === 'lifecycle') {
   };
 }
 
+if (mode === 'local-dependency') {
+  packageJson.dependencies = {
+    leftpad: 'file:../helper',
+  };
+}
+
+if (mode === 'non-empty-dependency') {
+  packageJson.dependencies = {
+    leftpad: '1.0.0',
+  };
+}
+
 if (mode === 'local-pack-manifest') {
   surface = {
     artifact_kind: 'local_pack_manifest',
@@ -201,6 +213,10 @@ if (mode === 'local-pack-manifest') {
 
 if (mode === 'release-provenance-extra') {
   surface.release_provenance.note = 'debug';
+}
+
+if (mode === 'source-entry') {
+  packageJson.files = ['dist', 'src', 'contract-artifact.json'];
 }
 
 mkdirSync(join(packageDir, 'dist'), { recursive: true });
@@ -245,6 +261,15 @@ if (mode === 'runner-home') {
       `export const taskWorkspace = "/home/task_1/workspace";\n` +
       `export const taskArtifacts = "/home/task_1/workspace/.artifacts";\n`,
   );
+}
+
+if (mode === 'source-entry') {
+  mkdirSync(join(packageDir, 'src'), { recursive: true });
+  writeFileSync(join(packageDir, 'src', 'index.js'), `export const leakedSource = true;\n`);
+}
+
+if (mode === 'test-entry') {
+  writeFileSync(join(packageDir, 'dist', 'contract-schema.test.js'), `export const leakedTest = true;\n`);
 }
 NODE
 }
@@ -416,9 +441,97 @@ legacy_manifest_root="$tmp_root/local-pack-manifest"
 build_npm_fixture "$legacy_manifest_root" "local-pack-manifest" "305"
 expect_failure "local_pack_manifest rejection" 'local_pack_manifest' "$legacy_manifest_root"
 
+legacy_descriptor_root="$tmp_root/descriptor-local-pack-manifest"
+build_npm_fixture "$legacy_descriptor_root" "positive" "311"
+node - "$legacy_descriptor_root/runner-contract-artifact.json" <<'NODE'
+const { readFileSync, writeFileSync } = require('node:fs');
+
+const [path] = process.argv.slice(2);
+const descriptor = JSON.parse(readFileSync(path, 'utf8'));
+descriptor.artifact_kind = 'local_pack_manifest';
+writeFileSync(path, `${JSON.stringify(descriptor, null, 2)}\n`);
+NODE
+expect_failure "descriptor local_pack_manifest rejection" 'local_pack_manifest' "$legacy_descriptor_root"
+
 lifecycle_root="$tmp_root/lifecycle"
 build_npm_fixture "$lifecycle_root" "lifecycle" "302"
 expect_failure "lifecycle script rejection" 'scripts[.]preinstall is forbidden' "$lifecycle_root"
+
+filename_escape_root="$tmp_root/artifact-filename-escape"
+build_npm_fixture "$filename_escape_root" "positive" "312"
+node - "$filename_escape_root/runner-contract-artifact.json" <<'NODE'
+const { readFileSync, writeFileSync } = require('node:fs');
+
+const [path] = process.argv.slice(2);
+const descriptor = JSON.parse(readFileSync(path, 'utf8'));
+descriptor.artifact.filename = '../x.tgz';
+writeFileSync(path, `${JSON.stringify(descriptor, null, 2)}\n`);
+NODE
+recompute_descriptor_subject_hash "$filename_escape_root/runner-contract-artifact.json"
+expect_failure "artifact filename path escape rejection" 'forbidden content: [./]+ traversal|artifact[.]filename must be a basename' "$filename_escape_root"
+
+uri_run_drift_root="$tmp_root/artifact-uri-run-drift"
+build_npm_fixture "$uri_run_drift_root" "positive" "313"
+node - "$uri_run_drift_root/runner-contract-artifact.json" <<'NODE'
+const { readFileSync, writeFileSync } = require('node:fs');
+
+const [path] = process.argv.slice(2);
+const descriptor = JSON.parse(readFileSync(path, 'utf8'));
+descriptor.artifact.uri = descriptor.artifact.uri.replace('/313/', '/999/');
+descriptor.artifact_provenance.artifact_uri = descriptor.artifact.uri;
+writeFileSync(path, `${JSON.stringify(descriptor, null, 2)}\n`);
+NODE
+recompute_descriptor_subject_hash "$uri_run_drift_root/runner-contract-artifact.json"
+expect_failure "artifact uri run_id drift rejection" 'artifact[.]uri must equal' "$uri_run_drift_root"
+
+uri_filename_drift_root="$tmp_root/artifact-uri-filename-drift"
+build_npm_fixture "$uri_filename_drift_root" "positive" "314"
+node - "$uri_filename_drift_root/runner-contract-artifact.json" <<'NODE'
+const { readFileSync, writeFileSync } = require('node:fs');
+
+const [path] = process.argv.slice(2);
+const descriptor = JSON.parse(readFileSync(path, 'utf8'));
+descriptor.artifact.uri = descriptor.artifact.uri.replace('mbos-agent-runner-contract-0.1.0.tgz', 'drift.tgz');
+descriptor.artifact_provenance.artifact_uri = descriptor.artifact.uri;
+writeFileSync(path, `${JSON.stringify(descriptor, null, 2)}\n`);
+NODE
+recompute_descriptor_subject_hash "$uri_filename_drift_root/runner-contract-artifact.json"
+expect_failure "artifact uri filename drift rejection" 'artifact[.]uri must equal' "$uri_filename_drift_root"
+
+sha_drift_root="$tmp_root/sha-drift"
+build_npm_fixture "$sha_drift_root" "positive" "315"
+node - "$sha_drift_root/runner-contract-artifact.json" <<'NODE'
+const { readFileSync, writeFileSync } = require('node:fs');
+
+const [path] = process.argv.slice(2);
+const descriptor = JSON.parse(readFileSync(path, 'utf8'));
+descriptor.artifact.sha256 = `sha256:${'1'.repeat(64)}`;
+descriptor.artifact_provenance.artifact_sha256 = descriptor.artifact.sha256;
+writeFileSync(path, `${JSON.stringify(descriptor, null, 2)}\n`);
+NODE
+recompute_descriptor_subject_hash "$sha_drift_root/runner-contract-artifact.json"
+expect_failure "sha256 drift rejection" 'artifact[.]sha256 does not match tgz content' "$sha_drift_root"
+
+sri_drift_root="$tmp_root/sri-drift"
+build_npm_fixture "$sri_drift_root" "positive" "316"
+node - "$sri_drift_root/runner-contract-artifact.json" <<'NODE'
+const { readFileSync, writeFileSync } = require('node:fs');
+
+const [path] = process.argv.slice(2);
+const descriptor = JSON.parse(readFileSync(path, 'utf8'));
+descriptor.artifact.integrity = `sha512-${Buffer.alloc(64).toString('base64')}`;
+writeFileSync(path, `${JSON.stringify(descriptor, null, 2)}\n`);
+NODE
+recompute_descriptor_subject_hash "$sri_drift_root/runner-contract-artifact.json"
+expect_failure "SRI drift rejection" 'artifact[.]integrity does not match tgz content' "$sri_drift_root"
+
+local_dependency_root="$tmp_root/local-dependency"
+build_npm_fixture "$local_dependency_root" "local-dependency" "317"
+expect_failure "package local dependency rejection" 'local dependency protocol|forbidden content: (file protocol|[./]+ traversal)' "$local_dependency_root"
+
+non_empty_dependency_root="$tmp_root/non-empty-dependency"
+build_npm_fixture "$non_empty_dependency_root" "non-empty-dependency" "318"
+expect_failure "package non-empty dependency rejection" 'dependencies must be absent or empty' "$non_empty_dependency_root"
 
 drift_root="$tmp_root/provenance-drift"
 build_npm_fixture "$drift_root" "positive" "303"
@@ -446,5 +559,13 @@ expect_failure "path traversal rejection" 'parent directory segments' "$path_roo
 symlink_root="$tmp_root/symlink"
 build_symlink_fixture "$symlink_root"
 expect_failure "symlink rejection" 'must not be a symlink' "$symlink_root"
+
+source_entry_root="$tmp_root/source-entry"
+build_npm_fixture "$source_entry_root" "source-entry" "319"
+expect_failure "package src entry rejection" 'source or test files' "$source_entry_root"
+
+test_entry_root="$tmp_root/test-entry"
+build_npm_fixture "$test_entry_root" "test-entry" "320"
+expect_failure "package test entry rejection" 'source or test files' "$test_entry_root"
 
 echo "runner contract consumer self-test passed"

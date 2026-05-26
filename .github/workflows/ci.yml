@@ -18,3 +18,16 @@ jobs:
         uses: actions/checkout@v6
       - name: Verify bootstrap governance
         run: bash scripts/verify-release.sh --quick
+
+  contract-consumer-start-guard:
+    name: Contract consumer start guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Verify contract consumer startup
+        run: bash scripts/verify-release.sh --start-guard

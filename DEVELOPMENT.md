@@ -15,6 +15,7 @@ Allowed now:
 - Quick governance guard.
 - CI workflow that runs the quick guard.
 - P5.0 explicit runner contract artifact consumer skeleton.
+- P5.1 start guard that runs local contract-consumer startup checks without an external artifact root.
 
 Not allowed now:
 
@@ -63,9 +64,19 @@ Script syntax check:
 ```bash
 bash -n scripts/verify-release.sh
 bash -n scripts/check-governance-guard.sh
+bash -n scripts/test-runner-contract-consumer.sh
+node --check scripts/check-runner-contract-consumer.mjs
 ```
 
-No npm, node, docker, or package installation is required for the quick bootstrap guard. The P5.0 consumer diagnostic uses Node and npm only inside a temporary consumer workspace and must not add package manager files to this repo.
+P5.1 start guard:
+
+```bash
+bash scripts/verify-release.sh --start-guard
+```
+
+Start guard runs quick governance, shell syntax checks, the consumer Node syntax check, and the local consumer self-test with generated temporary fixtures. It does not require an external artifact root.
+
+Start guard is not release readiness. No npm, node, docker, or package installation is required for the quick bootstrap guard. The P5.0 consumer diagnostic and P5.1 start guard use Node and npm only inside a temporary consumer workspace and must not add package manager files to this repo.
 
 ## Local Workspace Handoff
 
