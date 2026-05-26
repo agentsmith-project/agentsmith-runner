@@ -14,6 +14,7 @@ Allowed now:
 - ADR for the bootstrap boundary.
 - Quick governance guard.
 - CI workflow that runs the quick guard.
+- P5.0 explicit runner contract artifact consumer skeleton.
 
 Not allowed now:
 
@@ -49,6 +50,14 @@ bash scripts/verify-release.sh --quick
 
 Quick verification includes the contract-consumer/source-boundary check. It remains a bootstrap guard only, not release readiness.
 
+P5.0 contract artifact consumer diagnostic:
+
+```bash
+bash scripts/verify-release.sh --contract-consumer --artifact-root <artifact-root>
+```
+
+This command expects a caller-supplied artifact root containing external descriptor `runner-contract-artifact.json` and the tgz referenced by the descriptor. It validates descriptor release truth, CI artifact provenance, sha256, npm SRI integrity, the package manifest v1 inside the tgz, and a temporary npm install from the tgz before running import and guard smokes. It rejects legacy `local_pack_manifest` and is not release readiness.
+
 Script syntax check:
 
 ```bash
@@ -56,7 +65,7 @@ bash -n scripts/verify-release.sh
 bash -n scripts/check-governance-guard.sh
 ```
 
-No npm, node, docker, or package installation is required for bootstrap.
+No npm, node, docker, or package installation is required for the quick bootstrap guard. The P5.0 consumer diagnostic uses Node and npm only inside a temporary consumer workspace and must not add package manager files to this repo.
 
 ## Local Workspace Handoff
 

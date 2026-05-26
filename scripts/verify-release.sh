@@ -5,10 +5,12 @@ usage() {
   cat <<'USAGE'
 Usage:
   bash scripts/verify-release.sh --quick
+  bash scripts/verify-release.sh --contract-consumer --artifact-root <dir>
   bash scripts/verify-release.sh
 
 Current bootstrap status:
   --quick validates governance skeleton and boundary guardrails only.
+  --contract-consumer validates an explicit runner contract artifact root only.
   Full release mode is intentionally not implemented during bootstrap.
 USAGE
 }
@@ -34,6 +36,17 @@ if [[ "${1:-}" == "--quick" ]]; then
   exit 0
 fi
 
+if [[ "${1:-}" == "--contract-consumer" ]]; then
+  if [[ $# -ne 3 || "${2:-}" != "--artifact-root" ]]; then
+    echo "error: --contract-consumer requires exactly --artifact-root <dir>" >&2
+    usage >&2
+    exit 2
+  fi
+
+  node "$repo_root/scripts/check-runner-contract-consumer.mjs" --artifact-root "$3"
+  exit 0
+fi
+
 if [[ $# -ne 0 ]]; then
   echo "error: unsupported argument: $1" >&2
   usage >&2
@@ -45,7 +58,9 @@ error: full release gate is not implemented in bootstrap.
 
 This repo currently supports only:
   bash scripts/verify-release.sh --quick
+  bash scripts/verify-release.sh --contract-consumer --artifact-root <dir>
 
 Quick mode is not release readiness.
+Contract consumer mode is not release readiness.
 MESSAGE
 exit 2

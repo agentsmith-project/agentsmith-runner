@@ -39,9 +39,20 @@ bash scripts/verify-release.sh
 
 During bootstrap, full release mode is intentionally not implemented and must fail closed. It will become authoritative only after this repo contains its own runtime checks, contract conformance tests, image build checks, provenance checks, release evidence validation, and adoption manifest checks.
 
+## P5.0 Contract Consumer Mode
+
+```bash
+bash scripts/verify-release.sh --contract-consumer --artifact-root <artifact-root>
+```
+
+This explicit mode is a focused consumer skeleton for a supplied runner contract artifact root. It checks external descriptor `runner-contract-artifact.json`, CI artifact provenance, `@mbos/agent-runner-contract` package identity, artifact URI binding, sha256, npm SRI integrity, the package manifest v1 inside the tgz, tgz installability, and minimal positive and negative contract guard behavior. It rejects legacy `local_pack_manifest`.
+
+Contract consumer mode is not release readiness. It does not replace quick mode, full release mode, image evidence, adoption evidence, or AgentSmith product readiness. It must not read sibling source trees or consume local dependency protocols.
+
 ## Non-Gates
 
 - Bootstrap quick mode is not release readiness.
+- P5.0 contract consumer mode is not release readiness.
 - Passing CI quick mode is not release readiness.
 - Team signoff is not release readiness.
 - A local image tag is not release readiness.

@@ -10,6 +10,8 @@ Current phase: bootstrap-only/docs-governance-first.
 | Scope and non-goals documented | present | README, AGENTS, DEVELOPMENT |
 | Quick governance guard present | present | scripts/check-governance-guard.sh |
 | Contract-consumer/source-boundary guard present | present | scripts/check-governance-guard.sh |
+| P5.0 contract artifact consumer skeleton | focused diagnostic | scripts/check-runner-contract-consumer.mjs |
+| Runner contract consumer self-test | focused diagnostic | scripts/test-runner-contract-consumer.sh |
 | Quick verify entrypoint present | present | scripts/verify-release.sh |
 | CI quick guard present | present | .github/workflows/ci.yml |
 | Full release gate | not implemented | docs/RELEASE_GATES.md |
@@ -32,3 +34,23 @@ bash scripts/verify-release.sh --quick
 It validates governance skeleton and boundary guardrails only.
 
 The quick guard can reject invalid contract consumption before runtime starts, but it does not prove contract compatibility, runtime behavior, image release quality, or production readiness.
+
+## P5.0 Focused Evidence
+
+The explicit consumer command is:
+
+```bash
+bash scripts/verify-release.sh --contract-consumer --artifact-root <artifact-root>
+```
+
+Expected success output includes `contract consumer skeleton passed` and `not release readiness`.
+
+This evidence proves only that a supplied artifact root is well formed enough for this repo to consume the tgz and exercise minimal positive and negative contract guards. It is not image evidence, runtime evidence, adoption evidence, or release readiness.
+
+The repo-local consumer self-test is:
+
+```bash
+bash scripts/test-runner-contract-consumer.sh
+```
+
+It builds temporary fixture artifacts only under a temp directory, covers package manifest v1 acceptance, legacy `local_pack_manifest` rejection, source path leak handling, and other positive and negative consumer cases. It is not run by `bash scripts/verify-release.sh --quick`.
