@@ -35,9 +35,23 @@ require_grep() {
   fi
 }
 
+forbid_grep() {
+  local pattern="$1"
+  local path="$2"
+  local label="$3"
+  if grep -Eqi "$pattern" "$path"; then
+    fail "$label"
+  else
+    pass "$label"
+  fi
+}
+
 scan_files() {
   find . \
     -path ./.git -prune -o \
+    -path ./node_modules -prune -o \
+    -path ./dist -prune -o \
+    -path ./coverage -prune -o \
     -type f \
     -print
 }
@@ -92,8 +106,16 @@ check_required_files() {
     docs/RISK_REGISTER.md
     .github/pull_request_template.md
     .github/workflows/ci.yml
+    package.json
+    tsconfig.json
+    vitest.config.ts
+    src/index.ts
+    builtin-skills/README.md
     scripts/verify-release.sh
     scripts/check-governance-guard.sh
+    scripts/check-start-guard-clean-deps.mjs
+    scripts/check-runner-source-boundary.mjs
+    scripts/test-runner-runtime-fast.sh
     scripts/check-runner-release-manifest.mjs
     scripts/test-runner-release-manifest.sh
   )
@@ -134,10 +156,22 @@ check_runner_specific_fail_fast_guard() {
   require_grep "managed credential resolution" README.md "README blocks managed credential resolution"
   require_grep "execution ticket issuance" README.md "README blocks execution ticket issuance"
   require_grep "permission semantics" README.md "README blocks permission semantics"
-  require_grep "published AgentSmith runner contract package and fixtures" README.md "README requires published contract package and fixtures consumption"
+  forbid_grep "published AgentSmith runner contract package and fixtures" README.md "README avoids package-is-already-published wording"
+  forbid_grep "published AgentSmith runner contract package and fixtures" AGENTS.md "AGENTS avoids package-is-already-published wording"
+  require_grep "formal AgentSmith runner contract artifact package" README.md "README requires formal contract artifact package consumption"
+  require_grep "after publication.*registry/package dependency|registry/package dependency.*after publication" README.md "README documents post-publication registry/package consumption"
+  require_grep "pre-GA.*explicit.*artifact package|explicit.*artifact package.*pre-GA" README.md "README documents pre-GA explicit artifact package acquisition"
+  require_grep "ordinary npm install.*not|not.*ordinary npm install" README.md "README says pre-GA acquisition is not ordinary npm install"
+  require_grep "sibling source.*not|not.*sibling source" README.md "README rejects sibling source acquisition"
+  require_grep "formal AgentSmith runner contract artifact package" AGENTS.md "AGENTS requires formal contract artifact package consumption"
+  require_grep "after publication.*registry/package dependency|registry/package dependency.*after publication" AGENTS.md "AGENTS documents post-publication registry/package consumption"
+  require_grep "pre-GA.*explicit.*artifact package|explicit.*artifact package.*pre-GA" AGENTS.md "AGENTS documents pre-GA explicit artifact package acquisition"
   require_grep "projection consumption and local execution" README.md "README limits builtin skills runtime"
   require_grep "must not add permission or credential resolution semantics" AGENTS.md "AGENTS blocks runtime permission or resolution semantics"
-  require_grep "@mbos/agent-runner-contract" docs/contracts/README.md "contracts docs name the published contract package consumer"
+  require_grep "@mbos/agent-runner-contract" docs/contracts/README.md "contracts docs name the runner contract artifact package consumer"
+  require_grep "formal AgentSmith runner contract artifact package" docs/contracts/README.md "contracts docs require formal contract artifact package"
+  require_grep "pre-GA.*explicit.*artifact package|explicit.*artifact package.*pre-GA" docs/contracts/README.md "contracts docs document pre-GA explicit artifact package acquisition"
+  require_grep "ordinary npm install.*not|not.*ordinary npm install" docs/contracts/README.md "contracts docs say pre-GA acquisition is not ordinary npm install"
   require_grep "fixtures.*provenance|provenance.*fixtures" docs/contracts/README.md "contracts docs require fixtures and provenance"
 }
 
@@ -155,7 +189,7 @@ check_contract_consumer_source_boundary() {
     echo "$forbidden_mbos_hits"
     fail "forbidden @mbos package reference found"
   else
-    pass "only published runner contract package is allowed under @mbos"
+    pass "only formal runner contract package is allowed under @mbos"
   fi
 
   local local_protocol="(file|link|workspace):"
@@ -215,6 +249,9 @@ check_start_guard_not_release() {
   require_grep "node-version:[[:space:]]*['\"]?24['\"]?" .github/workflows/ci.yml "CI start guard sets up Node 24"
   require_grep "bash scripts/verify-release[.]sh --start-guard" .github/workflows/ci.yml "CI runs start guard verification"
   require_grep "verify-release[.]sh --start-guard" scripts/verify-release.sh "verify entrypoint supports start guard"
+  require_grep "check-start-guard-clean-deps[.]mjs" scripts/verify-release.sh "start guard checks clean dependency shape"
+  require_grep "Runtime fast checks are separate" scripts/verify-release.sh "start guard keeps runtime fast separate"
+  require_grep "check-runner-source-boundary[.]mjs" scripts/verify-release.sh "start guard checks source boundary syntax"
   require_grep "test-runner-release-manifest[.]sh" scripts/verify-release.sh "start guard runs release manifest self-test"
   require_grep "check-runner-release-manifest[.]mjs" scripts/verify-release.sh "start guard checks release manifest syntax"
 }
@@ -367,7 +404,9 @@ check_no_ecosystem_bootstrap_files() {
   local found=0
   for path in "${files[@]}"; do
     case "${path#./}" in
-      package.json|*/package.json|package-lock.json|*/package-lock.json|npm-shrinkwrap.json|*/npm-shrinkwrap.json|yarn.lock|*/yarn.lock|pnpm-lock.yaml|*/pnpm-lock.yaml|bun.lock|*/bun.lock|bun.lockb|*/bun.lockb|go.mod|*/go.mod|go.sum|*/go.sum|requirements*.txt|*/requirements*.txt|uv.lock|*/uv.lock|pyproject.toml|*/pyproject.toml|poetry.lock|*/poetry.lock|Pipfile|*/Pipfile|Pipfile.lock|*/Pipfile.lock|Cargo.toml|*/Cargo.toml|Cargo.lock|*/Cargo.lock|composer.json|*/composer.json|composer.lock|*/composer.lock|Gemfile|*/Gemfile|Gemfile.lock|*/Gemfile.lock|*.lock|*/*.lock)
+      package.json|tsconfig.json|vitest.config.ts)
+        ;;
+      */package.json|package-lock.json|*/package-lock.json|npm-shrinkwrap.json|*/npm-shrinkwrap.json|yarn.lock|*/yarn.lock|pnpm-lock.yaml|*/pnpm-lock.yaml|bun.lock|*/bun.lock|bun.lockb|*/bun.lockb|go.mod|*/go.mod|go.sum|*/go.sum|requirements*.txt|*/requirements*.txt|uv.lock|*/uv.lock|pyproject.toml|*/pyproject.toml|poetry.lock|*/poetry.lock|Pipfile|*/Pipfile|Pipfile.lock|*/Pipfile.lock|Cargo.toml|*/Cargo.toml|Cargo.lock|*/Cargo.lock|composer.json|*/composer.json|composer.lock|*/composer.lock|Gemfile|*/Gemfile|Gemfile.lock|*/Gemfile.lock|*.lock|*/*.lock)
         echo "$path"
         found=1
         ;;
@@ -375,9 +414,9 @@ check_no_ecosystem_bootstrap_files() {
   done
 
   if [[ "$found" -ne 0 ]]; then
-    fail "package manager or ecosystem bootstrap file found"
+    fail "generated lockfile or nested package manager file found"
   else
-    pass "no package manager or ecosystem bootstrap file"
+    pass "no generated lockfile or nested package manager file"
   fi
 }
 

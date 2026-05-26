@@ -1,10 +1,10 @@
 # Development
 
-This repository is intentionally small during bootstrap. The first goal is to make repo ownership, boundaries, and handoff rules machine-checkable before runtime work begins.
+This repository is intentionally narrow during P5.3b. The current goal is to make runner runtime source, builtin skills, and dev/fast checks repo-local while keeping release, image, adoption, and product semantics out of scope.
 
 ## Current Phase
 
-Bootstrap-only/docs-governance-first.
+P5.3b first half: runner runtime source and builtin skills have a repo-local fast gate.
 
 Allowed now:
 
@@ -17,12 +17,17 @@ Allowed now:
 - P5.0 explicit runner contract artifact consumer skeleton.
 - P5.1 start guard that runs local contract-consumer startup checks without an external artifact root.
 - P5.3a runner release manifest skeleton checker and local manifest self-test.
+- Root package, TypeScript, and Vitest config for runner runtime fast checks.
+- Runner runtime source under `src/`.
+- Builtin skills under `builtin-skills/`.
+- P5.3b runtime fast gate.
 
 Not allowed now:
 
-- Runner runtime migration.
-- Builtin skills runtime migration.
 - Runner Dockerfile migration.
+- Docker image build or publish.
+- AgentSmith adoption lock updates.
+- Release readiness claims.
 - Product API, Context Store, Files, managed credential, audit, usage, or frontend management code.
 - AgentSmith product gate scripts or copied implementation assets from adjacent family repos.
 
@@ -38,9 +43,9 @@ This repo is responsible for:
 
 This repo only consumes the AgentSmith runner contract. It does not define Agent task API semantics, Agent Runners API semantics, Context Store scopes, file library behavior, managed credential resolution, audit/usage records, or frontend management behavior.
 
-Runner-specific fail-fast guard: this repo must not define Context Store scopes, Files/file-library behavior, managed credential resolution, execution ticket issuance, or permission semantics. It may only consume the published AgentSmith runner contract package and fixtures. Builtin skills runtime may only implement projection consumption and local execution.
+Runner-specific fail-fast guard: this repo must not define Context Store scopes, Files/file-library behavior, managed credential resolution, execution ticket issuance, or permission semantics. It may only consume the formal AgentSmith runner contract artifact package. After publication, consume it through a registry/package dependency. Pre-GA runtime fast must receive an explicit artifact package and must not use ordinary npm install, sibling source, or local dependency protocols. Builtin skills runtime may only implement projection consumption and local execution.
 
-Contract-consumer/source-boundary guard: future implementation may reference only the published `@mbos/agent-runner-contract` package for runner contract semantics. It must not consume the contract through local dependency protocols, sibling AgentSmith source paths, other `@mbos` packages, moved runner packages, or removed old runner source.
+Contract-consumer/source-boundary guard: implementation may reference only the formal `@mbos/agent-runner-contract` artifact package for runner contract semantics. It must not consume the contract through local dependency protocols, sibling AgentSmith source paths, other `@mbos` packages, moved runner packages, or removed old runner source.
 
 ## Commands
 
@@ -51,6 +56,16 @@ bash scripts/verify-release.sh --quick
 ```
 
 Quick verification includes the contract-consumer/source-boundary check. It remains a bootstrap guard only, not release readiness.
+
+P5.3b runtime fast gate:
+
+```bash
+bash scripts/test-runner-runtime-fast.sh
+```
+
+This is the focused positive entrypoint for repo-local runtime source and builtin skills. It runs source-boundary validation, `npm run typecheck`, `npm run test:fast`, and builtin skill Python unit tests. It is not an image build, not backend-real evidence, not AgentSmith adoption evidence, and not release readiness.
+
+Runtime fast gate is not release readiness. Pre-GA, it requires local dev dependencies plus an explicitly supplied `@mbos/agent-runner-contract` artifact package because that package is not published to npm yet. This pre-GA input is not ordinary npm install, sibling source, or a file/link/workspace local protocol.
 
 P5.0 contract artifact consumer diagnostic:
 
@@ -75,8 +90,10 @@ Script syntax check:
 ```bash
 bash -n scripts/verify-release.sh
 bash -n scripts/check-governance-guard.sh
+bash -n scripts/test-runner-runtime-fast.sh
 bash -n scripts/test-runner-contract-consumer.sh
 bash -n scripts/test-runner-release-manifest.sh
+node --check scripts/check-runner-source-boundary.mjs
 node --check scripts/check-runner-contract-consumer.mjs
 node --check scripts/check-runner-release-manifest.mjs
 ```
@@ -87,9 +104,9 @@ P5.1 start guard:
 bash scripts/verify-release.sh --start-guard
 ```
 
-Start guard runs quick governance, shell syntax checks, the consumer and manifest Node syntax checks, and the local consumer and manifest self-tests with generated temporary fixtures. It does not require an external artifact root or manifest artifact.
+Start guard runs quick governance, shell syntax checks, source-boundary validation, consumer and manifest Node syntax checks, and the local consumer and manifest self-tests with generated temporary fixtures. The consumer and manifest self-tests do not require an external artifact root or manifest artifact.
 
-Start guard is not release readiness. No npm, node, docker, or package installation is required for the quick bootstrap guard. The P5.0 consumer diagnostic and P5.1/P5.3a start guard use Node and npm only inside a temporary consumer workspace where needed and must not add package manager files to this repo.
+Start guard is not release readiness. It intentionally excludes runtime fast checks until clean CI has explicit contract artifact acquisition. Runtime fast checks require repo-local Node dependencies, but they must not introduce generated lockfiles or local dependency protocols. The P5.0 consumer diagnostic uses Node and npm only inside a temporary consumer workspace where needed.
 
 ## Local Workspace Handoff
 
@@ -97,10 +114,10 @@ The local checkout at `/home/percy/works/mbos-v1/agentsmith-runner` is a workspa
 
 ## Release Posture
 
-Quick verification proves only that the bootstrap governance surface is intact. It does not prove runtime behavior, image quality, contract compatibility, or release readiness.
+Quick verification proves only that the governance surface is intact. Runtime fast checks prove only repo-local type/unit and builtin skill fast behavior. Neither proves image quality, backend-real behavior, AgentSmith adoption, or release readiness.
 
 Local diagnostics, dev diagnostics, and backend-real diagnostics can become focused evidence later, but they are not release proof for this repository.
 
 The full release gate is a future repo-local authority. Until it exists, no change in this repo may claim that a runner image is releasable, adopted by AgentSmith, or ready for production.
 
-The P5.3a manifest skeleton fixes the future machine shape only. It does not publish a GHCR image, prove runtime behavior, migrate runtime code, or make AgentSmith consume the runner.
+The P5.3a manifest skeleton fixes the future machine shape only. It does not publish a GHCR image, prove backend-real runtime behavior, or make AgentSmith consume the runner.

@@ -20,7 +20,7 @@ jobs:
         run: bash scripts/verify-release.sh --quick
 
   contract-consumer-start-guard:
-    name: Runner start guard
+    name: Runner skeleton start guard
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -29,5 +29,5 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Verify runner startup guard
+      - name: Verify runner skeleton startup guard
         run: bash scripts/verify-release.sh --start-guard

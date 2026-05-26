@@ -1,6 +1,6 @@
 # Release Gates
 
-Current phase: bootstrap-only/docs-governance-first.
+Current phase: P5.3b first half, with repo-local runner runtime source, builtin skills, and focused fast checks.
 
 ## Quick Mode
 
@@ -8,7 +8,7 @@ Current phase: bootstrap-only/docs-governance-first.
 bash scripts/verify-release.sh --quick
 ```
 
-Quick mode validates only the bootstrap governance skeleton and boundary guardrails:
+Quick mode validates only the governance skeleton and boundary guardrails:
 
 - Canonical repo identity.
 - Owner/team metadata.
@@ -19,7 +19,6 @@ Quick mode validates only the bootstrap governance skeleton and boundary guardra
 - Release gate entrypoint exists.
 - Quick mode explicitly remains separate from release readiness.
 - No sibling repo source dependency.
-- No AgentSmith runner runtime/source migration.
 - No local-protocol contract consumption.
 - No non-contract `@mbos` package consumption.
 - No adjacent family repo dependency or copied governance implementation.
@@ -27,7 +26,7 @@ Quick mode validates only the bootstrap governance skeleton and boundary guardra
 - No mutable or tag-only release claim.
 - No retired runner repo canonical claim.
 
-Quick mode is not release readiness. Quick mode must not be described as a release gate, production approval, image adoption proof, or AgentSmith lock approval.
+Quick mode is not release readiness. Quick mode must not be described as a release gate, production approval, image adoption proof, runtime readiness proof, or AgentSmith lock approval.
 
 ## Full Release Gate
 
@@ -38,6 +37,16 @@ bash scripts/verify-release.sh
 ```
 
 During bootstrap, full release mode is intentionally not implemented and must fail closed. It will become authoritative only after this repo contains its own runtime checks, contract conformance tests, image build checks, provenance checks, release evidence validation, and adoption manifest checks.
+
+## P5.3b Runtime Fast Gate
+
+```bash
+bash scripts/test-runner-runtime-fast.sh
+```
+
+This focused gate is the positive local entrypoint for runner runtime source and builtin skills. It runs `scripts/check-runner-source-boundary.mjs`, TypeScript checking, runner Vitest unit tests, and builtin skill Python unit tests.
+
+Runtime fast gate is not release readiness. It does not build or publish a runner image, validate backend-real behavior, prove contract conformance beyond local unit coverage, update an AgentSmith lock, or replace the future full release gate.
 
 ## P5.0 Contract Consumer Mode
 
@@ -67,13 +76,14 @@ Release manifest skeleton mode is not release readiness. It does not build a run
 bash scripts/verify-release.sh --start-guard
 ```
 
-Start guard runs quick governance, shell syntax checks, `node --check` for the contract consumer and release manifest checkers, `bash scripts/test-runner-contract-consumer.sh`, and `bash scripts/test-runner-release-manifest.sh`. It is intended for CI startup coverage of the local skeleton checks and uses only local temporary fixtures. It must not require an external artifact root or manifest artifact.
+Start guard runs quick governance, shell syntax checks, source-boundary validation, `node --check` for the source-boundary, contract consumer, and release manifest checkers, `bash scripts/test-runner-contract-consumer.sh`, and `bash scripts/test-runner-release-manifest.sh`. It is intended for CI startup coverage of local skeleton checks. Contract and manifest self-tests use only local temporary fixtures and must not require an external artifact root or manifest artifact.
 
-Start guard is not release readiness. It does not replace full release mode, external artifact validation, image evidence, runtime evidence, adoption evidence, AgentSmith product readiness, or an AgentSmith lock update.
+Start guard is not release readiness. It intentionally excludes runtime fast checks until clean CI has explicit contract artifact acquisition, and it does not replace full release mode, external artifact validation, image evidence, runtime evidence, adoption evidence, AgentSmith product readiness, or an AgentSmith lock update.
 
 ## Non-Gates
 
 - Bootstrap quick mode is not release readiness.
+- P5.3b runtime fast gate is not release readiness.
 - P5.0 contract consumer mode is not release readiness.
 - P5.3a release manifest skeleton mode is not release readiness.
 - P5.1 start guard is not release readiness.

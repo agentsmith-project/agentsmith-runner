@@ -12,7 +12,8 @@ Usage:
 
 Current bootstrap status:
   --quick validates governance skeleton and boundary guardrails only.
-  --start-guard validates quick governance plus local contract-consumer and release-manifest startup checks.
+  --start-guard validates quick governance plus source-boundary, contract-consumer, and release-manifest startup checks.
+    It intentionally excludes runtime fast checks until CI has explicit contract artifact acquisition.
   --contract-consumer validates an explicit runner contract artifact root only.
   --release-manifest validates an explicit runner release manifest skeleton only.
   Full release mode is intentionally not implemented during bootstrap.
@@ -50,11 +51,24 @@ if [[ "${1:-}" == "--start-guard" ]]; then
   echo "start guard: running shell syntax checks"
   bash -n "$repo_root/scripts/verify-release.sh"
   bash -n "$repo_root/scripts/check-governance-guard.sh"
+  bash -n "$repo_root/scripts/test-runner-runtime-fast.sh"
   bash -n "$repo_root/scripts/test-runner-contract-consumer.sh"
   bash -n "$repo_root/scripts/test-runner-release-manifest.sh"
 
   echo "start guard: running quick governance guard"
   bash "$repo_root/scripts/verify-release.sh" --quick
+
+  echo "start guard: checking clean dependency shape syntax"
+  node --check "$repo_root/scripts/check-start-guard-clean-deps.mjs"
+
+  echo "start guard: checking clean dependency shape"
+  node "$repo_root/scripts/check-start-guard-clean-deps.mjs"
+
+  echo "start guard: checking runner source boundary syntax"
+  node --check "$repo_root/scripts/check-runner-source-boundary.mjs"
+
+  echo "start guard: checking runner source boundary"
+  node "$repo_root/scripts/check-runner-source-boundary.mjs"
 
   echo "start guard: checking contract consumer syntax"
   node --check "$repo_root/scripts/check-runner-contract-consumer.mjs"
@@ -113,6 +127,7 @@ This repo currently supports only:
 
 Quick mode is not release readiness.
 Start guard is not release readiness.
+Runtime fast checks are separate until clean CI has explicit contract artifact acquisition.
 Contract consumer mode is not release readiness.
 Release manifest skeleton mode is not release readiness.
 MESSAGE

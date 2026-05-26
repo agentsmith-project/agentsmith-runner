@@ -1,8 +1,22 @@
 # Runbooks
 
-This directory will hold operator and developer runbooks after the bootstrap boundary is accepted.
+This directory holds focused operator and developer runbook notes for the runner repo.
 
-Current status: placeholder only. No runner image build, deploy, publish, or adoption runbook is authoritative yet.
+Current status: P5.3b first half. Runtime fast checks are available, but no runner image build, deploy, publish, release, or adoption runbook is authoritative yet.
+
+## P5.3b Runtime Fast Diagnostic
+
+Use this as the focused local runtime and builtin skills entrypoint:
+
+```bash
+bash scripts/test-runner-runtime-fast.sh
+```
+
+The command runs the source-boundary guard, TypeScript checking, runner unit tests, and builtin skill unit tests. It must finish with `runner runtime fast checks passed`.
+
+Do not use this as an image build, GHCR publish step, backend-real proof, AgentSmith adoption step, or reason to update locks. Runtime fast gate is not release readiness.
+
+Pre-GA, install runtime fast dependencies from an explicit runner contract artifact package. A plain `npm install` is not sufficient while `@mbos/agent-runner-contract` is unpublished.
 
 ## P5.0 Contract Consumer Diagnostic
 
@@ -28,7 +42,7 @@ The command validates schema v1, runner identity, commit and semver formats, exa
 
 Do not use this as an image build, GHCR publish step, runtime evidence, AgentSmith adoption step, or reason to update locks. The command validates only the supplied JSON and must not read sibling source trees.
 
-## P5.1/P5.3a Start Guard
+## P5.1/P5.3a/P5.3b Start Guard
 
 Use this for CI startup coverage of the local skeleton checks:
 
@@ -36,15 +50,15 @@ Use this for CI startup coverage of the local skeleton checks:
 bash scripts/verify-release.sh --start-guard
 ```
 
-The command runs quick governance, shell syntax checks, `node --check` for both checkers, the local consumer self-test, and the local manifest self-test. It uses generated temporary fixtures only and does not require a supplied artifact root or manifest artifact.
+The command runs quick governance, shell syntax checks, source-boundary validation, `node --check` for Node checkers, the local consumer self-test, and the local manifest self-test. Contract and manifest checks use generated temporary fixtures only and do not require a supplied artifact root or manifest artifact.
 
-Start guard is not release readiness. Do not use it as a release gate, image publish step, AgentSmith adoption step, or reason to update locks.
+Start guard is not release readiness. It intentionally excludes runtime fast checks until clean CI has explicit contract artifact acquisition. Do not use it as a release gate, image publish step, AgentSmith adoption step, or reason to update locks.
 
 ## Future Runbook Areas
 
 - Local runner development setup.
 - Runner image build and smoke.
-- Builtin skills runtime diagnostics.
+- Builtin skills runtime diagnostics beyond the fast unit gate.
 - Contract conformance execution.
 - Release evidence generation.
 - AgentSmith adoption handoff.
@@ -60,6 +74,7 @@ Every future runbook must preserve the repo boundary:
 Before a P5 runtime worker starts implementation:
 
 - `bash scripts/verify-release.sh --quick` passes, including the contract-consumer/source-boundary guard.
+- `bash scripts/test-runner-runtime-fast.sh` passes for repo-local source and builtin skills.
 - The published `@mbos/agent-runner-contract` artifact is consumable, including required fixtures, package manifest v1, and external provenance descriptor metadata.
 - Future AgentSmith adoption consumes provenance-backed manifest plus lock state, not local source.
 - Runtime work consumes the contract artifact only; it must not use sibling AgentSmith source paths, local dependency protocols, copied package sources, or removed old runner source.

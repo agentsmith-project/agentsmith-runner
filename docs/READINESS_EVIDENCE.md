@@ -1,6 +1,6 @@
 # Readiness Evidence
 
-Current phase: bootstrap-only/docs-governance-first.
+Current phase: P5.3b first half.
 
 ## Bootstrap Evidence
 
@@ -14,12 +14,16 @@ Current phase: bootstrap-only/docs-governance-first.
 | Runner contract consumer self-test | focused diagnostic | scripts/test-runner-contract-consumer.sh |
 | P5.3a runner release manifest skeleton checker | focused diagnostic | scripts/check-runner-release-manifest.mjs |
 | Runner release manifest self-test | focused diagnostic | scripts/test-runner-release-manifest.sh |
+| P5.3b runner runtime source | present | src/ |
+| P5.3b builtin skills | present | builtin-skills/ |
+| P5.3b runtime fast gate | focused diagnostic | scripts/test-runner-runtime-fast.sh |
+| P5.3b source boundary guard | focused diagnostic | scripts/check-runner-source-boundary.mjs |
 | P5.1 start guard | focused diagnostic | scripts/verify-release.sh --start-guard |
 | Quick verify entrypoint present | present | scripts/verify-release.sh |
 | CI quick guard present | present | .github/workflows/ci.yml |
 | CI runner start guard present | present | .github/workflows/ci.yml |
 | Full release gate | not implemented | docs/RELEASE_GATES.md |
-| Runtime behavior evidence | not implemented | future implementation workstream |
+| Runtime behavior evidence | focused only | scripts/test-runner-runtime-fast.sh |
 | Runner image evidence | not implemented | future implementation workstream |
 | Contract conformance evidence | not implemented | future contracts and CI gate workstreams |
 | Provenance-backed release manifest artifact | not implemented | future CI gate workstream |
@@ -37,7 +41,21 @@ bash scripts/verify-release.sh --quick
 
 It validates governance skeleton and boundary guardrails only.
 
-The quick guard can reject invalid contract consumption before runtime starts, but it does not prove contract compatibility, runtime behavior, image release quality, or production readiness.
+The quick guard can reject invalid contract consumption and source-boundary drift, but it does not prove contract compatibility, runtime behavior, image release quality, or production readiness.
+
+## P5.3b Focused Evidence
+
+The runtime fast gate is:
+
+```bash
+bash scripts/test-runner-runtime-fast.sh
+```
+
+Expected success output includes `runner runtime fast checks passed`.
+
+This evidence proves only that the repo-local runner source passes TypeScript and focused unit tests, and that builtin skill unit tests pass. It is not Docker image evidence, backend-real runtime evidence, AgentSmith adoption evidence, an AgentSmith lock update, or release readiness.
+
+Runtime fast gate is not release readiness. Pre-GA, it also requires an explicitly supplied contract artifact package because `@mbos/agent-runner-contract` is not published to npm yet.
 
 ## P5.0 Focused Evidence
 
@@ -85,6 +103,6 @@ The P5.1 start guard is:
 bash scripts/verify-release.sh --start-guard
 ```
 
-Expected success output includes `runner start guard passed` and `Start guard is not release readiness`. It runs quick governance, shell syntax checks, the consumer and manifest syntax checks, and the local consumer and manifest self-tests without an external artifact root or manifest artifact.
+Expected success output includes `runner start guard passed` and `Start guard is not release readiness`. It runs quick governance, shell syntax checks, source-boundary validation, consumer and manifest syntax checks, and the local consumer and manifest self-tests without an external artifact root or manifest artifact.
 
-Start guard is not release readiness.
+Start guard is not release readiness. It intentionally excludes runtime fast checks until clean CI has explicit contract artifact acquisition.

@@ -8,21 +8,22 @@ The AgentSmith runner contract is not authored in this bootstrap repository. Thi
 
 Runner contract authority stays outside this repository. This repo must not define protocol schemas, product semantics, compatibility rules, or acceptance truth.
 
-The only allowed future contract dependency is the published package `@mbos/agent-runner-contract`. That package must carry the contract artifacts this repo consumes, including fixtures and provenance descriptor linkage. Release provenance metadata remains in the external descriptor supplied with the artifact root. Local dependency protocols such as file, link, or workspace are not valid contract consumption, and sibling AgentSmith source paths are not valid contract consumption.
+The only allowed contract dependency is the formal AgentSmith runner contract artifact package for `@mbos/agent-runner-contract`. After publication, runner code may consume it through a registry/package dependency. That package must carry the contract artifacts this repo consumes, including fixtures and provenance descriptor linkage. Release provenance metadata remains in the external descriptor supplied with the artifact root. Local dependency protocols such as file, link, or workspace are not valid contract consumption, and sibling AgentSmith source paths are not valid contract consumption.
 
-Until the package is published and consumable from a package registry, this repo remains documentation-only for contracts. Markdown, local examples, copied source, or backend-real diagnostics here cannot stand in for the published contract artifact.
+Pre-GA local runtime fast requires an explicit artifact package supplied by the caller. This is not ordinary npm install, not sibling AgentSmith source, and not a file/link/workspace local protocol. Committed dependencies must remain normal package references and must not point at sibling source paths. Markdown, local examples, copied source, or backend-real diagnostics here cannot stand in for the formal contract artifact package.
 
 ## Bootstrap Boundary
 
 Allowed now:
 
-- Document that this repo expects to consume `@mbos/agent-runner-contract` after publication.
-- Document fixture and provenance expectations for the published contract artifact.
+- Document that this repo expects to consume `@mbos/agent-runner-contract` after publication through a registry/package dependency.
+- Document fixture and provenance expectations for the formal contract artifact package.
 - Document conformance test categories.
 - Document fail-closed compatibility expectations.
 - Run the P5.0 consumer skeleton against an explicit artifact root supplied by the caller.
 - Run the P5.1 start guard with local negative fixtures and no external artifact root.
 - Run the P5.3a runner release manifest skeleton checker against an explicit manifest supplied by the caller.
+- Run the P5.3b runtime fast gate against repo-local runner source and builtin skills.
 
 Not allowed now:
 
@@ -62,9 +63,9 @@ This checker fixes the manifest adoption shape only. It is not a contract source
 bash scripts/verify-release.sh --start-guard
 ```
 
-Start guard runs quick governance, shell syntax checks, the consumer and manifest syntax checks, and both local self-tests. The consumer self-test builds only temporary fixtures and covers rejection of legacy descriptor fields, artifact filename escape, artifact URI drift, sha256 drift, npm SRI drift, local or non-empty package dependencies, and source/test files inside the tgz. The manifest self-test uses temporary JSON fixtures and covers image digest pinning, producer repo drift, contract artifact metadata, protocol drift, semver drift, subject hash drift, local path or credential-like leakage, and unknown fields.
+Start guard runs quick governance, shell syntax checks, source-boundary validation, consumer and manifest syntax checks, and both local skeleton self-tests. The consumer self-test builds only temporary fixtures and covers rejection of legacy descriptor fields, artifact filename escape, artifact URI drift, sha256 drift, npm SRI drift, local or non-empty package dependencies, and source/test files inside the tgz. The manifest self-test uses temporary JSON fixtures and covers image digest pinning, producer repo drift, contract artifact metadata, protocol drift, semver drift, subject hash drift, local path or credential-like leakage, and unknown fields.
 
-Start guard is not release readiness. It is a CI startup guard for local skeleton checks, not proof of runtime compatibility, image release quality, AgentSmith adoption, or lock update.
+Start guard is not release readiness. It intentionally excludes runtime fast checks until clean CI has explicit contract artifact acquisition. It is a CI startup guard for local skeleton checks, not proof of runtime compatibility, image release quality, AgentSmith adoption, or lock update.
 
 ## Future Conformance Areas
 

@@ -1,0 +1,35 @@
+{
+  "name": "agentsmith-runner",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "builtin-skills",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node24 --external:node-pty --external:ws --outfile=dist/index.js --log-level=warning",
+    "check:source-boundary": "node scripts/check-runner-source-boundary.mjs",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "test:fast": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@mbos/agent-runner-contract": "0.1.0",
+    "node-pty": "^1.1.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/ws": "^8.18.1",
+    "esbuild": "^0.25.12",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

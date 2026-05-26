@@ -1,6 +1,6 @@
 # AgentSmith Runner
 
-AgentSmith Runner is the future implementation home for the AgentSmith managed runner execution process. This bootstrap repository is intentionally docs-governance-first: it establishes the repo identity, scope boundary, handoff rules, quick governance guard, contract-consumer skeleton, and runner release manifest skeleton before any runtime code, Dockerfile, contract implementation, or release workflow is moved here.
+AgentSmith Runner is the implementation home for the AgentSmith managed runner execution process. P5.3b first-half scope lands repo-local runtime source, builtin skills, and a focused dev/fast runtime gate while keeping Docker image work, release readiness, AgentSmith adoption locks, and product semantics out of scope.
 
 Canonical repository identity: `github.com/agentsmith-project/agentsmith-runner`
 
@@ -12,7 +12,7 @@ https://github.com/agentsmith-project/agentsmith-runner.git
 
 ## Scope
 
-This repo owns, after the bootstrap boundary is accepted:
+This repo owns:
 
 - Runner execution process.
 - Builtin skills runtime.
@@ -41,14 +41,15 @@ This repo does not own:
 - Frontend management surface.
 - AgentSmith product release readiness.
 
-This bootstrap slice also does not move the existing AgentSmith runner runtime, builtin skills runtime implementation, runner Dockerfile, product tests, contracts, or release gates.
+This P5.3b first-half slice does not move runner Dockerfiles, product tests, product contracts, AgentSmith release gates, image build/publish steps, AgentSmith adoption locks, or release readiness authority.
 
 ## Boundary Rules
 
 - Keep AgentSmith product truth in AgentSmith.
-- Keep runner contract truth in the AgentSmith contract flow until an explicit shared contract package is published for consumption.
+- Keep runner contract truth in the AgentSmith contract flow.
 - Runner code must not define Context Store scopes, Files/file-library behavior, managed credential resolution, execution ticket issuance, or permission semantics.
-- Runner code may only consume the published AgentSmith runner contract package and fixtures for product semantics.
+- Runner code may only consume the formal AgentSmith runner contract artifact package for product semantics.
+- After publication, runner code may consume that artifact package through a registry/package dependency. Pre-GA local runtime fast requires an explicit artifact package supplied by the caller; it is not ordinary npm install, sibling source, or a local dependency protocol.
 - Builtin skills runtime may only implement projection consumption and local execution. It must not add permission or credential resolution semantics.
 - Do not import AgentSmith product source or use sibling repo source paths as a runtime dependency.
 - Do not copy implementation assets from adjacent family control-plane repos.
@@ -62,25 +63,37 @@ For local handoff in this workspace, `/home/percy/works/mbos-v1/agentsmith-runne
 
 ## Quick Verification
 
-The current bootstrap quick check validates governance skeleton and boundary claims only:
+The current quick check validates governance skeleton and boundary claims only:
 
 ```bash
 bash scripts/verify-release.sh --quick
 ```
 
-Quick mode is not release readiness. The full repo-local release gate is a future authority and is not implemented in this bootstrap stage.
+Quick mode is not release readiness. The full repo-local release gate is a future authority and is not implemented in this stage.
 
-## P5.1/P5.3a Start Guard
+## P5.3b Runtime Fast Gate
 
-The start guard is CI-safe startup coverage for the contract consumer skeleton and runner release manifest skeleton:
+The focused runtime fast gate is the local positive entrypoint for runner source and builtin skills:
+
+```bash
+bash scripts/test-runner-runtime-fast.sh
+```
+
+It runs the repo-local source boundary guard, TypeScript checking, Vitest runner unit tests, and builtin skill Python unit tests. Runtime fast gate is not release readiness. It is intentionally narrow: it does not build or publish an image, prove backend-real behavior, or update AgentSmith adoption state.
+
+Pre-GA runtime fast requires local dev dependencies plus an explicit `@mbos/agent-runner-contract` artifact package input. It is not ordinary npm install from a public registry, sibling source, or a file/link/workspace local protocol.
+
+## P5.1/P5.3a/P5.3b Start Guard
+
+The start guard is CI-safe startup coverage for source-boundary, contract consumer skeleton, and runner release manifest skeleton:
 
 ```bash
 bash scripts/verify-release.sh --start-guard
 ```
 
-This runs quick governance, shell syntax checks, `node --check` for both Node checkers, `bash scripts/test-runner-contract-consumer.sh`, and `bash scripts/test-runner-release-manifest.sh`. It uses only local temporary fixtures and does not require an external artifact root or manifest artifact.
+This runs quick governance, shell syntax checks, source-boundary validation, Node checker syntax checks, `bash scripts/test-runner-contract-consumer.sh`, and `bash scripts/test-runner-release-manifest.sh`. The contract and manifest self-tests use only local temporary fixtures and do not require an external artifact root or manifest artifact.
 
-Start guard is not release readiness. It does not replace full release mode, image evidence, runtime evidence, AgentSmith adoption evidence, or an AgentSmith lock update.
+Start guard is not release readiness. It intentionally excludes the runtime fast gate until clean CI has explicit contract artifact acquisition, and it does not replace full release mode, image evidence, runtime evidence, AgentSmith adoption evidence, or an AgentSmith lock update.
 
 ## P5.3a Runner Release Manifest Skeleton
 
@@ -120,4 +133,4 @@ When team members enter this repo, first claim non-overlapping workstreams befor
 - `CI gate`: quick governance guard, future release gate design, workflow hardening.
 - `implementation`: runner process, skills runtime, runner image, conformance tests.
 
-All workstreams are bound by this README, [AGENTS.md](AGENTS.md), [DEVELOPMENT.md](DEVELOPMENT.md), and [docs/RELEASE_GATES.md](docs/RELEASE_GATES.md). Bootstrap quick gate success only opens repo-local focused work; it does not approve release, adoption, or AgentSmith lock updates.
+All workstreams are bound by this README, [AGENTS.md](AGENTS.md), [DEVELOPMENT.md](DEVELOPMENT.md), and [docs/RELEASE_GATES.md](docs/RELEASE_GATES.md). Quick gate and runtime fast gate success only open repo-local focused work; they do not approve release, adoption, or AgentSmith lock updates.
