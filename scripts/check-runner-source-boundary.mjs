@@ -130,11 +130,11 @@ const FORBIDDEN_RUNNER_PRODUCT_SEMANTIC_PATTERNS = [
   },
   {
     label: 'usage_tokens payload field',
-    pattern: /(?:\busage_tokens\b|["']usage_tokens["']|\[\s*["']usage_tokens["']\s*\])\s*:/,
+    pattern: /(?:(?:\busage_tokens\b|["']usage_tokens["']|\[\s*["']usage_tokens["']\s*\])\s*:|\bpayload\s*(?:\.\s*usage_tokens|\[\s*["']usage_tokens["']\s*\])\s*=(?!=))/,
   },
   {
     label: 'Files/file-library reserved namespace policy',
-    pattern: /\.minio\.sys|file[- ]library reserved namespace/i,
+    pattern: /\.(?:minio\.sys|trash)\b|file[- ]library reserved namespace/i,
   },
   {
     label: 'workspace access release fence payload field',
@@ -318,8 +318,23 @@ function runSelfTest() {
       expected: 'usage_tokens payload field',
     },
     {
+      label: 'direct usage token payload assignment',
+      text: 'payload.usage_tokens = estimatedUsageTokens;',
+      expected: 'usage_tokens payload field',
+    },
+    {
+      label: 'indexed usage token payload assignment',
+      text: "payload['usage_tokens'] = estimatedUsageTokens;",
+      expected: 'usage_tokens payload field',
+    },
+    {
       label: 'storage backend reserved path constant',
       text: "const reservedNamespace = '.minio.sys';",
+      expected: 'Files/file-library reserved namespace policy',
+    },
+    {
+      label: 'file library trash reserved path constant',
+      text: "const reservedNamespace = '.trash';",
       expected: 'Files/file-library reserved namespace policy',
     },
     {
