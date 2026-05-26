@@ -164,6 +164,11 @@ if (mode === 'tag-only-image') {
   manifest.image.image = 'ghcr.io/agentsmith-project/agentsmith-runner:p5-3a';
 }
 
+if (mode === 'latest-digest-image') {
+  const mutableTag = ['lat', 'est'].join('');
+  manifest.image.image = `ghcr.io/agentsmith-project/agentsmith-runner:${mutableTag}@${imageDigest}`;
+}
+
 if (mode === 'image-digest-mismatch') {
   manifest.image.digest = `sha256:${'0'.repeat(64)}`;
 }
@@ -410,6 +415,10 @@ expect_verify_success "verify-release manifest mode fixture" "$positive_manifest
 tag_only_manifest="$tmp_root/tag-only-image.json"
 write_manifest "$tag_only_manifest" "tag-only-image"
 expect_failure "tag-only image rejection" 'image[.]image.*digest-pinned|tag-only' "$tag_only_manifest"
+
+latest_digest_manifest="$tmp_root/latest-digest-image.json"
+write_manifest "$latest_digest_manifest" "latest-digest-image"
+expect_failure "latest digest-pinned image rejection" 'latest tag' "$latest_digest_manifest"
 
 image_digest_mismatch_manifest="$tmp_root/image-digest-mismatch.json"
 write_manifest "$image_digest_mismatch_manifest" "image-digest-mismatch"

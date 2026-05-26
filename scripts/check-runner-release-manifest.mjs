@@ -262,6 +262,8 @@ function validateImage(value) {
     const match = IMAGE_REF_PATTERN.exec(imageRef);
     if (!match) {
       addError('image.image must be a digest-pinned GHCR ref; tag-only image refs are not allowed');
+    } else if (match[1] === 'latest') {
+      addError('image.image must not use the latest tag, even when digest-pinned');
     } else if (digest !== null && digest !== `sha256:${match[2]}`) {
       addError('image.digest must match the digest embedded in image.image');
     }

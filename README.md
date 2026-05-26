@@ -21,7 +21,7 @@ This repo owns:
 - Focused runner image publish evidence.
 - Runner contract conformance tests.
 
-This repo only consumes the AgentSmith runner contract. AgentSmith and its shared contract flow remain the source of truth for product objects, API semantics, protocol schemas, fixtures, and compatibility rules.
+This repo only consumes the AgentSmith runner contract. AgentSmith and its shared contract flow remain the source of truth for product objects, API semantics, protocol schemas, fixtures, and supported protocol version fail-fast behavior.
 
 ## Owner Metadata
 
@@ -149,7 +149,7 @@ This mode is intentionally not release readiness. It does not migrate runtime co
 When team members enter this repo, first claim non-overlapping workstreams before implementation starts:
 
 - `docs`: README, AGENTS, DEVELOPMENT, ADR, readiness evidence, risk register.
-- `contracts`: consumer contract docs, conformance fixture plan, version compatibility notes.
+- `contracts`: consumer contract docs, conformance fixture plan, supported protocol version fail-fast notes.
 - `runbooks`: local runner operation, image build/run handoff, release operator notes.
 - `CI gate`: quick governance guard, future release gate design, workflow hardening.
 - `implementation`: runner process, skills runtime, runner image, conformance tests.
