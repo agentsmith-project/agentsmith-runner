@@ -22,6 +22,7 @@ Allowed now:
 - Document fail-closed compatibility expectations.
 - Run the P5.0 consumer skeleton against an explicit artifact root supplied by the caller.
 - Run the P5.1 start guard with local negative fixtures and no external artifact root.
+- Run the P5.3a runner release manifest skeleton checker against an explicit manifest supplied by the caller.
 
 Not allowed now:
 
@@ -45,15 +46,25 @@ The consumer checks the tgz hash and npm SRI integrity, rejects legacy `local_pa
 
 This skeleton is intentionally not a second contract authority and not release readiness.
 
+## P5.3a Release Manifest Contract Binding
+
+```bash
+bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
+```
+
+The runner release manifest skeleton does not download or unpack contract artifacts. It checks that `contract_artifact` binds to the P5.2 handoff facts that downstream manifests can reference directly: tgz `package_uri`, tgz `package_sha256`, tgz `package_integrity`, and descriptor `descriptor_subject_sha256`. The package URI must be a P5.2 canonical remote CI artifact URI for a `.tgz` file, not a file path, local protocol, workspace path, or non-numeric run id.
+
+This checker fixes the manifest adoption shape only. It is not a contract source of truth, not a runtime conformance test, not image evidence, not AgentSmith adoption, and not release readiness. AgentSmith should consume a future provenance-backed manifest plus lock state rather than local runner source.
+
 ## P5.1 Start Guard
 
 ```bash
 bash scripts/verify-release.sh --start-guard
 ```
 
-Start guard runs quick governance, shell syntax checks, the consumer syntax check, and the local consumer self-test. The self-test builds only temporary fixtures and covers rejection of legacy descriptor fields, artifact filename escape, artifact URI drift, sha256 drift, npm SRI drift, local or non-empty package dependencies, and source/test files inside the tgz.
+Start guard runs quick governance, shell syntax checks, the consumer and manifest syntax checks, and both local self-tests. The consumer self-test builds only temporary fixtures and covers rejection of legacy descriptor fields, artifact filename escape, artifact URI drift, sha256 drift, npm SRI drift, local or non-empty package dependencies, and source/test files inside the tgz. The manifest self-test uses temporary JSON fixtures and covers image digest pinning, producer repo drift, contract artifact metadata, protocol drift, semver drift, subject hash drift, local path or credential-like leakage, and unknown fields.
 
-Start guard is not release readiness. It is a CI startup guard for the consumer skeleton, not proof of runtime compatibility or image release quality.
+Start guard is not release readiness. It is a CI startup guard for local skeleton checks, not proof of runtime compatibility, image release quality, AgentSmith adoption, or lock update.
 
 ## Future Conformance Areas
 

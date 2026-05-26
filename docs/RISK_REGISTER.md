@@ -11,3 +11,5 @@ Current phase: bootstrap-only/docs-governance-first.
 | R-005 | Secret placeholders or raw credentials enter bootstrap docs. | Open | Quick guard scans for common raw secret placeholder patterns. |
 | R-006 | Mutable image tags or tag-only claims become release proof. | Open | RELEASE_GATES blocks mutable and tag-only release claims; future releases must be digest-pinned. |
 | R-007 | Retired runner repository becomes a second canonical truth. | Open | Quick guard rejects retired runner canonical claims; canonical repo identity is fixed here. |
+| R-008 | P5.3a release manifest skeleton is mistaken for image build, runtime evidence, AgentSmith adoption, lock update, or release readiness. | Open | RELEASE_GATES, README, DEVELOPMENT, runbooks, and readiness evidence state the manifest checker is a focused skeleton diagnostic only. |
+| R-009 | Release manifest adoption semantics drift before GA. | Open | `scripts/check-runner-release-manifest.mjs` rejects unknown or legacy fields, requires digest-pinned image refs, validates CI provenance, and checks subject hash over the manifest without `artifact_provenance`. |

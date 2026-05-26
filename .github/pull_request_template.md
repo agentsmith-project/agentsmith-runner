@@ -8,6 +8,7 @@
 - [ ] This change consumes only the published runner contract package and does not use sibling source paths.
 - [ ] This change does not add secrets, tokens, private keys, credentials, or placeholder secret values.
 - [ ] This change does not claim release readiness from quick mode.
+- [ ] This change does not claim release readiness, image evidence, AgentSmith adoption, or lock update from the release manifest skeleton.
 
 ## Workstream
 
@@ -24,6 +25,7 @@ Claimed workstream:
 ```bash
 bash scripts/verify-release.sh --quick
 bash scripts/verify-release.sh --start-guard
+bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
 ```
 
-Start guard is not release readiness; use it only as focused consumer startup evidence.
+Start guard is not release readiness; use it only as focused startup evidence. Release manifest skeleton mode is also not release readiness; use it only when a manifest JSON file is supplied for shape checking.

@@ -7,12 +7,14 @@ Usage:
   bash scripts/verify-release.sh --quick
   bash scripts/verify-release.sh --start-guard
   bash scripts/verify-release.sh --contract-consumer --artifact-root <dir>
+  bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
   bash scripts/verify-release.sh
 
 Current bootstrap status:
   --quick validates governance skeleton and boundary guardrails only.
-  --start-guard validates quick governance plus local contract-consumer startup checks.
+  --start-guard validates quick governance plus local contract-consumer and release-manifest startup checks.
   --contract-consumer validates an explicit runner contract artifact root only.
+  --release-manifest validates an explicit runner release manifest skeleton only.
   Full release mode is intentionally not implemented during bootstrap.
 USAGE
 }
@@ -49,6 +51,7 @@ if [[ "${1:-}" == "--start-guard" ]]; then
   bash -n "$repo_root/scripts/verify-release.sh"
   bash -n "$repo_root/scripts/check-governance-guard.sh"
   bash -n "$repo_root/scripts/test-runner-contract-consumer.sh"
+  bash -n "$repo_root/scripts/test-runner-release-manifest.sh"
 
   echo "start guard: running quick governance guard"
   bash "$repo_root/scripts/verify-release.sh" --quick
@@ -56,10 +59,16 @@ if [[ "${1:-}" == "--start-guard" ]]; then
   echo "start guard: checking contract consumer syntax"
   node --check "$repo_root/scripts/check-runner-contract-consumer.mjs"
 
+  echo "start guard: checking release manifest syntax"
+  node --check "$repo_root/scripts/check-runner-release-manifest.mjs"
+
   echo "start guard: running contract consumer self-test"
   bash "$repo_root/scripts/test-runner-contract-consumer.sh"
 
-  echo "contract consumer start guard passed"
+  echo "start guard: running release manifest self-test"
+  bash "$repo_root/scripts/test-runner-release-manifest.sh"
+
+  echo "runner start guard passed"
   echo "Start guard is not release readiness"
   exit 0
 fi
@@ -72,6 +81,18 @@ if [[ "${1:-}" == "--contract-consumer" ]]; then
   fi
 
   node "$repo_root/scripts/check-runner-contract-consumer.mjs" --artifact-root "$3"
+  exit 0
+fi
+
+if [[ "${1:-}" == "--release-manifest" ]]; then
+  if [[ $# -ne 3 || "${2:-}" != "--manifest" ]]; then
+    echo "error: --release-manifest requires exactly --manifest <manifest-path>" >&2
+    usage >&2
+    exit 2
+  fi
+
+  node "$repo_root/scripts/check-runner-release-manifest.mjs" --manifest "$3"
+  echo "Release manifest skeleton check is not release readiness"
   exit 0
 fi
 
@@ -88,9 +109,11 @@ This repo currently supports only:
   bash scripts/verify-release.sh --quick
   bash scripts/verify-release.sh --start-guard
   bash scripts/verify-release.sh --contract-consumer --artifact-root <dir>
+  bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
 
 Quick mode is not release readiness.
 Start guard is not release readiness.
 Contract consumer mode is not release readiness.
+Release manifest skeleton mode is not release readiness.
 MESSAGE
 exit 2

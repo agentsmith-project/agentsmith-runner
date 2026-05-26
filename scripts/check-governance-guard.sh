@@ -94,6 +94,8 @@ check_required_files() {
     .github/workflows/ci.yml
     scripts/verify-release.sh
     scripts/check-governance-guard.sh
+    scripts/check-runner-release-manifest.mjs
+    scripts/test-runner-release-manifest.sh
   )
 
   local file
@@ -213,6 +215,38 @@ check_start_guard_not_release() {
   require_grep "node-version:[[:space:]]*['\"]?24['\"]?" .github/workflows/ci.yml "CI start guard sets up Node 24"
   require_grep "bash scripts/verify-release[.]sh --start-guard" .github/workflows/ci.yml "CI runs start guard verification"
   require_grep "verify-release[.]sh --start-guard" scripts/verify-release.sh "verify entrypoint supports start guard"
+  require_grep "test-runner-release-manifest[.]sh" scripts/verify-release.sh "start guard runs release manifest self-test"
+  require_grep "check-runner-release-manifest[.]mjs" scripts/verify-release.sh "start guard checks release manifest syntax"
+}
+
+check_release_manifest_skeleton_not_release() {
+  require_grep "bash scripts/verify-release[.]sh --release-manifest --manifest <manifest-path>" README.md "README documents release manifest skeleton command"
+  require_grep "Release manifest skeleton mode is not release readiness|This skeleton is not.*release readiness" README.md "README says manifest skeleton is not release readiness"
+  require_grep "not an image build|does not build a runner image" README.md "README says manifest skeleton is not image evidence"
+  require_grep "not AgentSmith adoption|does not.*AgentSmith adoption" README.md "README says manifest skeleton is not AgentSmith adoption"
+
+  require_grep "bash scripts/verify-release[.]sh --release-manifest --manifest <manifest-path>" DEVELOPMENT.md "DEVELOPMENT documents release manifest skeleton command"
+  require_grep "Release manifest skeleton mode is not release readiness" DEVELOPMENT.md "DEVELOPMENT says manifest skeleton is not release readiness"
+  require_grep "not an image build" DEVELOPMENT.md "DEVELOPMENT says manifest skeleton is not an image build"
+
+  require_grep "bash scripts/verify-release[.]sh --release-manifest --manifest <manifest-path>" docs/RELEASE_GATES.md "RELEASE_GATES documents release manifest skeleton command"
+  require_grep "Release manifest skeleton mode is not release readiness" docs/RELEASE_GATES.md "RELEASE_GATES says manifest skeleton is not release readiness"
+  require_grep "does not build a runner image" docs/RELEASE_GATES.md "RELEASE_GATES says manifest skeleton is not image build evidence"
+  require_grep "AgentSmith lock" docs/RELEASE_GATES.md "RELEASE_GATES keeps manifest skeleton separate from AgentSmith lock update"
+
+  require_grep "bash scripts/verify-release[.]sh --release-manifest --manifest <manifest-path>" docs/READINESS_EVIDENCE.md "readiness evidence documents release manifest skeleton command"
+  require_grep "not release readiness" docs/READINESS_EVIDENCE.md "readiness evidence says manifest skeleton is not release readiness"
+  require_grep "scripts/test-runner-release-manifest[.]sh" docs/READINESS_EVIDENCE.md "readiness evidence documents release manifest self-test"
+
+  require_grep "bash scripts/verify-release[.]sh --release-manifest --manifest <manifest-path>" docs/contracts/README.md "contracts docs document release manifest skeleton command"
+  require_grep "not a contract source of truth" docs/contracts/README.md "contracts docs keep manifest skeleton out of contract authority"
+  require_grep "not release readiness" docs/contracts/README.md "contracts docs say manifest skeleton is not release readiness"
+
+  require_grep "bash scripts/verify-release[.]sh --release-manifest --manifest <manifest-path>" docs/runbooks/README.md "runbooks document release manifest skeleton command"
+  require_grep "not release readiness" docs/runbooks/README.md "runbooks say manifest skeleton is not release readiness"
+  require_grep "P5.3a release manifest skeleton" docs/RISK_REGISTER.md "risk register tracks manifest skeleton misuse"
+  require_grep "release manifest skeleton" .github/pull_request_template.md "PR template separates manifest skeleton evidence"
+  require_grep "Release manifest skeleton mode is not release readiness" scripts/verify-release.sh "verify entrypoint says manifest mode is not release readiness"
 }
 
 check_local_handoff_documented() {
@@ -355,6 +389,7 @@ check_runner_specific_fail_fast_guard
 check_contract_consumer_source_boundary
 check_quick_not_release
 check_start_guard_not_release
+check_release_manifest_skeleton_not_release
 check_local_handoff_documented
 check_no_forbidden_patterns
 check_no_ecosystem_bootstrap_files

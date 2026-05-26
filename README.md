@@ -1,6 +1,6 @@
 # AgentSmith Runner
 
-AgentSmith Runner is the future implementation home for the AgentSmith managed runner execution process. This bootstrap repository is intentionally docs-governance-first: it establishes the repo identity, scope boundary, handoff rules, and quick governance guard before any runtime code, Dockerfile, contract implementation, or release workflow is moved here.
+AgentSmith Runner is the future implementation home for the AgentSmith managed runner execution process. This bootstrap repository is intentionally docs-governance-first: it establishes the repo identity, scope boundary, handoff rules, quick governance guard, contract-consumer skeleton, and runner release manifest skeleton before any runtime code, Dockerfile, contract implementation, or release workflow is moved here.
 
 Canonical repository identity: `github.com/agentsmith-project/agentsmith-runner`
 
@@ -70,17 +70,31 @@ bash scripts/verify-release.sh --quick
 
 Quick mode is not release readiness. The full repo-local release gate is a future authority and is not implemented in this bootstrap stage.
 
-## P5.1 Start Guard
+## P5.1/P5.3a Start Guard
 
-P5.1 adds a CI-safe startup guard for the contract consumer skeleton:
+The start guard is CI-safe startup coverage for the contract consumer skeleton and runner release manifest skeleton:
 
 ```bash
 bash scripts/verify-release.sh --start-guard
 ```
 
-This runs quick governance, shell syntax checks, `node --check scripts/check-runner-contract-consumer.mjs`, and `bash scripts/test-runner-contract-consumer.sh`. It uses only local temporary fixtures and does not require an external artifact root.
+This runs quick governance, shell syntax checks, `node --check` for both Node checkers, `bash scripts/test-runner-contract-consumer.sh`, and `bash scripts/test-runner-release-manifest.sh`. It uses only local temporary fixtures and does not require an external artifact root or manifest artifact.
 
-Start guard is not release readiness. It does not replace full release mode, image evidence, runtime evidence, or AgentSmith adoption evidence.
+Start guard is not release readiness. It does not replace full release mode, image evidence, runtime evidence, AgentSmith adoption evidence, or an AgentSmith lock update.
+
+## P5.3a Runner Release Manifest Skeleton
+
+P5.3a adds an explicit runner release manifest skeleton checker:
+
+```bash
+bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
+```
+
+The manifest path must point to a JSON file. The manifest must use `agentsmith.runner-release-manifest/v1`, runner `agentsmith-runner`, image logical id `agentsmith-runner`, a 40-character lowercase `git_sha`, semver `runner_contract_version`, exact `supported_protocol_versions` of `["1.0"]`, a digest-pinned GHCR image reference, P5.2 contract package references (`package_uri`, `package_sha256`, `package_integrity`, and `descriptor_subject_sha256`), CI artifact provenance from `github.com/agentsmith-project/agentsmith-runner`, and a fail-fast adoption policy.
+
+The checker also validates `artifact_provenance.subject_sha256` by hashing the manifest without `artifact_provenance`, requires skeleton `artifact_provenance.artifact_sha256` to equal that subject hash, rejects unknown or legacy fields, rejects local paths or credential-like values, and requires `contract_artifact.package_uri` to be a P5.2 canonical remote CI artifact URI for a `.tgz` package. In P5.3a, `artifact_sha256` is the manifest subject hash only; it is not remote artifact download proof.
+
+This skeleton is not an image build, not runtime evidence, not AgentSmith adoption, not an AgentSmith lock update, and not release readiness. AgentSmith should consume a future provenance-backed manifest plus lock state, not local runner source.
 
 ## P5.0 Contract Consumer Skeleton
 
