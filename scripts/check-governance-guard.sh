@@ -106,6 +106,7 @@ check_required_files() {
     docs/RISK_REGISTER.md
     .github/pull_request_template.md
     .github/workflows/ci.yml
+    .github/workflows/runner-image-publish.yml
     Dockerfile
     .dockerignore
     package.json
@@ -120,6 +121,7 @@ check_required_files() {
     scripts/test-runner-runtime-fast.sh
     scripts/test-runner-image-smoke.sh
     scripts/check-runner-release-manifest.mjs
+    scripts/write-runner-release-manifest.mjs
     scripts/test-runner-release-manifest.sh
   )
 
@@ -257,6 +259,7 @@ check_start_guard_not_release() {
   require_grep "check-runner-source-boundary[.]mjs" scripts/verify-release.sh "start guard checks source boundary syntax"
   require_grep "test-runner-release-manifest[.]sh" scripts/verify-release.sh "start guard runs release manifest self-test"
   require_grep "check-runner-release-manifest[.]mjs" scripts/verify-release.sh "start guard checks release manifest syntax"
+  require_grep "write-runner-release-manifest[.]mjs" scripts/verify-release.sh "start guard checks release manifest generator syntax"
 }
 
 check_release_manifest_skeleton_not_release() {
@@ -320,6 +323,69 @@ check_image_smoke_not_release() {
   require_grep "npm run build -w @mbos/agent-runner-contract" .github/workflows/ci.yml "CI builds runner contract artifact package"
   require_grep "npx tsx scripts/governance/runner-contract-artifact[.]ts" .github/workflows/ci.yml "CI generates explicit runner contract artifact root"
   require_grep "bash scripts/verify-release[.]sh --image-smoke --artifact-root" .github/workflows/ci.yml "CI runs focused image smoke with artifact root"
+}
+
+check_runner_image_publish_focused_evidence() {
+  local workflow=".github/workflows/runner-image-publish.yml"
+
+  require_file "$workflow"
+  require_grep "workflow_dispatch:" "$workflow" "runner image publish is manual workflow_dispatch"
+  forbid_grep "^[[:space:]]*(push|pull_request|schedule):" "$workflow" "runner image publish has no automatic triggers"
+  require_grep "agentsmith_contract_run_id" "$workflow" "runner image publish requires AgentSmith contract run id input"
+  require_grep "release_id" "$workflow" "runner image publish accepts optional release id input"
+  require_grep "contents:[[:space:]]*read" "$workflow" "runner image publish has contents read permission"
+  require_grep "packages:[[:space:]]*write" "$workflow" "runner image publish has packages write permission"
+  require_grep "actions:[[:space:]]*read" "$workflow" "runner image publish has actions read permission"
+
+  require_grep "actions/download-artifact@v7" "$workflow" "runner image publish downloads artifact with v7"
+  require_grep "name:[[:space:]]*agentsmith-runner-contract-artifact" "$workflow" "runner image publish downloads formal AgentSmith artifact name"
+  require_grep "repository:[[:space:]]*agentsmith-project/agentsmith" "$workflow" "runner image publish downloads from AgentSmith repo"
+  require_grep "run-id:.*agentsmith_contract_run_id" "$workflow" "runner image publish uses supplied AgentSmith run id"
+  require_grep "path:[[:space:]]*artifacts/runner-contract" "$workflow" "runner image publish downloads to runner contract artifact root"
+
+  require_grep "verify-release[.]sh --contract-consumer --artifact-root artifacts/runner-contract" "$workflow" "runner image publish verifies contract consumer"
+  require_grep "verify-release[.]sh --image-smoke --artifact-root artifacts/runner-contract" "$workflow" "runner image publish runs no-push image smoke before publish"
+  require_grep "ghcr[.]io/agentsmith-project/agentsmith-runner" "$workflow" "runner image publish uses canonical GHCR repo"
+  local old_agent_task_runner="agent-task""-runner"
+  local old_codex_runner="agentsmith-codex""-runner"
+  local latest_tag=":lat""est([^A-Za-z0-9_-]|$)"
+  forbid_grep "ghcr[.]io/agentsmith-project/(${old_agent_task_runner}|${old_codex_runner})" "$workflow" "runner image publish avoids old GHCR aliases"
+  forbid_grep "$latest_tag" "$workflow" "runner image publish does not create latest tag"
+  require_grep "release-[\$][{]release_id[}]" "$workflow" "runner image publish creates release-id tag"
+  require_grep "sha-[\$][{]GITHUB_SHA::12[}]" "$workflow" "runner image publish creates short sha tag"
+  require_grep "docker/login-action@" "$workflow" "runner image publish logs in to GHCR"
+  require_grep "docker buildx build" "$workflow" "runner image publish builds image with buildx"
+  require_grep "[[:space:]]--push" "$workflow" "runner image publish pushes image"
+  require_grep "[[:space:]]--provenance=false" "$workflow" "runner image publish disables build provenance attestation"
+  require_grep "[[:space:]]--sbom=false" "$workflow" "runner image publish disables build SBOM"
+  require_grep "imagetools inspect" "$workflow" "runner image publish inspects pushed image"
+  require_grep "Manifest[.]Digest" "$workflow" "runner image publish reads manifest digest"
+  require_grep "sha256:\\[a-f0-9\\][{]64[}]" "$workflow" "runner image publish validates sha256 digest"
+
+  require_grep "write-runner-release-manifest[.]mjs" "$workflow" "runner image publish generates release manifest"
+  require_grep "verify-release[.]sh --release-manifest --manifest artifacts/runner-release/runner-release-manifest[.]json" "$workflow" "runner image publish verifies release manifest"
+  require_grep "actions/upload-artifact@v7" "$workflow" "runner image publish uploads manifest artifact with v7"
+  require_grep "name:[[:space:]]*runner-release-manifest" "$workflow" "runner image publish artifact name is runner-release-manifest"
+  require_grep "Focused publish evidence only" "$workflow" "runner image publish labels evidence as focused"
+  require_grep "not release readiness" "$workflow" "runner image publish says it is not release readiness"
+  require_grep "not AgentSmith adoption" "$workflow" "runner image publish says it is not AgentSmith adoption"
+  require_grep "not an AgentSmith lock update" "$workflow" "runner image publish says it is not an AgentSmith lock update"
+
+  require_grep "runner-image-publish[.]yml" README.md "README documents runner image publish workflow"
+  require_grep "digest-pinned GHCR image plus manifest artifact" README.md "README describes publish evidence output"
+  require_grep "does not create.*latest.*tag" README.md "README says publish workflow avoids latest"
+  require_grep "does not.*AgentSmith adoption lock|not an AgentSmith lock update" README.md "README says publish workflow does not update AgentSmith lock"
+  require_grep "runner-image-publish[.]yml" docs/RELEASE_GATES.md "RELEASE_GATES documents runner image publish workflow"
+  require_grep "focused publish evidence only" docs/RELEASE_GATES.md "RELEASE_GATES keeps publish evidence focused"
+  require_grep "not release readiness" docs/RELEASE_GATES.md "RELEASE_GATES says publish evidence is not release readiness"
+  require_grep "runner-image-publish[.]yml" docs/READINESS_EVIDENCE.md "readiness evidence documents publish workflow"
+  require_grep "not release readiness" docs/READINESS_EVIDENCE.md "readiness evidence says publish is not release readiness"
+  require_grep "runner-image-publish[.]yml" docs/runbooks/README.md "runbooks document publish workflow"
+  require_grep "not.*release contract runner digest" docs/runbooks/README.md "runbooks say publish does not change release contract runner digest"
+  require_grep "write-runner-release-manifest[.]mjs" docs/contracts/README.md "contracts docs document release manifest generator"
+  require_grep "manual focused GHCR publish evidence.*runner release manifest artifact" docs/adr/0001-bootstrap-boundary.md "ADR documents focused publish evidence allowance"
+  require_grep "release contract runner digest changes" docs/adr/0001-bootstrap-boundary.md "ADR keeps publish evidence out of release contract runner digest changes"
+  forbid_grep "still does not allow image publish, release manifest generation" docs/adr/0001-bootstrap-boundary.md "ADR does not regress to old publish prohibition wording"
 }
 
 check_local_handoff_documented() {
@@ -388,7 +454,7 @@ check_no_forbidden_patterns() {
   local remote_dependency_pattern="(${checkout_remote_dependency_pattern}|${git_remote_dependency_pattern}|${raw_remote_dependency_pattern}|${raw_contract_gate_dependency_pattern})"
 
   local remote_dependency_hits
-  remote_dependency_hits="$(grep -IEin -- "$remote_dependency_pattern" "${files[@]}" | grep -Ev '^\./\.github/workflows/ci[.]yml:[0-9]+:[[:space:]]*repository:[[:space:]]*agentsmith-project/agentsmith[[:space:]]*$' || true)"
+  remote_dependency_hits="$(grep -IEin -- "$remote_dependency_pattern" "${files[@]}" | grep -Ev '^\./\.github/workflows/(ci|runner-image-publish)[.]yml:[0-9]+:[[:space:]]*repository:[[:space:]]*agentsmith-project/agentsmith[[:space:]]*$' || true)"
 
   if [[ -n "$remote_dependency_hits" ]]; then
     echo "$remote_dependency_hits"
@@ -470,6 +536,7 @@ check_quick_not_release
 check_start_guard_not_release
 check_release_manifest_skeleton_not_release
 check_image_smoke_not_release
+check_runner_image_publish_focused_evidence
 check_local_handoff_documented
 check_no_forbidden_patterns
 check_no_ecosystem_bootstrap_files

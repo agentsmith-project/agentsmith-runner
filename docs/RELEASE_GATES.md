@@ -1,6 +1,6 @@
 # Release Gates
 
-Current phase: P5 focused runner work, with repo-local runner runtime source, builtin skills, focused fast checks, and a no-push image build/start smoke.
+Current phase: P5 focused runner work, with repo-local runner runtime source, builtin skills, focused fast checks, a no-push image build/start smoke, and manual focused GHCR publish evidence.
 
 ## Quick Mode
 
@@ -68,6 +68,21 @@ This explicit mode is a focused no-push image build/start smoke for a supplied r
 
 Image smoke is not release readiness. It does not publish an image, log in to a registry, push to GHCR, generate a release manifest, produce provenance, update AgentSmith adoption, update an AgentSmith lock, or replace the future full release gate.
 
+## P5 Runner Image Publish Focused Evidence
+
+Manual publish is available only through `.github/workflows/runner-image-publish.yml` with `workflow_dispatch`.
+
+The workflow downloads AgentSmith artifact `agentsmith-runner-contract-artifact` from repository `agentsmith-project/agentsmith` using the supplied run id, runs:
+
+```bash
+bash scripts/verify-release.sh --contract-consumer --artifact-root artifacts/runner-contract
+bash scripts/verify-release.sh --image-smoke --artifact-root artifacts/runner-contract
+```
+
+It then pushes only `ghcr.io/agentsmith-project/agentsmith-runner`, using safe non-`latest` tags `release-<release_id>` and `sha-<git-sha-12>`, resolves a `sha256:<64>` image digest, generates `artifacts/runner-release/runner-release-manifest.json`, verifies it with `bash scripts/verify-release.sh --release-manifest --manifest ...`, and uploads artifact `runner-release-manifest`.
+
+This is focused publish evidence only. It is not release readiness, not AgentSmith adoption, not an AgentSmith lock update, not an AgentSmith repo change, and not a release contract runner digest change.
+
 ## P5.3a Runner Release Manifest Skeleton Mode
 
 ```bash
@@ -79,6 +94,8 @@ This explicit mode validates only the future runner release manifest machine sha
 The image field must use logical id `agentsmith-runner` and a digest-pinned GHCR reference for `ghcr.io/agentsmith-project/agentsmith-runner`; tag-only references fail. The `contract_artifact` field must carry P5.2 contract package references: `package_uri`, `package_sha256`, `package_integrity`, and `descriptor_subject_sha256`. The `package_uri` must be a canonical remote CI artifact URI for a `.tgz` package under `gh-artifact://agentsmith-project/agentsmith/runner-contract-artifact/<positive-run-id>/`. The `artifact_provenance` field must be CI artifact provenance for `github.com/agentsmith-project/agentsmith-runner`, subject `runner-release-manifest`, subject URI `runner-release-manifest.json`, and must pass subject hash validation over the manifest with `artifact_provenance` excluded. In P5.3a, `artifact_provenance.artifact_sha256` must equal `subject_sha256`; this is the skeleton manifest subject hash, not remote artifact download proof. Workflow, job, generator command, and generator version are required as non-empty strings only. The `adoption_policy` field must require fail-fast adoption, lock update, and release contract adoption.
 
 Release manifest skeleton mode is not release readiness. It does not build a runner image, publish a GHCR image, prove runtime behavior, prove AgentSmith adoption, update an AgentSmith lock, or replace the future full release gate.
+
+`scripts/write-runner-release-manifest.mjs` is the focused generator for the same manifest shape. It accepts a formal contract artifact root plus a safe GHCR image tag ref without digest and a resolved digest, then writes the manifest artifact JSON. It is covered by `bash scripts/test-runner-release-manifest.sh`.
 
 ## P5.1 Start Guard
 
@@ -96,6 +113,7 @@ Start guard is not release readiness. It intentionally excludes runtime fast che
 - P5.3b runtime fast gate is not release readiness.
 - P5.0 contract consumer mode is not release readiness.
 - P5 runner image smoke is not release readiness.
+- P5 runner image publish focused evidence is not release readiness.
 - P5.3a release manifest skeleton mode is not release readiness.
 - P5.1 start guard is not release readiness.
 - Passing CI quick mode is not release readiness.

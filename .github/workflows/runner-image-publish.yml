@@ -1,0 +1,183 @@
+name: Runner Image Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      agentsmith_contract_run_id:
+        description: AgentSmith workflow run id that produced agentsmith-runner-contract-artifact
+        required: true
+        type: string
+      release_id:
+        description: Optional focused evidence id; defaults to runner-${GITHUB_RUN_ID}
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+  actions: read
+
+jobs:
+  publish:
+    name: Publish digest-pinned runner image evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      RUNNER_IMAGE: ghcr.io/agentsmith-project/agentsmith-runner
+      INPUT_CONTRACT_RUN_ID: ${{ inputs.agentsmith_contract_run_id }}
+      INPUT_RELEASE_ID: ${{ inputs.release_id }}
+    steps:
+      - name: Checkout agentsmith-runner
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Validate publish inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! [[ "$INPUT_CONTRACT_RUN_ID" =~ ^[1-9][0-9]*$ ]]; then
+            echo "agentsmith_contract_run_id must be a positive integer" >&2
+            exit 2
+          fi
+
+          release_id="$INPUT_RELEASE_ID"
+          if [[ -z "$release_id" ]]; then
+            release_id="runner-${GITHUB_RUN_ID}"
+          fi
+
+          safe_pattern='^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$'
+          if ! [[ "$release_id" =~ $safe_pattern ]]; then
+            echo "release_id must match [A-Za-z0-9][A-Za-z0-9._-]{0,95}" >&2
+            exit 2
+          fi
+          if [[ "${release_id,,}" == "latest" ]]; then
+            echo "release_id must not be latest" >&2
+            exit 2
+          fi
+
+          release_tag="release-${release_id}"
+          sha_tag="sha-${GITHUB_SHA::12}"
+          for tag in "$release_tag" "$sha_tag"; do
+            if ! [[ "$tag" =~ $safe_pattern ]]; then
+              echo "computed tag is unsafe: $tag" >&2
+              exit 2
+            fi
+            if [[ "${tag,,}" == "latest" ]]; then
+              echo "computed tag must not be latest" >&2
+              exit 2
+            fi
+          done
+
+          {
+            echo "RUNNER_RELEASE_ID=$release_id"
+            echo "RUNNER_RELEASE_REF=${RUNNER_IMAGE}:${release_tag}"
+            echo "RUNNER_SHA_REF=${RUNNER_IMAGE}:${sha_tag}"
+          } >> "$GITHUB_ENV"
+
+      - name: Download AgentSmith runner contract artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: agentsmith-runner-contract-artifact
+          repository: agentsmith-project/agentsmith
+          run-id: ${{ inputs.agentsmith_contract_run_id }}
+          github-token: ${{ github.token }}
+          path: artifacts/runner-contract
+
+      - name: Verify contract consumer
+        run: bash scripts/verify-release.sh --contract-consumer --artifact-root artifacts/runner-contract
+
+      - name: Run no-push pre-publish image smoke
+        run: bash scripts/verify-release.sh --image-smoke --artifact-root artifacts/runner-contract
+
+      - name: Prepare contract artifact for image build
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact_filename="$(
+            node - artifacts/runner-contract <<'NODE'
+const { readFileSync } = require('node:fs');
+const { basename, join } = require('node:path');
+
+const artifactRoot = process.argv[2];
+const descriptor = JSON.parse(readFileSync(join(artifactRoot, 'runner-contract-artifact.json'), 'utf8'));
+const filename = descriptor?.artifact?.filename;
+if (typeof filename !== 'string' || filename.length === 0 || filename !== basename(filename)) {
+  throw new Error('runner-contract-artifact.json artifact.filename must be a tgz basename');
+}
+console.log(filename);
+NODE
+          )"
+          mkdir -p .runner-contract-artifact
+          cp "artifacts/runner-contract/${artifact_filename}" ".runner-contract-artifact/${artifact_filename}"
+          echo "CONTRACT_TGZ=.runner-contract-artifact/${artifact_filename}" >> "$GITHUB_ENV"
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push runner image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker buildx build \
+            --push \
+            --provenance=false \
+            --sbom=false \
+            --tag "$RUNNER_RELEASE_REF" \
+            --tag "$RUNNER_SHA_REF" \
+            --build-arg "CONTRACT_TGZ=$CONTRACT_TGZ" \
+            .
+
+      - name: Resolve pushed image digest
+        shell: bash
+        run: |
+          set -euo pipefail
+          digest="$(docker buildx imagetools inspect "$RUNNER_RELEASE_REF" --format '{{.Manifest.Digest}}')"
+          if ! [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+            echo "published image digest has invalid format: $digest" >&2
+            exit 1
+          fi
+          echo "RUNNER_IMAGE_DIGEST=$digest" >> "$GITHUB_ENV"
+          echo "Published focused runner image evidence: $RUNNER_RELEASE_REF@$digest"
+
+      - name: Write runner release manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/write-runner-release-manifest.mjs \
+            --artifact-root artifacts/runner-contract \
+            --image-ref "$RUNNER_RELEASE_REF" \
+            --image-digest "$RUNNER_IMAGE_DIGEST" \
+            --release-id "$RUNNER_RELEASE_ID" \
+            --git-sha "$GITHUB_SHA" \
+            --workflow-name "$GITHUB_WORKFLOW" \
+            --job "$GITHUB_JOB" \
+            --run-id "$GITHUB_RUN_ID" \
+            --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --generated-at "$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')" \
+            --output artifacts/runner-release/runner-release-manifest.json
+
+      - name: Verify runner release manifest
+        run: bash scripts/verify-release.sh --release-manifest --manifest artifacts/runner-release/runner-release-manifest.json
+
+      - name: Upload runner release manifest artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: runner-release-manifest
+          path: artifacts/runner-release/runner-release-manifest.json
+          if-no-files-found: error
+
+      - name: Focused evidence notice
+        run: |
+          echo "Focused publish evidence only: digest-pinned GHCR image plus runner-release-manifest artifact."
+          echo "This is not release readiness, not AgentSmith adoption, and not an AgentSmith lock update."

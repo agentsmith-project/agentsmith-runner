@@ -13,6 +13,7 @@ Current phase: P5 focused runner work.
 | P5.0 contract artifact consumer skeleton | focused diagnostic | scripts/check-runner-contract-consumer.mjs |
 | Runner contract consumer self-test | focused diagnostic | scripts/test-runner-contract-consumer.sh |
 | P5.3a runner release manifest skeleton checker | focused diagnostic | scripts/check-runner-release-manifest.mjs |
+| P5 runner release manifest generator | focused diagnostic | scripts/write-runner-release-manifest.mjs |
 | Runner release manifest self-test | focused diagnostic | scripts/test-runner-release-manifest.sh |
 | P5.3b runner runtime source | present | src/ |
 | P5.3b builtin skills | present | builtin-skills/ |
@@ -20,6 +21,7 @@ Current phase: P5 focused runner work.
 | P5.3b source boundary guard | focused diagnostic | scripts/check-runner-source-boundary.mjs |
 | P5 runner Dockerfile | present | Dockerfile |
 | P5 runner image smoke | focused diagnostic | scripts/verify-release.sh --image-smoke --artifact-root <artifact-root> |
+| P5 runner image publish workflow | focused publish evidence | .github/workflows/runner-image-publish.yml |
 | P5.1 start guard | focused diagnostic | scripts/verify-release.sh --start-guard |
 | Quick verify entrypoint present | present | scripts/verify-release.sh |
 | CI quick guard present | present | .github/workflows/ci.yml |
@@ -28,7 +30,7 @@ Current phase: P5 focused runner work.
 | Runtime behavior evidence | focused only | scripts/test-runner-runtime-fast.sh |
 | Runner image evidence | focused only | scripts/verify-release.sh --image-smoke --artifact-root <artifact-root> |
 | Contract conformance evidence | not implemented | future contracts and CI gate workstreams |
-| Provenance-backed release manifest artifact | not implemented | future CI gate workstream |
+| Runner release manifest artifact | focused publish evidence only | runner-image-publish workflow artifact `runner-release-manifest` |
 | Local, dev, or backend-real diagnostics as release proof | rejected | docs/RELEASE_GATES.md |
 
 ## Current Verdict
@@ -73,6 +75,18 @@ This evidence proves only that a supplied contract artifact root passes the cont
 
 Image smoke is not release readiness. It is not GHCR publish evidence, not registry login evidence, not release manifest generation, not provenance-backed release evidence, not backend-real runtime evidence, not AgentSmith adoption evidence, and not an AgentSmith lock update.
 
+## P5 Publish Focused Evidence
+
+Manual publish evidence is produced only by `.github/workflows/runner-image-publish.yml` through `workflow_dispatch`.
+
+The workflow downloads the formal AgentSmith artifact `agentsmith-runner-contract-artifact`, runs contract consumer validation, runs no-push image smoke, pushes `ghcr.io/agentsmith-project/agentsmith-runner` without a `latest` tag or old alias, resolves the pushed digest, writes `artifacts/runner-release/runner-release-manifest.json`, verifies it with:
+
+```bash
+bash scripts/verify-release.sh --release-manifest --manifest artifacts/runner-release/runner-release-manifest.json
+```
+
+It uploads artifact `runner-release-manifest`. This is focused publish evidence only: digest-pinned GHCR image plus manifest artifact. It is not release readiness, not AgentSmith adoption evidence, not an AgentSmith lock update, not an AgentSmith repo change, and not a release contract runner digest change.
+
 ## P5.0 Focused Evidence
 
 The explicit consumer command is:
@@ -112,6 +126,8 @@ bash scripts/test-runner-release-manifest.sh
 ```
 
 It uses temporary JSON fixtures only. It covers the positive skeleton and negative checks for tag-only image references, image digest mismatch, wrong producer repo, commit SHA drift, artifact URI run id drift, missing contract artifact metadata, local package URI, non-numeric package URI run id, package digest and integrity format drift, protocol drift, invalid semver, subject hash drift, artifact hash drift, empty provenance strings, adoption policy drift, secret or local path leakage, and legacy or unknown fields. It is not run by `bash scripts/verify-release.sh --quick`.
+
+The same self-test also exercises `scripts/write-runner-release-manifest.mjs` with a temporary formal descriptor fixture, checks the generated manifest through the checker and `verify-release`, and covers generator rejection for unsafe image refs, wrong GHCR repos, and unsafe release ids.
 
 The P5.1 start guard is:
 

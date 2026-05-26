@@ -2,7 +2,7 @@
 
 This directory holds focused operator and developer runbook notes for the runner repo.
 
-Current status: P5 focused runner work. Runtime fast checks and a focused no-push image smoke are available, but no runner image deploy, publish, release, or adoption runbook is authoritative yet.
+Current status: P5 focused runner work. Runtime fast checks, a focused no-push image smoke, and a manual focused GHCR publish evidence workflow are available, but no runner image deploy, release, or adoption runbook is authoritative yet.
 
 ## P5.3b Runtime Fast Diagnostic
 
@@ -54,6 +54,19 @@ The command validates schema v1, runner identity, commit and semver formats, exa
 
 Do not use this as an image build, GHCR publish step, runtime evidence, AgentSmith adoption step, or reason to update locks. The command validates only the supplied JSON and must not read sibling source trees.
 
+## P5 Runner Image Publish Focused Evidence
+
+Use `.github/workflows/runner-image-publish.yml` only through GitHub Actions `workflow_dispatch`.
+
+Inputs:
+
+- `agentsmith_contract_run_id`: required positive AgentSmith workflow run id that produced `agentsmith-runner-contract-artifact`.
+- `release_id`: optional safe id; if empty, the workflow uses `runner-${GITHUB_RUN_ID}`.
+
+The workflow validates the formal contract artifact, runs no-push image smoke, pushes only `ghcr.io/agentsmith-project/agentsmith-runner` with safe non-`latest` tags, resolves the pushed digest, generates and verifies `artifacts/runner-release/runner-release-manifest.json`, and uploads artifact `runner-release-manifest`.
+
+This is focused publish evidence only. Do not use it as release readiness, AgentSmith adoption, an AgentSmith lock update, an AgentSmith repo change, or a release contract runner digest change.
+
 ## P5.1/P5.3a/P5.3b Start Guard
 
 Use this for CI startup coverage of the local skeleton checks:
@@ -69,7 +82,7 @@ Start guard is not release readiness. It intentionally excludes runtime fast che
 ## Future Runbook Areas
 
 - Local runner development setup.
-- Runner image deploy and publish.
+- Runner image deploy and release handoff.
 - Builtin skills runtime diagnostics beyond the fast unit gate.
 - Contract conformance execution.
 - Release evidence generation.

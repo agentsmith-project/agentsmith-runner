@@ -82,6 +82,9 @@ if [[ "${1:-}" == "--start-guard" ]]; then
   echo "start guard: checking release manifest syntax"
   node --check "$repo_root/scripts/check-runner-release-manifest.mjs"
 
+  echo "start guard: checking release manifest generator syntax"
+  node --check "$repo_root/scripts/write-runner-release-manifest.mjs"
+
   echo "start guard: running contract consumer self-test"
   bash "$repo_root/scripts/test-runner-contract-consumer.sh"
 

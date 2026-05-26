@@ -1,10 +1,10 @@
 # Development
 
-This repository is intentionally narrow during P5. The current goal is to make runner runtime source, builtin skills, dev/fast checks, and focused no-push image build/start smoke repo-local while keeping release, adoption, and product semantics out of scope.
+This repository is intentionally narrow during P5. The current goal is to make runner runtime source, builtin skills, dev/fast checks, focused no-push image build/start smoke, and manual focused GHCR publish evidence repo-local while keeping release readiness, adoption, and product semantics out of scope.
 
 ## Current Phase
 
-P5 focused runner work: runner runtime source and builtin skills have a repo-local fast gate, and the runner image has a focused build/start smoke.
+P5 focused runner work: runner runtime source and builtin skills have a repo-local fast gate, the runner image has a focused build/start smoke, and manual GHCR publish produces focused evidence only.
 
 Allowed now:
 
@@ -17,18 +17,22 @@ Allowed now:
 - P5.0 explicit runner contract artifact consumer skeleton.
 - P5.1 start guard that runs local contract-consumer startup checks without an external artifact root.
 - P5.3a runner release manifest skeleton checker and local manifest self-test.
+- P5 runner release manifest generator and focused generator self-test coverage.
 - Root package, TypeScript, and Vitest config for runner runtime fast checks.
 - Runner runtime source under `src/`.
 - Builtin skills under `builtin-skills/`.
 - P5.3b runtime fast gate.
 - Dockerfile plus focused image smoke that consumes an explicit runner contract artifact root.
+- Manual `workflow_dispatch` GHCR publish workflow that produces digest-pinned image evidence and uploads `runner-release-manifest`.
 
 Not allowed now:
 
-- Docker image publish.
-- Registry login or GHCR push.
+- Docker image publish outside `.github/workflows/runner-image-publish.yml`.
+- Registry login or GHCR push outside the focused publish workflow.
 - Release manifest generation from image smoke.
+- `latest`, old GHCR aliases, or tag-only image evidence.
 - AgentSmith adoption lock updates.
+- AgentSmith repo changes or release contract runner digest changes.
 - Release readiness claims.
 - Product API, Context Store, Files, managed credential, audit, usage, or frontend management code.
 - AgentSmith product gate scripts or copied implementation assets from adjacent family repos.
@@ -87,6 +91,14 @@ This command requires an explicit artifact root containing `runner-contract-arti
 
 Image smoke is not release readiness. It does not publish to GHCR, log in to a registry, generate a release manifest, update AgentSmith adoption, update locks, or prove backend-real behavior.
 
+P5 runner release manifest generator:
+
+```bash
+node scripts/write-runner-release-manifest.mjs --artifact-root <artifact-root> --image-ref ghcr.io/agentsmith-project/agentsmith-runner:<tag> --image-digest sha256:<64> --release-id <id> --git-sha <40> --workflow-name <name> --job <job> --run-id <positive> --run-attempt <positive> --output <path>
+```
+
+The generator reads `runner-contract-artifact.json` from the formal AgentSmith artifact root, writes JSON with a trailing newline, and is fail-fast about unsafe release ids, unsafe image refs, wrong GHCR repos, tag refs that already contain a digest, and digest formats. It generates focused evidence only; it does not build an image, push to GHCR, update AgentSmith locks, or claim release readiness.
+
 P5.3a runner release manifest skeleton diagnostic:
 
 ```bash
@@ -109,6 +121,7 @@ bash -n scripts/test-runner-release-manifest.sh
 node --check scripts/check-runner-source-boundary.mjs
 node --check scripts/check-runner-contract-consumer.mjs
 node --check scripts/check-runner-release-manifest.mjs
+node --check scripts/write-runner-release-manifest.mjs
 ```
 
 P5.1 start guard:
@@ -128,6 +141,8 @@ The local checkout at `/home/percy/works/mbos-v1/agentsmith-runner` is a workspa
 ## Release Posture
 
 Quick verification proves only that the governance surface is intact. Runtime fast checks prove only repo-local type/unit and builtin skill fast behavior. Image smoke proves only a clean local image build/start fail-fast path with an explicit contract artifact. None of these prove image release quality, backend-real behavior, AgentSmith adoption, or release readiness.
+
+The manual GHCR publish workflow proves only focused publish evidence: a digest-pinned `ghcr.io/agentsmith-project/agentsmith-runner` image and uploaded `runner-release-manifest` artifact. It does not update AgentSmith, change an adoption lock, change release contract runner digest, or establish release readiness.
 
 Local diagnostics, dev diagnostics, and backend-real diagnostics can become focused evidence later, but they are not release proof for this repository.
 

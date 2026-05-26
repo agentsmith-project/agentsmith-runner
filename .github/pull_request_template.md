@@ -10,6 +10,7 @@
 - [ ] This change does not claim release readiness from quick mode.
 - [ ] This change does not claim release readiness, image evidence, AgentSmith adoption, or lock update from the release manifest skeleton.
 - [ ] This change does not treat image smoke as release readiness, GHCR publish, release manifest generation, or AgentSmith adoption.
+- [ ] If this change touches focused publish, it uses only `.github/workflows/runner-image-publish.yml`, does not create `latest` or old GHCR aliases, and does not update AgentSmith locks or release contract runner digest.
 - [ ] If this change touches image smoke, evidence includes `bash scripts/verify-release.sh --image-smoke --artifact-root <dir>`.
 
 ## Workstream
@@ -29,6 +30,7 @@ bash scripts/verify-release.sh --quick
 bash scripts/verify-release.sh --start-guard
 bash scripts/verify-release.sh --image-smoke --artifact-root <dir>
 bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
+bash scripts/test-runner-release-manifest.sh
 ```
 
-Start guard is not release readiness; use it only as focused startup evidence. Image smoke is not release readiness, GHCR publish, release manifest generation, or AgentSmith adoption. Release manifest skeleton mode is also not release readiness; use it only when a manifest JSON file is supplied for shape checking.
+Start guard is not release readiness; use it only as focused startup evidence. Image smoke is not release readiness, GHCR publish, release manifest generation, or AgentSmith adoption. Focused publish evidence is not release readiness, AgentSmith adoption, an AgentSmith lock update, or a release contract runner digest change. Release manifest skeleton mode is also not release readiness; use it only when a manifest JSON file is supplied for shape checking.

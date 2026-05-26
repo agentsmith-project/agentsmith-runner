@@ -1,6 +1,6 @@
 # AgentSmith Runner
 
-AgentSmith Runner is the implementation home for the AgentSmith managed runner execution process. Current P5 scope has repo-local runtime source, builtin skills, a focused dev/fast runtime gate, and a focused no-push image build/start smoke while keeping release readiness, AgentSmith adoption locks, and product semantics out of scope.
+AgentSmith Runner is the implementation home for the AgentSmith managed runner execution process. Current P5 scope has repo-local runtime source, builtin skills, a focused dev/fast runtime gate, a focused no-push image build/start smoke, and a manual focused GHCR publish evidence workflow while keeping release readiness, AgentSmith adoption locks, and product semantics out of scope.
 
 Canonical repository identity: `github.com/agentsmith-project/agentsmith-runner`
 
@@ -18,6 +18,7 @@ This repo owns:
 - Builtin skills runtime.
 - Runner image.
 - Runner-side CI.
+- Focused runner image publish evidence.
 - Runner contract conformance tests.
 
 This repo only consumes the AgentSmith runner contract. AgentSmith and its shared contract flow remain the source of truth for product objects, API semantics, protocol schemas, fixtures, and compatibility rules.
@@ -41,7 +42,7 @@ This repo does not own:
 - Frontend management surface.
 - AgentSmith product release readiness.
 
-This P5 image-smoke slice adds only a repo-local Dockerfile and focused build/start smoke. It does not move product tests, product contracts, AgentSmith release gates, image publish steps, AgentSmith adoption locks, release manifests, or release readiness authority.
+This P5 slice keeps image smoke no-push and adds a separate manual publish workflow for focused evidence. It does not move product tests, product contracts, AgentSmith release gates, AgentSmith adoption locks, release readiness authority, or AgentSmith lock updates.
 
 ## Boundary Rules
 
@@ -54,7 +55,7 @@ This P5 image-smoke slice adds only a repo-local Dockerfile and focused build/st
 - Do not import AgentSmith product source or use sibling repo source paths as a runtime dependency.
 - Do not copy implementation assets from adjacent family control-plane repos.
 - AFSCP and ASBCP are bootstrap discipline references only, not dependencies.
-- Do not use mutable tags as release proof; future release adoption must be digest-pinned and provenance-backed.
+- Do not use mutable tags as release proof; focused publish evidence and future release adoption must be digest-pinned and provenance-backed.
 - Do not store secrets, credentials, tokens, private keys, or placeholder secrets in this repo.
 
 ## Local Workspace Handoff
@@ -95,6 +96,12 @@ The artifact root must contain `runner-contract-artifact.json` and the tgz named
 
 Image smoke is not release readiness. It is no GHCR publish, no registry login, no release manifest, no AgentSmith adoption, no lock update, and no release-ready claim. It proves only that a clean local image can build from the explicit contract artifact and start far enough to reject missing required runner env.
 
+## P5 Runner Image Publish Focused Evidence
+
+Manual focused publish evidence lives in `.github/workflows/runner-image-publish.yml` and is `workflow_dispatch` only. It downloads the formal AgentSmith artifact named `agentsmith-runner-contract-artifact`, runs `--contract-consumer`, runs the no-push `--image-smoke`, pushes only `ghcr.io/agentsmith-project/agentsmith-runner` tags shaped as `release-<release_id>` and `sha-<git-sha-12>`, resolves a `sha256:<64>` digest, writes `artifacts/runner-release/runner-release-manifest.json`, verifies it with `--release-manifest`, and uploads artifact `runner-release-manifest`.
+
+This workflow produces a digest-pinned GHCR image plus manifest artifact as focused evidence. It does not create a `latest` tag, old GHCR alias, AgentSmith adoption lock, AgentSmith repo change, release contract runner digest change, or release readiness claim.
+
 ## P5.1/P5.3a/P5.3b Start Guard
 
 The start guard is CI-safe startup coverage for source-boundary, contract consumer skeleton, and runner release manifest skeleton:
@@ -118,6 +125,8 @@ bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
 The manifest path must point to a JSON file. The manifest must use `agentsmith.runner-release-manifest/v1`, runner `agentsmith-runner`, image logical id `agentsmith-runner`, a 40-character lowercase `git_sha`, semver `runner_contract_version`, exact `supported_protocol_versions` of `["1.0"]`, a digest-pinned GHCR image reference, P5.2 contract package references (`package_uri`, `package_sha256`, `package_integrity`, and `descriptor_subject_sha256`), CI artifact provenance from `github.com/agentsmith-project/agentsmith-runner`, and a fail-fast adoption policy.
 
 The checker also validates `artifact_provenance.subject_sha256` by hashing the manifest without `artifact_provenance`, requires skeleton `artifact_provenance.artifact_sha256` to equal that subject hash, rejects unknown or legacy fields, rejects local paths or credential-like values, and requires `contract_artifact.package_uri` to be a P5.2 canonical remote CI artifact URI for a `.tgz` package. In P5.3a, `artifact_sha256` is the manifest subject hash only; it is not remote artifact download proof.
+
+`scripts/write-runner-release-manifest.mjs` generates the same shape from a supplied contract artifact root, a safe GHCR image tag ref, and a resolved image digest. The generator is covered by `bash scripts/test-runner-release-manifest.sh` and by the start guard.
 
 This skeleton is not an image build, not runtime evidence, not AgentSmith adoption, not an AgentSmith lock update, and not release readiness. AgentSmith should consume a future provenance-backed manifest plus lock state, not local runner source.
 

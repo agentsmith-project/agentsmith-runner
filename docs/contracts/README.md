@@ -23,8 +23,10 @@ Allowed now:
 - Run the P5.0 consumer skeleton against an explicit artifact root supplied by the caller.
 - Run the P5.1 start guard with local negative fixtures and no external artifact root.
 - Run the P5.3a runner release manifest skeleton checker against an explicit manifest supplied by the caller.
+- Generate a runner release manifest from a formal contract artifact root plus a digest-pinned GHCR image in the focused publish workflow.
 - Run the P5.3b runtime fast gate against repo-local runner source and builtin skills.
 - Run the P5 focused image smoke against an explicit runner contract artifact root.
+- Run the manual focused GHCR publish workflow after downloading the formal AgentSmith contract artifact.
 
 Not allowed now:
 
@@ -58,6 +60,8 @@ The runner release manifest skeleton does not download or unpack contract artifa
 
 This checker fixes the manifest adoption shape only. It is not a contract source of truth, not a runtime conformance test, not image evidence, not AgentSmith adoption, and not release readiness. AgentSmith should consume a future provenance-backed manifest plus lock state rather than local runner source.
 
+`scripts/write-runner-release-manifest.mjs` reads only the formal `runner-contract-artifact.json` descriptor from `--artifact-root` for `package_uri`, `package_sha256`, `package_integrity`, `descriptor_subject_sha256`, and `runner_contract_version`. The image facts still come from the focused publish workflow after GHCR push and digest resolution.
+
 ## P5 Image Smoke Contract Input
 
 ```bash
@@ -67,6 +71,16 @@ bash scripts/verify-release.sh --image-smoke --artifact-root <artifact-root>
 Image smoke accepts only an explicit artifact root containing `runner-contract-artifact.json` and the referenced tgz. It first runs the contract consumer diagnostic, then injects that tgz into a no-push Docker build and checks missing runner env fails fast with `Usage`.
 
 Image smoke is not release readiness. It is not release manifest generation, not AgentSmith adoption, not image publish, not registry login, and not a contract source of truth.
+
+## P5 Publish Contract Input
+
+`.github/workflows/runner-image-publish.yml` downloads artifact `agentsmith-runner-contract-artifact` from `agentsmith-project/agentsmith` and validates it with:
+
+```bash
+bash scripts/verify-release.sh --contract-consumer --artifact-root artifacts/runner-contract
+```
+
+Only after that does the workflow run no-push image smoke, push the runner image, generate the manifest, and upload artifact `runner-release-manifest`. The workflow is focused evidence only: it does not update AgentSmith locks, change AgentSmith contract truth, change release contract runner digest, or claim release readiness.
 
 ## P5.1 Start Guard
 

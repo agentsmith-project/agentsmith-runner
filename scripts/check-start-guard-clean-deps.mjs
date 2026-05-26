@@ -41,6 +41,9 @@ if (startGuardStart < 0 || startGuardEnd < 0) {
   if (/bash "\$repo_root\/scripts\/test-runner-image-smoke[.]sh"/.test(startGuardBlock)) {
     addError('--start-guard must not execute image smoke script');
   }
+  if (!/write-runner-release-manifest[.]mjs/.test(startGuardBlock)) {
+    addError('--start-guard must check release manifest generator syntax');
+  }
 }
 
 if (!/bash scripts\/verify-release[.]sh --start-guard/.test(ciWorkflow)) {

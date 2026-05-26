@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 checker="$repo_root/scripts/check-runner-release-manifest.mjs"
+generator="$repo_root/scripts/write-runner-release-manifest.mjs"
 verify_release="$repo_root/scripts/verify-release.sh"
 tmp_root="$(mktemp -d)"
 
@@ -18,6 +19,63 @@ fail() {
 
 pass() {
   echo "PASS: $*"
+}
+
+write_contract_descriptor() {
+  local artifact_root="$1"
+
+  mkdir -p "$artifact_root"
+  node - "$artifact_root" <<'NODE'
+const { writeFileSync } = require('node:fs');
+const { join } = require('node:path');
+
+const artifactRoot = process.argv[2];
+const packageSha = `sha256:${'c'.repeat(64)}`;
+const descriptorSubjectSha = `sha256:${'d'.repeat(64)}`;
+
+const descriptor = {
+  artifact: {
+    filename: 'mbos-agent-runner-contract-0.1.0.tgz',
+    integrity: `sha512-${Buffer.alloc(64).toString('base64')}`,
+    sha256: packageSha,
+    uri: 'gh-artifact://agentsmith-project/agentsmith/runner-contract-artifact/501/mbos-agent-runner-contract-0.1.0.tgz',
+  },
+  artifact_provenance: {
+    artifact_sha256: packageSha,
+    artifact_uri:
+      'gh-artifact://agentsmith-project/agentsmith/runner-contract-artifact/501/mbos-agent-runner-contract-0.1.0.tgz',
+    attestation: 'none',
+    commit_sha: 'a'.repeat(40),
+    generated_at: '2026-05-26T00:00:00.000Z',
+    generator_command: 'npx tsx scripts/governance/runner-contract-artifact.ts',
+    generator_version: 'p4-runner-contract-artifact',
+    job: 'produce-runner-contract-artifact',
+    normalized_remote: 'github.com/agentsmith-project/agentsmith',
+    producer_repo: 'github.com/agentsmith-project/agentsmith',
+    provenance_kind: 'ci_artifact',
+    run_attempt: '1',
+    run_id: '501',
+    schema_version: 'agentsmith.artifact-provenance/v1',
+    subject_name: 'runner-contract-artifact',
+    subject_sha256: descriptorSubjectSha,
+    subject_uri: 'runner-contract-artifact.json',
+    workflow_name: 'Runner Contract Artifact',
+  },
+  entrypoints: {
+    fixtures: './dist/contract-schema.js',
+    schema: './dist/contract-schema.js',
+    types: './dist/index.d.ts',
+    version: './dist/artifact.js',
+  },
+  package: {
+    name: '@mbos/agent-runner-contract',
+    version: '0.1.0',
+  },
+  schema_version: 'agentsmith.runner-contract-artifact/v1',
+};
+
+writeFileSync(join(artifactRoot, 'runner-contract-artifact.json'), `${JSON.stringify(descriptor, null, 2)}\n`);
+NODE
 }
 
 write_manifest() {
@@ -254,6 +312,95 @@ expect_verify_success() {
 
   pass "$label"
 }
+
+expect_generator_failure() {
+  local label="$1"
+  local pattern="$2"
+  shift 2
+
+  local output
+  local status
+
+  set +e
+  output="$(node "$generator" "$@" 2>&1)"
+  status=$?
+  set -e
+
+  if [[ $status -eq 0 ]]; then
+    echo "$output"
+    fail "$label should have failed"
+  fi
+
+  if ! grep -Eq "$pattern" <<<"$output"; then
+    echo "$output"
+    fail "$label failed with an unexpected message"
+  fi
+
+  pass "$label"
+}
+
+contract_artifact_root="$tmp_root/contract-artifact"
+write_contract_descriptor "$contract_artifact_root"
+
+generated_manifest="$tmp_root/generated/runner-release-manifest.json"
+image_digest="sha256:$(printf 'b%.0s' {1..64})"
+git_sha="$(printf 'a%.0s' {1..40})"
+node "$generator" \
+  --artifact-root "$contract_artifact_root" \
+  --image-ref "ghcr.io/agentsmith-project/agentsmith-runner:release-p5-3c" \
+  --image-digest "$image_digest" \
+  --release-id "runner-release-p5-3c.1" \
+  --git-sha "$git_sha" \
+  --workflow-name "runner image publish fixture" \
+  --job "publish" \
+  --run-id "777" \
+  --run-attempt "1" \
+  --generated-at "2026-05-26T00:00:00.000Z" \
+  --output "$generated_manifest" >/dev/null
+expect_success "generated runner release manifest fixture" "$generated_manifest"
+expect_verify_success "verify-release generated manifest fixture" "$generated_manifest"
+
+expect_generator_failure \
+  "generator rejects image-ref with digest" \
+  'image-ref.*without digest' \
+  --artifact-root "$contract_artifact_root" \
+  --image-ref "ghcr.io/agentsmith-project/agentsmith-runner:release-p5-3c@$image_digest" \
+  --image-digest "$image_digest" \
+  --release-id "runner-release-p5-3c.1" \
+  --git-sha "$git_sha" \
+  --workflow-name "runner image publish fixture" \
+  --job "publish" \
+  --run-id "777" \
+  --run-attempt "1" \
+  --output "$tmp_root/negative-digest.json"
+
+expect_generator_failure \
+  "generator rejects wrong GHCR repo" \
+  'image-ref.*agentsmith-runner' \
+  --artifact-root "$contract_artifact_root" \
+  --image-ref "ghcr.io/agentsmith-project/other-runner:release-p5-3c" \
+  --image-digest "$image_digest" \
+  --release-id "runner-release-p5-3c.1" \
+  --git-sha "$git_sha" \
+  --workflow-name "runner image publish fixture" \
+  --job "publish" \
+  --run-id "777" \
+  --run-attempt "1" \
+  --output "$tmp_root/negative-repo.json"
+
+expect_generator_failure \
+  "generator rejects unsafe release id" \
+  'release-id.*A-Za-z0-9' \
+  --artifact-root "$contract_artifact_root" \
+  --image-ref "ghcr.io/agentsmith-project/agentsmith-runner:release-p5-3c" \
+  --image-digest "$image_digest" \
+  --release-id "unsafe/release" \
+  --git-sha "$git_sha" \
+  --workflow-name "runner image publish fixture" \
+  --job "publish" \
+  --run-id "777" \
+  --run-attempt "1" \
+  --output "$tmp_root/negative-release-id.json"
 
 positive_manifest="$tmp_root/positive.json"
 write_manifest "$positive_manifest" "positive"
