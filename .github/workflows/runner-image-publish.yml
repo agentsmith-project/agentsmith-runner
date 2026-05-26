@@ -98,18 +98,18 @@ jobs:
         run: |
           set -euo pipefail
           artifact_filename="$(
-            node - artifacts/runner-contract <<'NODE'
-const { readFileSync } = require('node:fs');
-const { basename, join } = require('node:path');
+            node -e '
+          const { readFileSync } = require("node:fs");
+          const { basename, join } = require("node:path");
 
-const artifactRoot = process.argv[2];
-const descriptor = JSON.parse(readFileSync(join(artifactRoot, 'runner-contract-artifact.json'), 'utf8'));
-const filename = descriptor?.artifact?.filename;
-if (typeof filename !== 'string' || filename.length === 0 || filename !== basename(filename)) {
-  throw new Error('runner-contract-artifact.json artifact.filename must be a tgz basename');
-}
-console.log(filename);
-NODE
+          const artifactRoot = process.argv[1];
+          const descriptor = JSON.parse(readFileSync(join(artifactRoot, "runner-contract-artifact.json"), "utf8"));
+          const filename = descriptor?.artifact?.filename;
+          if (typeof filename !== "string" || filename.length === 0 || filename !== basename(filename)) {
+            throw new Error("runner-contract-artifact.json artifact.filename must be a tgz basename");
+          }
+          console.log(filename);
+          ' artifacts/runner-contract
           )"
           mkdir -p .runner-contract-artifact
           cp "artifacts/runner-contract/${artifact_filename}" ".runner-contract-artifact/${artifact_filename}"
