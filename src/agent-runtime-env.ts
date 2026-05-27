@@ -13,6 +13,7 @@ export type AgentRuntimeEnvContext = Partial<Pick<
   | 'execution_ticket'
 >> & {
   wire_api?: AgentWireApi;
+  projected_dependencies?: unknown;
 };
 
 export function buildAgentRuntimeEnv(
@@ -29,5 +30,8 @@ export function buildAgentRuntimeEnv(
     MBOS_AGENT_MODEL: executionContext.model ?? '',
     MBOS_AGENT_WIRE_API: executionContext.wire_api ?? '',
     MBOS_AGENT_EXECUTION_TICKET: executionContext.execution_ticket ?? '',
+    MBOS_AGENT_PROJECTED_DEPENDENCIES: executionContext.projected_dependencies !== undefined
+      ? JSON.stringify(executionContext.projected_dependencies)
+      : '',
   };
 }
