@@ -2082,7 +2082,7 @@ describe('agentsmith-runner entry lifecycle', () => {
     closeCodexChild(secondChild, 0);
   });
 
-  it('passes default function and explicit freeform apply_patch tool types into the model catalog', async () => {
+  it('normalizes Codex catalog apply_patch tool type to freeform while preserving execution fingerprint truth', async () => {
     await import('./index.js');
     const socket = websocketInstances.at(-1);
     if (!socket) {
@@ -2090,23 +2090,32 @@ describe('agentsmith-runner entry lifecycle', () => {
     }
 
     socket.emit('open');
-    const defaultChild = await startCodexRun(socket, 'req_catalog_default_apply_patch', {
+    const functionChild = await startCodexRun(socket, 'req_catalog_function_apply_patch', {
       model_catalog: {
+        apply_patch_tool_type: 'function',
         input_modalities: ['text'],
       },
     });
 
     await vi.waitFor(() => {
+      expect(ensureCodexSessionStateCompatibleMock).toHaveBeenLastCalledWith(expect.objectContaining({
+        modelCatalogSignature: JSON.stringify({
+          input_modalities: ['text'],
+          supports_search_tool: false,
+          supports_parallel_tool_calls: false,
+          apply_patch_tool_type: 'function',
+        }),
+      }));
       expect(buildTaskCodexModelCatalogMock).toHaveBeenLastCalledWith(expect.objectContaining({
-        applyPatchToolType: 'function',
+        applyPatchToolType: 'freeform',
       }));
     });
-    closeCodexChild(defaultChild, 0);
+    closeCodexChild(functionChild, 0);
     await vi.waitFor(() => {
       const frames = readSentFrames(socket);
       expect(frames.some((frame) => (
         frame.type === 'agent.response.done'
-        && frame.request_id === 'req_catalog_default_apply_patch'
+        && frame.request_id === 'req_catalog_function_apply_patch'
       ))).toBe(true);
     });
 
@@ -2117,6 +2126,14 @@ describe('agentsmith-runner entry lifecycle', () => {
     });
 
     await vi.waitFor(() => {
+      expect(ensureCodexSessionStateCompatibleMock).toHaveBeenLastCalledWith(expect.objectContaining({
+        modelCatalogSignature: JSON.stringify({
+          input_modalities: ['text'],
+          supports_search_tool: false,
+          supports_parallel_tool_calls: false,
+          apply_patch_tool_type: 'freeform',
+        }),
+      }));
       expect(buildTaskCodexModelCatalogMock).toHaveBeenLastCalledWith(expect.objectContaining({
         applyPatchToolType: 'freeform',
       }));

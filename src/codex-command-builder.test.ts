@@ -105,7 +105,7 @@ describe('codex-command-builder', () => {
       model: 'placeholder-model',
       modelContextWindow: 200000,
       modelMaxOutputTokens: 32000,
-      applyPatchToolType: 'function',
+      applyPatchToolType: 'freeform',
       inputModalities: ['text'],
       supportsSearchTool: false,
       supportsParallelToolCalls: false,
@@ -120,15 +120,16 @@ describe('codex-command-builder', () => {
     expect(catalog.models[0]?.context_window).toBe(200000);
     expect(catalog.models[0]?.auto_compact_token_limit).toBe(168000);
     expect(catalog.models[0]?.effective_context_window_percent).toBe(84);
-    expect(catalog.models[0]?.apply_patch_tool_type).toBe('function');
+    expect(catalog.models[0]?.apply_patch_tool_type).toBe('freeform');
     expect(catalog.models[0]?.input_modalities).toEqual(['text']);
     expect(catalog.models[0]?.supports_search_tool).toBe(false);
     expect(catalog.models[0]?.supports_parallel_tool_calls).toBe(false);
     expect(catalog.models[0]).not.toHaveProperty('max_output_tokens');
     expect(catalogText).not.toContain('max_output_tokens');
+    expect(catalogText).not.toContain('"apply_patch_tool_type": "function"');
   });
 
-  it('emits a freeform apply_patch tool type only when catalog truth says so', () => {
+  it('emits a Codex 0.134-compatible freeform apply_patch tool type', () => {
     const catalogText = buildTaskCodexModelCatalog({
       model: 'native-responses-model',
       modelContextWindow: 128000,
@@ -147,7 +148,7 @@ describe('codex-command-builder', () => {
       model: 'task-profile-model',
       modelContextWindow: 128000,
       modelMaxOutputTokens: 8192,
-      applyPatchToolType: 'function',
+      applyPatchToolType: 'freeform',
     });
     const catalog = JSON.parse(catalogText) as {
       models: Array<Record<string, unknown>>;

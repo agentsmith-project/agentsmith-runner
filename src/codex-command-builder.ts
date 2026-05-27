@@ -9,7 +9,7 @@ function tomlNumber(value: number): string {
   return String(Math.floor(value));
 }
 
-export type CodexApplyPatchToolType = 'freeform' | 'function';
+export type CodexApplyPatchToolType = 'freeform';
 
 function positiveInteger(value: number | undefined): number | undefined {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {

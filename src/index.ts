@@ -1828,6 +1828,7 @@ async function runCodexRequest(requestId: string, payload: ServerStartPayload): 
   const modelCatalogSupportsParallelToolCalls = executionContext.model_catalog?.supports_parallel_tool_calls === true;
   const modelCatalogApplyPatchToolType =
     executionContext.model_catalog?.apply_patch_tool_type === 'freeform' ? 'freeform' : 'function';
+  const codexCatalogApplyPatchToolType = 'freeform';
   const executionWireApi = normalizeExecutionWireApi(executionContext.wire_api);
   const sessionStateResult = await ensureCodexSessionStateCompatible({
     codexDir: taskPaths.codexDir,
@@ -1868,7 +1869,7 @@ async function runCodexRequest(requestId: string, payload: ServerStartPayload): 
       modelContextWindow: modelContextWindow ?? 128000,
       modelMaxOutputTokens,
       modelAutoCompactTokenLimit: modelAutoCompactTokenLimit ?? Math.floor((modelContextWindow ?? 128000) * 0.9),
-      applyPatchToolType: modelCatalogApplyPatchToolType,
+      applyPatchToolType: codexCatalogApplyPatchToolType,
       inputModalities: modelCatalogInputModalities,
       supportsSearchTool: modelCatalogSupportsSearchTool,
       supportsParallelToolCalls: modelCatalogSupportsParallelToolCalls,
