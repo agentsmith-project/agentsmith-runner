@@ -16,7 +16,7 @@ Current bootstrap status:
   --start-guard validates quick governance plus source-boundary, contract-consumer, and release-manifest startup checks.
     It intentionally excludes runtime fast checks until CI has explicit contract artifact acquisition.
   --contract-consumer validates an explicit runner contract artifact root only.
-  --image-smoke builds a local no-push runner image from an explicit runner contract artifact root and checks missing-env Usage only.
+  --image-smoke builds a local no-push runner image from an explicit runner contract artifact root and checks runtime prerequisites plus missing-env Usage.
   --release-manifest validates an explicit runner release manifest skeleton only.
   Full release mode is intentionally not implemented during bootstrap.
 USAGE
@@ -56,6 +56,7 @@ if [[ "${1:-}" == "--start-guard" ]]; then
   bash -n "$repo_root/scripts/test-runner-runtime-fast.sh"
   bash -n "$repo_root/scripts/test-runner-contract-consumer.sh"
   bash -n "$repo_root/scripts/test-runner-image-smoke.sh"
+  bash -n "$repo_root/scripts/test-runner-runtime-image-prereq-smoke.sh"
   bash -n "$repo_root/scripts/test-runner-release-manifest.sh"
 
   echo "start guard: running quick governance guard"

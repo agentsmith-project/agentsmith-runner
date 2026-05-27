@@ -120,6 +120,7 @@ check_required_files() {
     scripts/check-runner-source-boundary.mjs
     scripts/test-runner-runtime-fast.sh
     scripts/test-runner-image-smoke.sh
+    scripts/test-runner-runtime-image-prereq-smoke.sh
     scripts/check-runner-release-manifest.mjs
     scripts/write-runner-release-manifest.mjs
     scripts/test-runner-release-manifest.sh
@@ -257,6 +258,7 @@ check_start_guard_not_release() {
   require_grep "check-start-guard-clean-deps[.]mjs" scripts/verify-release.sh "start guard checks clean dependency shape"
   require_grep "Runtime fast checks are separate" scripts/verify-release.sh "start guard keeps runtime fast separate"
   require_grep "check-runner-source-boundary[.]mjs" scripts/verify-release.sh "start guard checks source boundary syntax"
+  require_grep "test-runner-runtime-image-prereq-smoke[.]sh" scripts/verify-release.sh "start guard checks runtime image prereq smoke syntax"
   require_grep "test-runner-release-manifest[.]sh" scripts/verify-release.sh "start guard runs release manifest self-test"
   require_grep "check-runner-release-manifest[.]mjs" scripts/verify-release.sh "start guard checks release manifest syntax"
   require_grep "write-runner-release-manifest[.]mjs" scripts/verify-release.sh "start guard checks release manifest generator syntax"
@@ -318,6 +320,7 @@ check_image_smoke_not_release() {
   require_grep "bash scripts/verify-release[.]sh --image-smoke --artifact-root <dir>" scripts/verify-release.sh "verify entrypoint supports image smoke"
   require_grep "Image smoke is not release readiness" scripts/verify-release.sh "verify entrypoint says image smoke is not release readiness"
   require_grep "test-runner-image-smoke[.]sh" scripts/verify-release.sh "verify entrypoint delegates image smoke to focused script"
+  require_grep "test-runner-runtime-image-prereq-smoke[.]sh" scripts/test-runner-image-smoke.sh "image smoke runs runtime image prerequisite smoke"
   require_grep "runner-image-smoke" .github/workflows/ci.yml "CI has focused image smoke job"
   require_grep "repository:[[:space:]]*agentsmith-project/agentsmith" .github/workflows/ci.yml "CI explicitly checks out AgentSmith as artifact producer"
   require_grep "npm run build -w @mbos/agent-runner-contract" .github/workflows/ci.yml "CI builds runner contract artifact package"

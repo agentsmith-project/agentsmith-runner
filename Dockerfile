@@ -24,11 +24,25 @@ RUN npm prune --omit=dev --package-lock=false --no-audit --no-fund
 FROM node:24-bookworm-slim AS runtime
 
 WORKDIR /app
-ENV NODE_ENV=production
+ENV NODE_ENV=production \
+  MBOS_AGENT_BUILTIN_SKILLS_DIR=/etc/codex/skills
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    bash \
+    ca-certificates \
+    curl \
+    git \
+    openssh-client \
+    procps \
+    python3 \
+  && rm -rf /var/lib/apt/lists/* \
+  && npm install -g --no-audit --no-fund @openai/codex@0.134.0 \
+  && npm cache clean --force
 
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/builtin-skills ./builtin-skills
+COPY --from=build /app/builtin-skills /etc/codex/skills
 COPY --from=build /app/node_modules ./node_modules
 
 ENTRYPOINT ["node", "dist/index.js"]

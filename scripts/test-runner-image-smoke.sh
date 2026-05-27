@@ -88,6 +88,8 @@ else
     "$build_context"
 fi
 
+bash "$repo_root/scripts/test-runner-runtime-image-prereq-smoke.sh" --image "$image_tag"
+
 set +e
 docker run --rm --network=none "$image_tag" >"$run_stdout" 2>"$run_stderr"
 run_status=$?

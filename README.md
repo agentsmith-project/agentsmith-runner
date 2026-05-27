@@ -92,9 +92,9 @@ The focused image smoke is:
 bash scripts/verify-release.sh --image-smoke --artifact-root <dir>
 ```
 
-The artifact root must contain `runner-contract-artifact.json` and the tgz named by that descriptor. The smoke first runs `--contract-consumer`, then builds a temporary Docker context, injects the explicit contract tgz into the image build, runs a no-push local image with `--network=none`, and expects missing `MBOS_AGENT_WS_URL`/`MBOS_AGENT_KEY` to fail fast with `Usage`.
+The artifact root must contain `runner-contract-artifact.json` and the tgz named by that descriptor. The smoke first runs `--contract-consumer`, then builds a temporary Docker context, injects the explicit contract tgz into the image build, checks the local no-push image for pinned Codex CLI, `python3`, and packaged builtin skills under `/etc/codex/skills`, and finally expects missing `MBOS_AGENT_WS_URL`/`MBOS_AGENT_KEY` to fail fast with `Usage`.
 
-Image smoke is not release readiness. It is no GHCR publish, no registry login, no release manifest, no AgentSmith adoption, no lock update, and no release-ready claim. It proves only that a clean local image can build from the explicit contract artifact and start far enough to reject missing required runner env.
+Image smoke is not release readiness. It is no GHCR publish, no registry login, no release manifest, no AgentSmith adoption, no lock update, and no release-ready claim. It proves only that a clean local image can build from the explicit contract artifact, contains the focused runtime prerequisites, and starts far enough to reject missing required runner env.
 
 ## P5 Runner Image Publish Focused Evidence
 

@@ -71,7 +71,7 @@ bash scripts/verify-release.sh --image-smoke --artifact-root <artifact-root>
 
 Expected success output includes `image smoke passed` and `Image smoke is not release readiness`.
 
-This evidence proves only that a supplied contract artifact root passes the contract consumer diagnostic, a temporary Docker build context can inject the referenced tgz, the image can build `dist/index.js` without local ignored `dist/`, and the container exits with `Usage` when required runner env is missing.
+This evidence proves only that a supplied contract artifact root passes the contract consumer diagnostic, a temporary Docker build context can inject the referenced tgz, the image can build `dist/index.js` without local ignored `dist/`, the image contains pinned Codex CLI, `python3`, and packaged builtin skills under `/etc/codex/skills`, `mbos-context` can read a mock projected dependency from `MBOS_AGENT_PROJECTED_DEPENDENCIES`, and the container exits with `Usage` when required runner env is missing.
 
 Image smoke is not release readiness. It is not GHCR publish evidence, not registry login evidence, not release manifest generation, not provenance-backed release evidence, not backend-real runtime evidence, not AgentSmith adoption evidence, and not an AgentSmith lock update.
 

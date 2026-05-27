@@ -26,7 +26,7 @@ Use this only when a formal runner contract artifact root has been supplied:
 bash scripts/verify-release.sh --image-smoke --artifact-root <artifact-root>
 ```
 
-The command first validates the artifact root with `--contract-consumer`, builds a temporary Docker context, injects the descriptor-referenced tgz into the Docker build, builds `dist/index.js` inside the image, and runs the image without `MBOS_AGENT_WS_URL`/`MBOS_AGENT_KEY`. It must finish with `image smoke passed`.
+The command first validates the artifact root with `--contract-consumer`, builds a temporary Docker context, injects the descriptor-referenced tgz into the Docker build, builds `dist/index.js` inside the image, checks pinned Codex CLI, `python3`, packaged builtin skills under `/etc/codex/skills`, and `mbos-context` projection reading, then runs the image without `MBOS_AGENT_WS_URL`/`MBOS_AGENT_KEY`. It must finish with `image smoke passed`.
 
 Image smoke is not release readiness. Do not use it as a release gate, GHCR publish step, registry login step, release manifest generator, AgentSmith adoption step, lock update reason, or backend-real proof. It does not publish anything.
 

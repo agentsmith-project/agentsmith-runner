@@ -87,7 +87,7 @@ P5 runner image smoke:
 bash scripts/verify-release.sh --image-smoke --artifact-root <dir>
 ```
 
-This command requires an explicit artifact root containing `runner-contract-artifact.json` and the referenced tgz. It first runs `--contract-consumer`, then builds a temporary Docker context, injects the contract tgz as a build input, builds a local image with a unique non-`latest` tag, and runs it without `MBOS_AGENT_WS_URL`/`MBOS_AGENT_KEY` to confirm fail-fast `Usage`.
+This command requires an explicit artifact root containing `runner-contract-artifact.json` and the referenced tgz. It first runs `--contract-consumer`, then builds a temporary Docker context, injects the contract tgz as a build input, builds a local image with a unique non-`latest` tag, checks pinned Codex CLI, `python3`, packaged builtin skills under `/etc/codex/skills`, and `mbos-context` projection reading, and runs it without `MBOS_AGENT_WS_URL`/`MBOS_AGENT_KEY` to confirm fail-fast `Usage`.
 
 Image smoke is not release readiness. It does not publish to GHCR, log in to a registry, generate a release manifest, update AgentSmith adoption, update locks, or prove backend-real behavior.
 
