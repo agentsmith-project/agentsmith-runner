@@ -321,6 +321,8 @@ check_image_smoke_not_release() {
   require_grep "Image smoke is not release readiness" scripts/verify-release.sh "verify entrypoint says image smoke is not release readiness"
   require_grep "test-runner-image-smoke[.]sh" scripts/verify-release.sh "verify entrypoint delegates image smoke to focused script"
   require_grep "test-runner-runtime-image-prereq-smoke[.]sh" scripts/test-runner-image-smoke.sh "image smoke runs runtime image prerequisite smoke"
+  require_grep 'ENTRYPOINT[[:space:]]+\["node",[[:space:]]*"/app/dist/index[.]js"\]' Dockerfile "Dockerfile uses absolute runner entrypoint"
+  require_grep 'run_missing_env_usage_check .*--workdir[[:space:]]+/tmp' scripts/test-runner-image-smoke.sh "image smoke covers non-app working directory startup"
   require_grep "runner-image-smoke" .github/workflows/ci.yml "CI has focused image smoke job"
   require_grep "repository:[[:space:]]*agentsmith-project/agentsmith" .github/workflows/ci.yml "CI explicitly checks out AgentSmith as artifact producer"
   require_grep "npm run build -w @mbos/agent-runner-contract" .github/workflows/ci.yml "CI builds runner contract artifact package"

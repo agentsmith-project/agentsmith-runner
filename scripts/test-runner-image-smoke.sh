@@ -90,22 +90,32 @@ fi
 
 bash "$repo_root/scripts/test-runner-runtime-image-prereq-smoke.sh" --image "$image_tag"
 
-set +e
-docker run --rm --network=none "$image_tag" >"$run_stdout" 2>"$run_stderr"
-run_status=$?
-set -e
+run_missing_env_usage_check() {
+  local label="$1"
+  shift
 
-if [[ "$run_status" -ne 1 ]]; then
-  cat "$run_stdout"
-  cat "$run_stderr" >&2
-  fail "docker run without MBOS_AGENT_WS_URL/MBOS_AGENT_KEY must exit 1, got $run_status"
-fi
+  : >"$run_stdout"
+  : >"$run_stderr"
+  set +e
+  docker run --rm --network=none "$@" "$image_tag" >"$run_stdout" 2>"$run_stderr"
+  local run_status=$?
+  set -e
 
-if ! grep -q "Usage:" "$run_stderr"; then
-  cat "$run_stdout"
-  cat "$run_stderr" >&2
-  fail "docker run stderr must contain Usage when required env is missing"
-fi
+  if [[ "$run_status" -ne 1 ]]; then
+    cat "$run_stdout"
+    cat "$run_stderr" >&2
+    fail "$label without MBOS_AGENT_WS_URL/MBOS_AGENT_KEY must exit 1, got $run_status"
+  fi
+
+  if ! grep -q "Usage:" "$run_stderr"; then
+    cat "$run_stdout"
+    cat "$run_stderr" >&2
+    fail "$label stderr must contain Usage when required env is missing"
+  fi
+}
+
+run_missing_env_usage_check "docker run from default workdir"
+run_missing_env_usage_check "docker run from non-app workdir" --workdir /tmp
 
 echo "image smoke passed"
 echo "Image smoke is not release readiness; no GHCR publish, no release manifest, no AgentSmith adoption."

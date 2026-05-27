@@ -15,6 +15,8 @@ function read(path) {
 
 const verifyRelease = read('scripts/verify-release.sh');
 const ciWorkflow = read('.github/workflows/ci.yml');
+const dockerfile = read('Dockerfile');
+const imageSmoke = read('scripts/test-runner-image-smoke.sh');
 const agentSmithProducerRepo = 'agent' + 'smith-project/agent' + 'smith';
 const docs = [
   ['README.md', read('README.md')],
@@ -76,6 +78,14 @@ if (!/npx tsx scripts\/governance\/runner-contract-artifact[.]ts/.test(ciWorkflo
 
 if (!/bash scripts\/verify-release[.]sh --image-smoke --artifact-root/.test(ciWorkflow)) {
   addError('CI image smoke job must run verify-release.sh --image-smoke with the generated artifact root');
+}
+
+if (!/ENTRYPOINT\s+\["node",\s*"\/app\/dist\/index[.]js"\]/.test(dockerfile)) {
+  addError('Dockerfile runner entrypoint must use absolute /app/dist/index.js');
+}
+
+if (!/run_missing_env_usage_check .*--workdir\s+\/tmp/.test(imageSmoke)) {
+  addError('image smoke must verify missing-env Usage from a non-/app workdir');
 }
 
 if (/docker (?:push|login)\b|ghcr[.]io/i.test(ciWorkflow)) {
