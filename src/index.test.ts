@@ -850,6 +850,8 @@ describe('agentsmith-runner entry lifecycle', () => {
     }
 
     firstSocket.emit('open');
+    expect(readSentFrames(firstSocket).some((frame) => frame.type === 'agent.ready')).toBe(false);
+    firstSocket.emit('message', serverHello());
     const firstReady = readSentFrames(firstSocket).find((frame) => frame.type === 'agent.ready');
     expect(firstReady).toMatchObject({
       payload: expect.objectContaining({
@@ -857,6 +859,8 @@ describe('agentsmith-runner entry lifecycle', () => {
         connection_epoch: 1,
       }),
     });
+    firstSocket.emit('message', serverHello());
+    expect(readSentFrames(firstSocket).filter((frame) => frame.type === 'agent.ready')).toHaveLength(1);
 
     const terminal = await startTerminalRun(firstSocket, 'terminal_epoch_ready', {
       runnerSessionId: 'runner_session_protocol',
@@ -883,6 +887,8 @@ describe('agentsmith-runner entry lifecycle', () => {
     expect(secondSocket).toBeDefined();
     expect(secondSocket).not.toBe(firstSocket);
     secondSocket?.emit('open');
+    expect(readSentFrames(secondSocket!).some((frame) => frame.type === 'agent.ready')).toBe(false);
+    secondSocket?.emit('message', serverHello());
 
     const secondReady = readSentFrames(secondSocket!).find((frame) => frame.type === 'agent.ready');
     expect(secondReady).toMatchObject({
@@ -1812,6 +1818,8 @@ describe('agentsmith-runner entry lifecycle', () => {
     }
 
     socket.emit('open');
+    expect(readSentFrames(socket).some((frame) => frame.type === 'agent.ready')).toBe(false);
+    socket.emit('message', serverHello());
     expect(socket.send).toHaveBeenCalledWith(expect.stringContaining('"type":"agent.ready"'));
 
     socket.emit('message', Buffer.from(JSON.stringify({
@@ -2297,6 +2305,8 @@ describe('agentsmith-runner entry lifecycle', () => {
     }
 
     socket.emit('open');
+    expect(readSentFrames(socket).some((frame) => frame.type === 'agent.ready')).toBe(false);
+    socket.emit('message', serverHello());
     expect(socket.send).toHaveBeenCalledWith(expect.stringContaining('"type":"agent.ready"'));
 
     const codexChild = await startCodexRun(socket, 'req_transport_lost');
@@ -2321,6 +2331,8 @@ describe('agentsmith-runner entry lifecycle', () => {
     expect(reconnectSocket).toBeDefined();
     expect(reconnectSocket).not.toBe(socket);
     reconnectSocket?.emit('open');
+    expect(readSentFrames(reconnectSocket!).some((frame) => frame.type === 'agent.ready')).toBe(false);
+    reconnectSocket?.emit('message', serverHello());
 
     await vi.waitFor(() => {
       const readyFrame = readSentFrames(reconnectSocket!).find((frame) => frame.type === 'agent.ready');

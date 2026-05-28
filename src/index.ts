@@ -130,6 +130,7 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempt = 0;
 let lastConnectionEpoch = 0;
 const connectionEpochBySocket = new WeakMap<WebSocket, number>();
+const readySentBySocket = new WeakSet<WebSocket>();
 
 type ShutdownReason = 'sigint' | 'sigterm' | 'operator_shutdown' | 'runner_process_exit';
 type RunnerLifecycleState = 'connected' | 'reconnecting' | 'shutting_down' | 'disconnected';
@@ -2336,8 +2337,9 @@ function decodeRawMessage(raw: RawData): string {
 }
 
 function sendReadyFrame(socket: WebSocket): void {
+  if (readySentBySocket.has(socket)) return;
   const connectionEpoch = readConnectionEpoch(socket);
-  sendRawFrameOnSocket(socket, {
+  const sent = sendRawFrameOnSocket(socket, {
     type: 'agent.ready',
     timestamp: new Date().toISOString(),
     payload: {
@@ -2356,6 +2358,9 @@ function sendReadyFrame(socket: WebSocket): void {
       },
     },
   });
+  if (sent) {
+    readySentBySocket.add(socket);
+  }
 }
 
 function handleServerMessage(socket: WebSocket, raw: RawData): void {
@@ -2382,6 +2387,7 @@ function handleServerMessage(socket: WebSocket, raw: RawData): void {
       protocol_version: payload?.protocol_version ?? null,
       heartbeat_interval_sec: payload?.heartbeat_interval_sec ?? null,
     });
+    sendReadyFrame(socket);
     return;
   }
 
@@ -2555,7 +2561,6 @@ function connectWebSocket(): void {
     writeRunnerLifecycleState('connected', 'websocket_open');
     process.stdout.write('[agentsmith-runner] connected\n');
     debugLog('websocket open', { ws_url: wsUrl });
-    sendReadyFrame(socket);
   });
 
   socket.on('message', (raw) => {
