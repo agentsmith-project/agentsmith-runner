@@ -7,8 +7,9 @@ Use the opaque `jira-auth` request projection supplied by AgentSmith for Bearer 
 Rules:
 
 - resolve the `jira-auth` dependency through the shared runtime helper
-- if the base URL is not present in the projection, pass `--base-url` explicitly
+- if the base URL is not present in the projection, pass `--base-url` explicitly as an endpoint only
 - if the token is not present in the projection, ask AgentSmith to provide it for this run
+- do not pass Bearer tokens through CLI flags, URLs, files, or environment variables
 
 ## Proxy Rule
 
@@ -35,8 +36,9 @@ For Jira 9.12.x, this skill assumes the common Server/Data Center v2 REST endpoi
 
 ## TLS
 
-The helper script accepts self-signed or private CA certificates by using an unverified SSL context.
-Only use that against trusted internal Jira sites.
+TLS certificate verification is always enabled. For Jira sites using a private CA, pass a CA bundle with `--ca-bundle` or ask AgentSmith to project the `ca_bundle` field in `jira-auth`.
+
+The helper does not support disabling TLS verification.
 
 ## Weak-Model Guidance
 

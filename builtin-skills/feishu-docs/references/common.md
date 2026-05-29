@@ -10,9 +10,12 @@ python3 ~/.agents/skills/feishu-docs/scripts/feishu_mcp.py call-tool <tool-name>
 
 AgentSmith may expose a Feishu connection to the runner as an opaque `feishu-managed-user` request projection. The helper consumes that projection by dependency name.
 
+The MCP endpoint is fixed to `https://mcp.feishu.cn/mcp` unless AgentSmith projects an `endpoint` field for the same trusted host. The helper requires HTTPS and rejects untrusted hosts. Do not pass endpoint overrides through CLI flags or environment variables.
+
 ## Credential Contract
 
 - `tools-list` / `call-tool` need an access token for `X-Lark-MCP-UAT`.
+- The access token must come from the `feishu-managed-user` request projection.
 - Context policy and credential resolution are owned by AgentSmith or formal contract artifacts, not this runner repo.
 - If required values are missing, reconnect or repair the Feishu connection in AgentSmith instead of editing workspace files.
 

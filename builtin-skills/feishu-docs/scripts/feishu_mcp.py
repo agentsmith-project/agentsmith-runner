@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import argparse
 import json
-import os
 import sys
 import urllib.error
+import urllib.parse
 from pathlib import Path
 from typing import Any
 from urllib.request import Request, urlopen
@@ -16,6 +16,7 @@ from capability_runtime import resolve_projected_dependency
 
 
 ENDPOINT = "https://mcp.feishu.cn/mcp"
+TRUSTED_MCP_HOSTS = {"mcp.feishu.cn"}
 DEFAULT_ALLOWED_TOOLS = (
     "search-user,get-user,fetch-file,search-doc,create-doc,"
     "fetch-doc,update-doc,list-docs,get-comments,add-comments"
@@ -29,31 +30,38 @@ def load_feishu_projection() -> dict[str, Any] | None:
 
 def get_projected_connection_field(connection: dict[str, Any], *keys: str) -> str | None:
     fields = connection.get("fields")
-    source = fields if isinstance(fields, dict) else connection
-    if not isinstance(source, dict):
-        return None
-    for key in keys:
-        value = source.get(key)
-        if isinstance(value, str) and value.strip():
-            return value.strip()
+    sources = [fields, connection] if isinstance(fields, dict) else [connection]
+    for source in sources:
+        if not isinstance(source, dict):
+            continue
+        for key in keys:
+            value = source.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
     return None
 
 
 def resolve_feishu_connection(args: argparse.Namespace | None = None) -> dict[str, Any]:
-    explicit_endpoint = getattr(args, "mcp_endpoint", None)
     projected = load_feishu_projection()
     if projected is None:
         raise RuntimeError(
             "Feishu request projection 'feishu-managed-user' is unavailable. "
             "Ask AgentSmith to project it for this run."
         )
-    if isinstance(explicit_endpoint, str) and explicit_endpoint.strip():
-        fields = projected.get("fields")
-        if not isinstance(fields, dict):
-            fields = {}
-            projected["fields"] = fields
-        fields["feishu_mcp_endpoint"] = explicit_endpoint.strip()
     return projected
+
+
+def resolve_feishu_endpoint(connection: dict[str, Any]) -> str:
+    endpoint = get_projected_connection_field(connection, "endpoint") or ENDPOINT
+    parsed = urllib.parse.urlparse(endpoint)
+    hostname = parsed.hostname.lower() if parsed.hostname else ""
+    if parsed.scheme != "https" or not hostname:
+        raise RuntimeError("Feishu MCP endpoint must be an HTTPS endpoint.")
+    if parsed.username or parsed.password:
+        raise RuntimeError("Feishu MCP endpoint must not include credentials.")
+    if hostname not in TRUSTED_MCP_HOSTS:
+        raise RuntimeError(f"Feishu MCP endpoint host is not trusted: {hostname}")
+    return endpoint
 
 
 def build_headers(connection: dict[str, Any], allowed_tools: str) -> dict[str, str]:
@@ -77,11 +85,7 @@ def rpc_call(args: argparse.Namespace, method: str, params: dict[str, Any], allo
         "params": params,
     }
     data = json.dumps(payload).encode("utf-8")
-    endpoint = (
-        os.environ.get("FEISHU_MCP_ENDPOINT", "").strip()
-        or get_projected_connection_field(connection, "feishu_mcp_endpoint")
-        or ENDPOINT
-    )
+    endpoint = resolve_feishu_endpoint(connection)
     req = Request(
         endpoint,
         data=data,
@@ -158,10 +162,6 @@ def cmd_call_tool(args: argparse.Namespace) -> int:
     return 0
 
 
-def add_connection_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--mcp-endpoint", default=None)
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Call Feishu remote MCP over HTTP using a request projection."
@@ -169,17 +169,14 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     init_parser = subparsers.add_parser("initialize")
-    add_connection_args(init_parser)
     init_parser.add_argument("--allowed-tools", default=DEFAULT_ALLOWED_TOOLS)
     init_parser.set_defaults(func=cmd_initialize)
 
     list_parser = subparsers.add_parser("tools-list")
-    add_connection_args(list_parser)
     list_parser.add_argument("--allowed-tools", default=DEFAULT_ALLOWED_TOOLS)
     list_parser.set_defaults(func=cmd_tools_list)
 
     call_parser = subparsers.add_parser("call-tool")
-    add_connection_args(call_parser)
     call_parser.add_argument("tool_name")
     call_parser.add_argument("--params", default="{}")
     call_parser.add_argument(

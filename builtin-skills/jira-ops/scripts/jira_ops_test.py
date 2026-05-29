@@ -50,6 +50,64 @@ class JiraOpsTests(unittest.TestCase):
         self.assertEqual(raised.exception.code, 2)
         self.assertTrue(stderr.getvalue())
 
+    @patch("jira_ops.resolve_projected_fields")
+    def test_base_url_rejects_embedded_credentials(self, mock_resolve: MagicMock) -> None:
+        mock_resolve.return_value = {"token": "jira_token_123"}
+        args = argparse.Namespace(base_url="https://user:pass@jira.example.com", ca_bundle=None)
+
+        with self.assertRaisesRegex(RuntimeError, "must not include credentials"):
+            jira_ops.resolve_connection(args)
+
+    @patch("jira_ops.ssl._create_unverified_context")
+    @patch("jira_ops.ssl.create_default_context")
+    @patch("jira_ops.urllib.request.urlopen")
+    def test_request_json_uses_default_verified_ssl_context(
+        self,
+        mock_urlopen: MagicMock,
+        mock_create_default_context: MagicMock,
+        mock_create_unverified_context: MagicMock,
+    ) -> None:
+        ssl_context = MagicMock()
+        mock_create_default_context.return_value = ssl_context
+        response = MagicMock()
+        response.read.return_value = json.dumps({"ok": True}).encode("utf-8")
+        mock_urlopen.return_value.__enter__.return_value = response
+
+        result = jira_ops.request_json("https://jira.example.com", "token", "GET", "/rest/api/2/myself")
+
+        self.assertEqual(result, {"ok": True})
+        mock_create_default_context.assert_called_once_with()
+        mock_create_unverified_context.assert_not_called()
+        self.assertIs(mock_urlopen.call_args.kwargs["context"], ssl_context)
+
+    @patch("jira_ops.ssl._create_unverified_context")
+    @patch("jira_ops.ssl.create_default_context")
+    @patch("jira_ops.urllib.request.urlopen")
+    def test_request_json_passes_ca_bundle_to_verified_ssl_context(
+        self,
+        mock_urlopen: MagicMock,
+        mock_create_default_context: MagicMock,
+        mock_create_unverified_context: MagicMock,
+    ) -> None:
+        ssl_context = MagicMock()
+        mock_create_default_context.return_value = ssl_context
+        response = MagicMock()
+        response.read.return_value = json.dumps({"ok": True}).encode("utf-8")
+        mock_urlopen.return_value.__enter__.return_value = response
+
+        result = jira_ops.request_json(
+            "https://jira.example.com",
+            "token",
+            "GET",
+            "/rest/api/2/myself",
+            ca_bundle="/tmp/internal-ca.pem",
+        )
+
+        self.assertEqual(result, {"ok": True})
+        mock_create_default_context.assert_called_once_with(cafile="/tmp/internal-ca.pem")
+        mock_create_unverified_context.assert_not_called()
+        self.assertIs(mock_urlopen.call_args.kwargs["context"], ssl_context)
+
 
 if __name__ == "__main__":
     unittest.main()

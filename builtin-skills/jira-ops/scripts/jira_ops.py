@@ -27,14 +27,23 @@ PROXY_ENV_VARS = [
     "NO_PROXY",
 ]
 
-def load_jira_credentials_from_projection() -> tuple[str | None, str | None]:
+
+def clean_projected_string(value) -> str | None:
+    return value.strip() if isinstance(value, str) and value.strip() else None
+
+
+def load_jira_projection_fields() -> dict[str, str | None]:
     resolved = resolve_projected_fields(__file__, "jira-auth")
-    base_url = resolved.get("base_url")
-    token = resolved.get("token")
-    return (
-        base_url.strip() if isinstance(base_url, str) and base_url.strip() else None,
-        token.strip() if isinstance(token, str) and token.strip() else None,
-    )
+    return {
+        "base_url": clean_projected_string(resolved.get("base_url")),
+        "token": clean_projected_string(resolved.get("token")),
+        "ca_bundle": clean_projected_string(resolved.get("ca_bundle")),
+    }
+
+
+def load_jira_credentials_from_projection() -> tuple[str | None, str | None]:
+    resolved = load_jira_projection_fields()
+    return resolved["base_url"], resolved["token"]
 
 
 def clear_proxy_env() -> None:
@@ -42,12 +51,25 @@ def clear_proxy_env() -> None:
         os.environ.pop(key, None)
 
 
-def resolve_auth(args) -> tuple[str, str]:
-    projected_base_url, projected_token = load_jira_credentials_from_projection()
-    base_url = args.base_url or projected_base_url
-    token = projected_token
+def validate_base_url(base_url: str) -> str:
+    parsed = urllib.parse.urlparse(base_url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise RuntimeError("Jira base URL must be an HTTP(S) endpoint.")
+    if parsed.username or parsed.password:
+        raise RuntimeError("Jira base URL must not include credentials.")
+    if parsed.query or parsed.fragment:
+        raise RuntimeError("Jira base URL must not include query or fragment.")
+    return base_url.rstrip("/")
+
+
+def resolve_connection(args) -> tuple[str, str, str | None]:
+    projected = load_jira_projection_fields()
+    explicit_base_url = clean_projected_string(getattr(args, "base_url", None))
+    base_url = explicit_base_url or projected["base_url"]
+    token = projected["token"]
+    ca_bundle = clean_projected_string(getattr(args, "ca_bundle", None)) or projected["ca_bundle"]
     if base_url and token:
-        return base_url, token
+        return validate_base_url(base_url), token, ca_bundle
 
     if not base_url:
         raise RuntimeError(
@@ -57,10 +79,21 @@ def resolve_auth(args) -> tuple[str, str]:
         raise RuntimeError(
             "Jira token not found. Ask AgentSmith to project 'jira-auth' for this run."
         )
+    return validate_base_url(base_url), token, ca_bundle
+
+
+def resolve_auth(args) -> tuple[str, str]:
+    base_url, token, _ = resolve_connection(args)
     return base_url, token
 
 
-def request_json(base_url: str, token: str, method: str, path: str, params=None, body=None):
+def build_ssl_context(ca_bundle: str | None = None) -> ssl.SSLContext:
+    if ca_bundle:
+        return ssl.create_default_context(cafile=ca_bundle)
+    return ssl.create_default_context()
+
+
+def request_json(base_url: str, token: str, method: str, path: str, params=None, body=None, ca_bundle=None):
     clear_proxy_env()
     url = base_url.rstrip("/") + path
     if params:
@@ -76,7 +109,7 @@ def request_json(base_url: str, token: str, method: str, path: str, params=None,
         headers["Content-Type"] = "application/json"
 
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    ctx = ssl._create_unverified_context()
+    ctx = build_ssl_context(ca_bundle)
     try:
         with urllib.request.urlopen(req, context=ctx, timeout=30) as resp:
             raw = resp.read().decode("utf-8")
@@ -89,14 +122,14 @@ def request_json(base_url: str, token: str, method: str, path: str, params=None,
 
 
 def cmd_myself(args):
-    base_url, token = resolve_auth(args)
-    result = request_json(base_url, token, "GET", "/rest/api/2/myself")
+    base_url, token, ca_bundle = resolve_connection(args)
+    result = request_json(base_url, token, "GET", "/rest/api/2/myself", ca_bundle=ca_bundle)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
 
 def cmd_search(args):
-    base_url, token = resolve_auth(args)
+    base_url, token, ca_bundle = resolve_connection(args)
     fields = [item.strip() for item in args.fields.split(",")] if args.fields else []
     if args.use_post or len(args.jql) > 1200:
         body = {
@@ -104,20 +137,20 @@ def cmd_search(args):
             "maxResults": args.max_results,
             "fields": fields,
         }
-        result = request_json(base_url, token, "POST", "/rest/api/2/search", body=body)
+        result = request_json(base_url, token, "POST", "/rest/api/2/search", body=body, ca_bundle=ca_bundle)
     else:
         params = {
             "jql": args.jql,
             "maxResults": args.max_results,
             "fields": args.fields,
         }
-        result = request_json(base_url, token, "GET", "/rest/api/2/search", params=params)
+        result = request_json(base_url, token, "GET", "/rest/api/2/search", params=params, ca_bundle=ca_bundle)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
 
 def cmd_get_issue(args):
-    base_url, token = resolve_auth(args)
+    base_url, token, ca_bundle = resolve_connection(args)
     params = {"fields": args.fields} if args.fields else None
     result = request_json(
         base_url,
@@ -125,51 +158,55 @@ def cmd_get_issue(args):
         "GET",
         f"/rest/api/2/issue/{args.issue_key}",
         params=params,
+        ca_bundle=ca_bundle,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
 
 def cmd_editmeta(args):
-    base_url, token = resolve_auth(args)
+    base_url, token, ca_bundle = resolve_connection(args)
     result = request_json(
         base_url,
         token,
         "GET",
         f"/rest/api/2/issue/{args.issue_key}/editmeta",
+        ca_bundle=ca_bundle,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
 
 def cmd_add_comment(args):
-    base_url, token = resolve_auth(args)
+    base_url, token, ca_bundle = resolve_connection(args)
     result = request_json(
         base_url,
         token,
         "POST",
         f"/rest/api/2/issue/{args.issue_key}/comment",
         body={"body": args.body},
+        ca_bundle=ca_bundle,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
 
 def cmd_list_transitions(args):
-    base_url, token = resolve_auth(args)
+    base_url, token, ca_bundle = resolve_connection(args)
     result = request_json(
         base_url,
         token,
         "GET",
         f"/rest/api/2/issue/{args.issue_key}/transitions",
         params={"expand": "transitions.fields"} if args.expand_fields else None,
+        ca_bundle=ca_bundle,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
 
 def cmd_transition(args):
-    base_url, token = resolve_auth(args)
+    base_url, token, ca_bundle = resolve_connection(args)
     body = {"transition": {"id": args.transition_id}}
     if args.comment:
         body["update"] = {"comment": [{"add": {"body": args.comment}}]}
@@ -184,13 +221,14 @@ def cmd_transition(args):
         "POST",
         f"/rest/api/2/issue/{args.issue_key}/transitions",
         body=body,
+        ca_bundle=ca_bundle,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
 
 def cmd_edit_fields(args):
-    base_url, token = resolve_auth(args)
+    base_url, token, ca_bundle = resolve_connection(args)
     fields = json.loads(args.fields_json)
     if not isinstance(fields, dict):
         raise ValueError("--fields-json must decode to a JSON object")
@@ -200,6 +238,7 @@ def cmd_edit_fields(args):
         "PUT",
         f"/rest/api/2/issue/{args.issue_key}",
         body={"fields": fields},
+        ca_bundle=ca_bundle,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
@@ -210,6 +249,7 @@ def build_parser():
         description="Common Jira operations over REST API with Bearer token auth from a request projection."
     )
     parser.add_argument("--base-url", default=None, help="Jira base URL, for example https://jira.example.com")
+    parser.add_argument("--ca-bundle", default=None, help="Path to a CA bundle for private Jira certificates")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("myself")
