@@ -57,6 +57,7 @@ This P5 slice keeps image smoke no-push and adds a separate manual publish workf
 - AFSCP and ASBCP are bootstrap discipline references only, not dependencies.
 - Do not use mutable tags as release proof; focused publish evidence and future release adoption must be digest-pinned and provenance-backed.
 - Do not store secrets, credentials, tokens, private keys, or placeholder secrets in this repo.
+- Child process env must use the shared request env sanitizer: stale runner request/control env is scrubbed, current request env is injected explicitly, and ambient secret-like parent env is not inherited.
 
 ## Local Workspace Handoff
 

@@ -36,6 +36,7 @@ It is not responsible for Agent task API, Agent Runners API, Context Store, File
 - Keep all content ASCII.
 - Do not add generated lockfiles, local dependency protocols, or vendored dependencies.
 - Do not write secrets, tokens, private keys, credentials, or placeholder secret values.
+- Codex and terminal children must use the shared request env sanitizer and must not inherit ambient secret-like parent env.
 
 ## Team Handoff
 

@@ -15,12 +15,65 @@ const OPTIONAL_REQUEST_SCOPED_ENV_KEYS = new Set([
 
 const LEGACY_PROJECTED_DEPENDENCY_ENV_PREFIX = 'MBOS_AGENT_PROJECTED_DEPENDENCY_';
 
+const KNOWN_SECRET_LIKE_PARENT_ENV_KEYS = new Set([
+  'AWS_ACCESS_KEY_ID',
+  'AWS_SECRET_ACCESS_KEY',
+  'AWS_SESSION_TOKEN',
+  'AWS_SHARED_CREDENTIALS_FILE',
+  'AZURE_FEDERATED_TOKEN_FILE',
+  'DOCKER_AUTH_CONFIG',
+  'GCLOUD_SERVICE_KEY',
+  'GITHUB_TOKEN',
+  'GOOGLE_APPLICATION_CREDENTIALS',
+  'GOOGLE_CREDENTIALS',
+  'KUBECONFIG',
+  'NETRC',
+  'NETRC_FILE',
+  'NPM_CONFIG__AUTH',
+  'SSH_AUTH_SOCK',
+]);
+
+const SECRET_LIKE_PARENT_ENV_KEY_PATTERN = /(?:^|_)(?:AUTH|AUTH_?TOKEN|TOKEN|SECRET|PASSWORD|KEY)$/i;
+const PROXY_ENV_KEY_PATTERN = /^(?:ALL|FTP|HTTP|HTTPS)_PROXY$/i;
+
+function normalizedEnvKey(key: string): string {
+  return key.toUpperCase();
+}
+
 function shouldScrubEnvKey(key: string): boolean {
-  return SCRUBBED_CHILD_ENV_KEYS.has(key) || key.startsWith(LEGACY_PROJECTED_DEPENDENCY_ENV_PREFIX);
+  const normalizedKey = normalizedEnvKey(key);
+  return SCRUBBED_CHILD_ENV_KEYS.has(normalizedKey)
+    || normalizedKey.startsWith(LEGACY_PROJECTED_DEPENDENCY_ENV_PREFIX);
+}
+
+function proxyEnvValueHasCredentials(value: string | undefined): boolean {
+  const trimmed = value?.trim();
+  if (!trimmed) return false;
+  const parseCandidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)
+    ? trimmed
+    : `http://${trimmed}`;
+  try {
+    const url = new URL(parseCandidate);
+    return Boolean(url.username || url.password);
+  } catch {
+    const withoutScheme = trimmed.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
+    const authority = withoutScheme.split(/[/?#]/, 1)[0] ?? '';
+    return authority.includes('@');
+  }
+}
+
+function shouldScrubParentEnvEntry(key: string, value: string | undefined): boolean {
+  if (shouldScrubEnvKey(key)) return true;
+  const normalizedKey = normalizedEnvKey(key);
+  if (PROXY_ENV_KEY_PATTERN.test(normalizedKey)) {
+    return proxyEnvValueHasCredentials(value);
+  }
+  return KNOWN_SECRET_LIKE_PARENT_ENV_KEYS.has(normalizedKey)
+    || SECRET_LIKE_PARENT_ENV_KEY_PATTERN.test(normalizedKey);
 }
 
 function shouldInjectRequestEnvKey(key: string, value: string | undefined): value is string {
-  if (key.startsWith(LEGACY_PROJECTED_DEPENDENCY_ENV_PREFIX)) return false;
+  if (normalizedEnvKey(key).startsWith(LEGACY_PROJECTED_DEPENDENCY_ENV_PREFIX)) return false;
   if (value === undefined) return false;
   if (OPTIONAL_REQUEST_SCOPED_ENV_KEYS.has(key) && value.trim() === '') return false;
   return true;
@@ -32,7 +85,7 @@ export function buildRequestScopedChildEnv(input: {
 }): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
   for (const [key, value] of Object.entries(input.parentEnv)) {
-    if (shouldScrubEnvKey(key)) continue;
+    if (shouldScrubParentEnvEntry(key, value)) continue;
     env[key] = value;
   }
   for (const [key, value] of Object.entries(input.requestEnv ?? {})) {

@@ -61,4 +61,70 @@ describe('request-env', () => {
     expect(env.MBOS_AGENT_PROJECTED_DEPENDENCIES).toBeUndefined();
     expect(env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH).toBeUndefined();
   });
+
+  it('drops ambient secret-like parent env while preserving safe runtime env', () => {
+    const env = buildRequestScopedChildEnv({
+      parentEnv: {
+        HOME: '/home/runner',
+        PATH: '/usr/bin:/bin',
+        SHELL: '/bin/zsh',
+        TERM: 'xterm-256color',
+        LANG: 'en_US.UTF-8',
+        LC_ALL: 'en_US.UTF-8',
+        LC_CTYPE: 'en_US.UTF-8',
+        TMPDIR: '/tmp/runner',
+        NO_PROXY: 'localhost,127.0.0.1',
+        HTTP_PROXY: 'http://u:p@proxy.example:8080',
+        HTTPS_PROXY: 'https://u:p@proxy.example:8443',
+        GITHUB_TOKEN: 'parent_value',
+        AWS_ACCESS_KEY_ID: 'parent_value',
+        AWS_SECRET_ACCESS_KEY: 'parent_value',
+        OPENAI_API_KEY: 'parent_value',
+        ANTHROPIC_API_KEY: 'parent_value',
+        CUSTOM_TOKEN: 'parent_value',
+        CUSTOM_SECRET: 'parent_value',
+        CUSTOM_PASSWORD: 'parent_value',
+        CUSTOM_KEY: 'parent_value',
+        SAFE_RUNTIME_FLAG: 'enabled',
+      },
+    });
+
+    expect(env).toMatchObject({
+      HOME: '/home/runner',
+      PATH: '/usr/bin:/bin',
+      SHELL: '/bin/zsh',
+      TERM: 'xterm-256color',
+      LANG: 'en_US.UTF-8',
+      LC_ALL: 'en_US.UTF-8',
+      LC_CTYPE: 'en_US.UTF-8',
+      TMPDIR: '/tmp/runner',
+      NO_PROXY: 'localhost,127.0.0.1',
+      SAFE_RUNTIME_FLAG: 'enabled',
+    });
+    expect(env.HTTP_PROXY).toBeUndefined();
+    expect(env.HTTPS_PROXY).toBeUndefined();
+    expect(env.GITHUB_TOKEN).toBeUndefined();
+    expect(env.AWS_ACCESS_KEY_ID).toBeUndefined();
+    expect(env.AWS_SECRET_ACCESS_KEY).toBeUndefined();
+    expect(env.OPENAI_API_KEY).toBeUndefined();
+    expect(env.ANTHROPIC_API_KEY).toBeUndefined();
+    expect(env.CUSTOM_TOKEN).toBeUndefined();
+    expect(env.CUSTOM_SECRET).toBeUndefined();
+    expect(env.CUSTOM_PASSWORD).toBeUndefined();
+    expect(env.CUSTOM_KEY).toBeUndefined();
+  });
+
+  it('keeps credential-free proxy parent env', () => {
+    const env = buildRequestScopedChildEnv({
+      parentEnv: {
+        HTTP_PROXY: 'http://proxy.example:8080',
+        HTTPS_PROXY: 'https://proxy.example:8443',
+        http_proxy: 'http://proxy.example:8080',
+      },
+    });
+
+    expect(env.HTTP_PROXY).toBe('http://proxy.example:8080');
+    expect(env.HTTPS_PROXY).toBe('https://proxy.example:8443');
+    expect(env.http_proxy).toBe('http://proxy.example:8080');
+  });
 });

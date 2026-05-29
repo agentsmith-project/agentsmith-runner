@@ -53,6 +53,8 @@ Runner-specific fail-fast guard: this repo must not define Context Store scopes,
 
 Contract-consumer/source-boundary guard: implementation may reference only the formal `@mbos/agent-runner-contract` artifact package for runner contract semantics. It must not consume the contract through local dependency protocols, sibling AgentSmith source paths, other `@mbos` packages, moved runner packages, or removed old runner source.
 
+Child process env guard: Codex and terminal children must use the shared request env sanitizer. Stale runner request/control env is scrubbed from the parent, current request env is injected explicitly, and ambient secret-like parent env is not inherited.
+
 ## Commands
 
 Current quick verification:
