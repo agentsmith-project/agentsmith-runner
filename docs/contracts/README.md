@@ -26,6 +26,7 @@ Allowed now:
 - Generate a runner release manifest from a formal contract artifact root plus a digest-pinned GHCR image in the focused publish workflow.
 - Run the P5.3b runtime fast gate against repo-local runner source and builtin skills.
 - Run the P5 focused image smoke against an explicit runner contract artifact root.
+- Run the manual image smoke workflow after downloading the formal AgentSmith runner contract artifact.
 - Run the manual focused GHCR publish workflow after downloading the formal AgentSmith contract artifact.
 
 Not allowed now:
@@ -69,6 +70,8 @@ bash scripts/verify-release.sh --image-smoke --artifact-root <artifact-root>
 ```
 
 Image smoke accepts only an explicit artifact root containing `runner-contract-artifact.json` and the referenced tgz. It first runs the contract consumer diagnostic, then injects that tgz into a no-push Docker build and checks missing runner env fails fast with `Usage`.
+
+Default push/PR CI does not run this mode and must not checkout AgentSmith or generate the contract artifact root from AgentSmith source. The manual `.github/workflows/runner-image-smoke.yml` workflow consumes the formal AgentSmith artifact by `agentsmith_contract_run_id`, downloads it into `artifacts/runner-contract`, and runs the contract consumer plus no-push image smoke against that explicit root.
 
 Image smoke is not release readiness. It is not release manifest generation, not AgentSmith adoption, not image publish, not registry login, and not a contract source of truth.
 

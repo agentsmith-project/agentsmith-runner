@@ -66,6 +66,8 @@ bash scripts/verify-release.sh --image-smoke --artifact-root <artifact-root>
 
 This explicit mode is a focused no-push image build/start smoke for a supplied runner contract artifact root. It first runs `--contract-consumer --artifact-root <artifact-root>`, parses `runner-contract-artifact.json` for the tgz filename, copies repo source and the tgz into a temporary Docker context, builds `dist/index.js` inside the image, checks pinned Codex CLI, `python3`, packaged builtin skills under `/etc/codex/skills`, and `mbos-context` projection reading, then runs the image with `--network=none` and no `MBOS_AGENT_WS_URL`/`MBOS_AGENT_KEY`. The expected final runtime result is exit code 1 with `Usage` on stderr.
 
+Default push/PR CI must not run image smoke, checkout AgentSmith, install/build AgentSmith dependencies, or generate a runner contract artifact root from AgentSmith source. Manual focused image smoke is available through `.github/workflows/runner-image-smoke.yml` with `workflow_dispatch`; it downloads `agentsmith-runner-contract-artifact` by `agentsmith_contract_run_id` and runs `--contract-consumer` plus no-push `--image-smoke` against `artifacts/runner-contract`.
+
 Image smoke is not release readiness. It does not publish an image, log in to a registry, push to GHCR, generate a release manifest, produce provenance, update AgentSmith adoption, update an AgentSmith lock, or replace the future full release gate.
 
 ## P5 Image Task-Execution Smoke Mode

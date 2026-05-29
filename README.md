@@ -42,7 +42,7 @@ This repo does not own:
 - Frontend management surface.
 - AgentSmith product release readiness.
 
-This P5 slice keeps image smoke no-push and adds a separate manual publish workflow for focused evidence. It does not move product tests, product contracts, AgentSmith release gates, AgentSmith adoption locks, release readiness authority, or AgentSmith lock updates.
+This P5 slice keeps image smoke no-push, keeps default push/PR CI on quick/start guards only, and adds separate manual workflows for image smoke diagnostics and focused publish evidence. It does not move product tests, product contracts, AgentSmith release gates, AgentSmith adoption locks, release readiness authority, or AgentSmith lock updates.
 
 ## Boundary Rules
 
@@ -73,6 +73,8 @@ bash scripts/verify-release.sh --quick
 
 Quick mode is not release readiness. The full repo-local release gate is a future authority and is not implemented in this stage.
 
+Default push/PR CI runs quick verification and the start guard. It does not checkout AgentSmith, build `@mbos/agent-runner-contract`, generate a runner contract artifact root, or run image smoke.
+
 ## P5.3b Runtime Fast Gate
 
 The focused runtime fast gate is the local positive entrypoint for runner source and builtin skills:
@@ -94,6 +96,8 @@ bash scripts/verify-release.sh --image-smoke --artifact-root <dir>
 ```
 
 The artifact root must contain `runner-contract-artifact.json` and the tgz named by that descriptor. The smoke first runs `--contract-consumer`, then builds a temporary Docker context, injects the explicit contract tgz into the image build, checks the local no-push image for pinned Codex CLI, `python3`, and packaged builtin skills under `/etc/codex/skills`, and finally expects missing `MBOS_AGENT_WS_URL`/`MBOS_AGENT_KEY` to fail fast with `Usage`.
+
+Manual focused image smoke lives in `.github/workflows/runner-image-smoke.yml` and is `workflow_dispatch` only. It requires `agentsmith_contract_run_id`, downloads the formal AgentSmith artifact named `agentsmith-runner-contract-artifact` into `artifacts/runner-contract`, then runs `--contract-consumer` and no-push `--image-smoke` against that explicit artifact root.
 
 Image smoke is not release readiness. It is no GHCR publish, no registry login, no release manifest, no AgentSmith adoption, no lock update, and no release-ready claim. It proves only that a clean local image can build from the explicit contract artifact, contains the focused runtime prerequisites, and starts far enough to reject missing required runner env.
 

@@ -15,6 +15,7 @@ function read(path) {
 
 const verifyRelease = read('scripts/verify-release.sh');
 const ciWorkflow = read('.github/workflows/ci.yml');
+const manualImageSmokeWorkflow = read('.github/workflows/runner-image-smoke.yml');
 const dockerfile = read('Dockerfile');
 const imageSmoke = read('scripts/test-runner-image-smoke.sh');
 const agentSmithProducerRepo = 'agent' + 'smith-project/agent' + 'smith';
@@ -56,28 +57,72 @@ if (/test-runner-runtime-fast[.]sh/.test(ciWorkflow)) {
   addError('CI must not run runtime fast without an explicit contract artifact acquisition step');
 }
 
-if (!/runner-image-smoke:/.test(ciWorkflow)) {
-  addError('CI must define a focused runner-image-smoke job');
+if (/runner-image-smoke:/.test(ciWorkflow)) {
+  addError('default CI must not define a runner-image-smoke job');
 }
 
-if (!new RegExp(`repository:\\s*${agentSmithProducerRepo.replace('/', '\\/')}`).test(ciWorkflow)) {
-  addError('CI image smoke job must explicitly checkout AgentSmith as the contract artifact producer');
+if (new RegExp(`repository:\\s*${agentSmithProducerRepo.replace('/', '\\/')}`).test(ciWorkflow)) {
+  addError('default CI must not checkout AgentSmith');
 }
 
-if (!/npm ci/.test(ciWorkflow)) {
-  addError('CI image smoke job must install AgentSmith producer dependencies with npm ci');
+if (/npm run build -w @mbos\/agent-runner-contract/.test(ciWorkflow)) {
+  addError('default CI must not build @mbos/agent-runner-contract from AgentSmith source');
 }
 
-if (!/npm run build -w @mbos\/agent-runner-contract/.test(ciWorkflow)) {
-  addError('CI image smoke job must build @mbos/agent-runner-contract before artifact generation');
+if (/runner-contract-artifact[.]ts/.test(ciWorkflow)) {
+  addError('default CI must not generate a runner contract artifact root from AgentSmith source');
 }
 
-if (!/npx tsx scripts\/governance\/runner-contract-artifact[.]ts/.test(ciWorkflow)) {
-  addError('CI image smoke job must generate an explicit runner contract artifact root');
+if (/bash scripts\/verify-release[.]sh --image-smoke --artifact-root/.test(ciWorkflow)) {
+  addError('default CI must not run image smoke');
 }
 
-if (!/bash scripts\/verify-release[.]sh --image-smoke --artifact-root/.test(ciWorkflow)) {
-  addError('CI image smoke job must run verify-release.sh --image-smoke with the generated artifact root');
+if (!/workflow_dispatch:/.test(manualImageSmokeWorkflow)) {
+  addError('manual image smoke workflow must use workflow_dispatch');
+}
+
+if (/^\s*(push|pull_request|schedule):/m.test(manualImageSmokeWorkflow)) {
+  addError('manual image smoke workflow must not have automatic triggers');
+}
+
+if (!/agentsmith_contract_run_id/.test(manualImageSmokeWorkflow)) {
+  addError('manual image smoke workflow must require agentsmith_contract_run_id');
+}
+
+if (!/actions\/download-artifact@v8[.]0[.]1/.test(manualImageSmokeWorkflow)) {
+  addError('manual image smoke workflow must use pinned actions/download-artifact@v8.0.1');
+}
+
+if (!/name:\s*agentsmith-runner-contract-artifact/.test(manualImageSmokeWorkflow)) {
+  addError('manual image smoke workflow must download agentsmith-runner-contract-artifact');
+}
+
+if (!new RegExp(`repository:\\s*${agentSmithProducerRepo.replace('/', '\\/')}`).test(manualImageSmokeWorkflow)) {
+  addError('manual image smoke workflow must download the artifact from AgentSmith');
+}
+
+if (!/run-id:.*agentsmith_contract_run_id/.test(manualImageSmokeWorkflow)) {
+  addError('manual image smoke workflow must use the supplied AgentSmith run id');
+}
+
+if (!/path:\s*artifacts\/runner-contract/.test(manualImageSmokeWorkflow)) {
+  addError('manual image smoke workflow must download to artifacts/runner-contract');
+}
+
+if (!/verify-release[.]sh --contract-consumer --artifact-root artifacts\/runner-contract/.test(manualImageSmokeWorkflow)) {
+  addError('manual image smoke workflow must verify the downloaded contract artifact root');
+}
+
+if (!/verify-release[.]sh --image-smoke --artifact-root artifacts\/runner-contract/.test(manualImageSmokeWorkflow)) {
+  addError('manual image smoke workflow must run image smoke against the downloaded artifact root');
+}
+
+if (/npm run build -w @mbos\/agent-runner-contract|runner-contract-artifact[.]ts/.test(manualImageSmokeWorkflow)) {
+  addError('manual image smoke workflow must not build or generate the contract artifact from source');
+}
+
+if (/docker\/login-action|\s--push|ghcr[.]io\/agentsmith-project\/agentsmith-runner|write-runner-release-manifest|upload-artifact/.test(manualImageSmokeWorkflow)) {
+  addError('manual image smoke workflow must not publish images or generate release manifests');
 }
 
 if (!/ENTRYPOINT\s+\["node",\s*"\/app\/dist\/index[.]js"\]/.test(dockerfile)) {

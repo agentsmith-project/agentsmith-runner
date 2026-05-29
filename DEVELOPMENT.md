@@ -4,7 +4,7 @@ This repository is intentionally narrow during P5. The current goal is to make r
 
 ## Current Phase
 
-P5 focused runner work: runner runtime source and builtin skills have a repo-local fast gate, the runner image has a focused build/start smoke, and manual GHCR publish produces focused evidence only.
+P5 focused runner work: runner runtime source and builtin skills have a repo-local fast gate, the runner image has a focused build/start smoke, default push/PR CI runs only quick/start guards, and manual GHCR publish produces focused evidence only.
 
 Allowed now:
 
@@ -13,7 +13,7 @@ Allowed now:
 - Contract and runbook placeholders.
 - ADR for the bootstrap boundary.
 - Quick governance guard.
-- CI workflow that runs the quick guard.
+- Default CI workflow that runs the quick guard and start guard.
 - P5.0 explicit runner contract artifact consumer skeleton.
 - P5.1 start guard that runs local contract-consumer startup checks without an external artifact root.
 - P5.3a runner release manifest skeleton checker and local manifest self-test.
@@ -23,6 +23,7 @@ Allowed now:
 - Builtin skills under `builtin-skills/`.
 - P5.3b runtime fast gate.
 - Dockerfile plus focused image smoke that consumes an explicit runner contract artifact root.
+- Manual `workflow_dispatch` image smoke workflow that downloads the formal AgentSmith runner contract artifact and runs no-push image smoke.
 - Manual `workflow_dispatch` GHCR publish workflow that produces digest-pinned image evidence and uploads `runner-release-manifest`.
 
 Not allowed now:
@@ -30,6 +31,8 @@ Not allowed now:
 - Docker image publish outside `.github/workflows/runner-image-publish.yml`.
 - Registry login or GHCR push outside the focused publish workflow.
 - Release manifest generation from image smoke.
+- Default push/PR CI checkout of AgentSmith, AgentSmith dependency install/build, or runner contract artifact generation from AgentSmith source.
+- Default push/PR CI image smoke execution.
 - `latest`, old GHCR aliases, or tag-only image evidence.
 - AgentSmith adoption lock updates.
 - AgentSmith repo changes or release contract runner digest changes.
@@ -90,6 +93,8 @@ bash scripts/verify-release.sh --image-smoke --artifact-root <dir>
 ```
 
 This command requires an explicit artifact root containing `runner-contract-artifact.json` and the referenced tgz. It first runs `--contract-consumer`, then builds a temporary Docker context, injects the contract tgz as a build input, builds a local image with a unique non-`latest` tag, checks pinned Codex CLI, `python3`, packaged builtin skills under `/etc/codex/skills`, and `mbos-context` projection reading, and runs it without `MBOS_AGENT_WS_URL`/`MBOS_AGENT_KEY` to confirm fail-fast `Usage`.
+
+The manual `.github/workflows/runner-image-smoke.yml` workflow is the CI-hosted focused diagnostic for this mode. It is `workflow_dispatch` only, requires `agentsmith_contract_run_id`, downloads `agentsmith-runner-contract-artifact` from `agentsmith-project/agentsmith` into `artifacts/runner-contract`, then runs `--contract-consumer` and `--image-smoke` against that explicit artifact root. Default push/PR CI does not run image smoke and must not produce this artifact from AgentSmith source.
 
 Image smoke is not release readiness. It does not publish to GHCR, log in to a registry, generate a release manifest, update AgentSmith adoption, update locks, or prove backend-real behavior.
 

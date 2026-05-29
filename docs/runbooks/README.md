@@ -2,7 +2,7 @@
 
 This directory holds focused operator and developer runbook notes for the runner repo.
 
-Current status: P5 focused runner work. Runtime fast checks, a focused no-push image smoke, and a manual focused GHCR publish evidence workflow are available, but no runner image deploy, release, or adoption runbook is authoritative yet.
+Current status: P5 focused runner work. Runtime fast checks, a focused no-push image smoke, a manual image smoke workflow that consumes an explicit artifact, and a manual focused GHCR publish evidence workflow are available, but no runner image deploy, release, or adoption runbook is authoritative yet.
 
 ## P5.3b Runtime Fast Diagnostic
 
@@ -27,6 +27,8 @@ bash scripts/verify-release.sh --image-smoke --artifact-root <artifact-root>
 ```
 
 The command first validates the artifact root with `--contract-consumer`, builds a temporary Docker context, injects the descriptor-referenced tgz into the Docker build, builds `dist/index.js` inside the image, checks pinned Codex CLI, `python3`, packaged builtin skills under `/etc/codex/skills`, and `mbos-context` projection reading, then runs the image without `MBOS_AGENT_WS_URL`/`MBOS_AGENT_KEY`. It must finish with `image smoke passed`.
+
+The CI-hosted focused diagnostic is `.github/workflows/runner-image-smoke.yml`. Run it manually with `agentsmith_contract_run_id`; it downloads `agentsmith-runner-contract-artifact` from AgentSmith into `artifacts/runner-contract`, then runs the same contract consumer and no-push image smoke commands. Default push/PR CI does not run image smoke and must not build the contract artifact from AgentSmith source.
 
 Image smoke is not release readiness. Do not use it as a release gate, GHCR publish step, registry login step, release manifest generator, AgentSmith adoption step, lock update reason, or backend-real proof. It does not publish anything.
 

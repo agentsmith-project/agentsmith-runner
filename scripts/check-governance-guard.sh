@@ -106,6 +106,7 @@ check_required_files() {
     docs/RISK_REGISTER.md
     .github/pull_request_template.md
     .github/workflows/ci.yml
+    .github/workflows/runner-image-smoke.yml
     .github/workflows/runner-image-publish.yml
     Dockerfile
     .dockerignore
@@ -323,11 +324,29 @@ check_image_smoke_not_release() {
   require_grep "test-runner-runtime-image-prereq-smoke[.]sh" scripts/test-runner-image-smoke.sh "image smoke runs runtime image prerequisite smoke"
   require_grep 'ENTRYPOINT[[:space:]]+\["node",[[:space:]]*"/app/dist/index[.]js"\]' Dockerfile "Dockerfile uses absolute runner entrypoint"
   require_grep 'run_missing_env_usage_check .*--workdir[[:space:]]+/tmp' scripts/test-runner-image-smoke.sh "image smoke covers non-app working directory startup"
-  require_grep "runner-image-smoke" .github/workflows/ci.yml "CI has focused image smoke job"
-  require_grep "repository:[[:space:]]*agentsmith-project/agentsmith" .github/workflows/ci.yml "CI explicitly checks out AgentSmith as artifact producer"
-  require_grep "npm run build -w @mbos/agent-runner-contract" .github/workflows/ci.yml "CI builds runner contract artifact package"
-  require_grep "npx tsx scripts/governance/runner-contract-artifact[.]ts" .github/workflows/ci.yml "CI generates explicit runner contract artifact root"
-  require_grep "bash scripts/verify-release[.]sh --image-smoke --artifact-root" .github/workflows/ci.yml "CI runs focused image smoke with artifact root"
+  forbid_grep "runner-image-smoke:" .github/workflows/ci.yml "default CI does not define runner-image-smoke job"
+  forbid_grep "repository:[[:space:]]*agentsmith-project/agentsmith" .github/workflows/ci.yml "default CI does not checkout AgentSmith"
+  forbid_grep "npm run build -w @mbos/agent-runner-contract" .github/workflows/ci.yml "default CI does not build runner contract artifact package"
+  forbid_grep "runner-contract-artifact[.]ts" .github/workflows/ci.yml "default CI does not generate runner contract artifact root from AgentSmith source"
+  forbid_grep "verify-release[.]sh --image-smoke --artifact-root" .github/workflows/ci.yml "default CI does not run image smoke"
+
+  local workflow=".github/workflows/runner-image-smoke.yml"
+  require_file "$workflow"
+  require_grep "workflow_dispatch:" "$workflow" "runner image smoke is manual workflow_dispatch"
+  forbid_grep "^[[:space:]]*(push|pull_request|schedule):" "$workflow" "runner image smoke has no automatic triggers"
+  require_grep "agentsmith_contract_run_id" "$workflow" "runner image smoke requires AgentSmith contract run id input"
+  require_grep "contents:[[:space:]]*read" "$workflow" "runner image smoke has contents read permission"
+  require_grep "actions:[[:space:]]*read" "$workflow" "runner image smoke has actions read permission"
+  require_grep "actions/download-artifact@v8[.]0[.]1" "$workflow" "runner image smoke downloads artifact with pinned v8.0.1"
+  require_grep "name:[[:space:]]*agentsmith-runner-contract-artifact" "$workflow" "runner image smoke downloads formal AgentSmith artifact name"
+  require_grep "repository:[[:space:]]*agentsmith-project/agentsmith" "$workflow" "runner image smoke downloads from AgentSmith repo"
+  require_grep "run-id:.*agentsmith_contract_run_id" "$workflow" "runner image smoke uses supplied AgentSmith run id"
+  require_grep "path:[[:space:]]*artifacts/runner-contract" "$workflow" "runner image smoke downloads to runner contract artifact root"
+  require_grep "verify-release[.]sh --contract-consumer --artifact-root artifacts/runner-contract" "$workflow" "runner image smoke verifies contract consumer"
+  require_grep "verify-release[.]sh --image-smoke --artifact-root artifacts/runner-contract" "$workflow" "runner image smoke consumes artifact root for no-push image smoke"
+  forbid_grep "npm run build -w @mbos/agent-runner-contract" "$workflow" "runner image smoke does not build contract package from source"
+  forbid_grep "runner-contract-artifact[.]ts" "$workflow" "runner image smoke does not generate contract artifact from source"
+  forbid_grep "docker/login-action|[[:space:]]--push|ghcr[.]io/agentsmith-project/agentsmith-runner|write-runner-release-manifest|upload-artifact" "$workflow" "runner image smoke does not publish or generate release manifest"
 }
 
 check_runner_image_publish_focused_evidence() {
@@ -461,7 +480,7 @@ check_no_forbidden_patterns() {
   local remote_dependency_pattern="(${checkout_remote_dependency_pattern}|${git_remote_dependency_pattern}|${raw_remote_dependency_pattern}|${raw_contract_gate_dependency_pattern})"
 
   local remote_dependency_hits
-  remote_dependency_hits="$(grep -IEin -- "$remote_dependency_pattern" "${files[@]}" | grep -Ev '^\./\.github/workflows/(ci|runner-image-publish)[.]yml:[0-9]+:[[:space:]]*repository:[[:space:]]*agentsmith-project/agentsmith[[:space:]]*$' || true)"
+  remote_dependency_hits="$(grep -IEin -- "$remote_dependency_pattern" "${files[@]}" | grep -Ev '^\./\.github/workflows/(runner-image-smoke|runner-image-publish)[.]yml:[0-9]+:[[:space:]]*repository:[[:space:]]*agentsmith-project/agentsmith[[:space:]]*$' || true)"
 
   if [[ -n "$remote_dependency_hits" ]]; then
     echo "$remote_dependency_hits"

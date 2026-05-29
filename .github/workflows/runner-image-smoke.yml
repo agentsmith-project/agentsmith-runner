@@ -1,0 +1,58 @@
+name: Runner Image Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      agentsmith_contract_run_id:
+        description: AgentSmith workflow run id that produced agentsmith-runner-contract-artifact
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  image-smoke:
+    name: No-push runner image smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      INPUT_CONTRACT_RUN_ID: ${{ inputs.agentsmith_contract_run_id }}
+    steps:
+      - name: Checkout agentsmith-runner
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Validate image smoke inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! [[ "$INPUT_CONTRACT_RUN_ID" =~ ^[1-9][0-9]*$ ]]; then
+            echo "agentsmith_contract_run_id must be a positive integer" >&2
+            exit 2
+          fi
+
+      - name: Download AgentSmith runner contract artifact
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: agentsmith-runner-contract-artifact
+          repository: agentsmith-project/agentsmith
+          run-id: ${{ inputs.agentsmith_contract_run_id }}
+          github-token: ${{ github.token }}
+          path: artifacts/runner-contract
+
+      - name: Verify contract consumer
+        run: bash scripts/verify-release.sh --contract-consumer --artifact-root artifacts/runner-contract
+
+      - name: Run no-push image smoke
+        run: bash scripts/verify-release.sh --image-smoke --artifact-root artifacts/runner-contract
+
+      - name: Focused evidence notice
+        run: |
+          echo "Focused no-push image smoke only."
+          echo "This workflow does not publish GHCR images, generate release manifests, or claim release readiness."
