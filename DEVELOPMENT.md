@@ -91,6 +91,8 @@ This command requires an explicit artifact root containing `runner-contract-arti
 
 Image smoke is not release readiness. It does not publish to GHCR, log in to a registry, generate a release manifest, update AgentSmith adoption, update locks, or prove backend-real behavior.
 
+P5 image task-execution smoke is a manual focused diagnostic. Use [docs/runbooks/README.md](docs/runbooks/README.md#p5-image-task-execution-smoke) for the command and steps, and [docs/RELEASE_GATES.md](docs/RELEASE_GATES.md) for boundaries; keep it no-push, keep smoke execution out of CI, not backend-real, not a real LLM run, not GHCR publish, not AgentSmith adoption, and not release readiness.
+
 P5 runner release manifest generator:
 
 ```bash
@@ -116,12 +118,14 @@ bash -n scripts/verify-release.sh
 bash -n scripts/check-governance-guard.sh
 bash -n scripts/test-runner-runtime-fast.sh
 bash -n scripts/test-runner-image-smoke.sh
+bash -n scripts/test-runner-image-task-execution-smoke.sh
 bash -n scripts/test-runner-contract-consumer.sh
 bash -n scripts/test-runner-release-manifest.sh
 node --check scripts/check-runner-source-boundary.mjs
 node --check scripts/check-runner-contract-consumer.mjs
 node --check scripts/check-runner-release-manifest.mjs
 node --check scripts/write-runner-release-manifest.mjs
+node --check scripts/runner-task-execution-smoke.mjs
 ```
 
 P5.1 start guard:
@@ -130,9 +134,9 @@ P5.1 start guard:
 bash scripts/verify-release.sh --start-guard
 ```
 
-Start guard runs quick governance, shell syntax checks, source-boundary validation, consumer and manifest Node syntax checks, and the local consumer and manifest self-tests with generated temporary fixtures. The consumer and manifest self-tests do not require an external artifact root or manifest artifact.
+Start guard runs quick governance, shell syntax checks, source-boundary validation, consumer and manifest Node syntax checks, and the local consumer and manifest self-tests with generated temporary fixtures. The consumer and manifest self-tests do not require an external artifact root or manifest artifact. Coverage for image task-execution smoke is syntax-only (`bash -n`/`node --check`); start guard does not run `--image-task-execution-smoke`.
 
-Start guard is not release readiness. It intentionally excludes runtime fast checks and image smoke. Runtime fast checks require repo-local Node dependencies, and image smoke requires Docker plus an explicit contract artifact root; neither may introduce generated lockfiles or local dependency protocols. The P5.0 consumer diagnostic uses Node and npm only inside a temporary consumer workspace where needed.
+Start guard is not release readiness. It intentionally excludes runtime fast checks and manual image smoke execution. Runtime fast checks require repo-local Node dependencies, and image smoke execution requires Docker plus an explicit contract artifact root; neither may introduce generated lockfiles or local dependency protocols. The P5.0 consumer diagnostic uses Node and npm only inside a temporary consumer workspace where needed.
 
 ## Local Workspace Handoff
 
@@ -141,6 +145,8 @@ The local checkout at `/home/percy/works/mbos-v1/agentsmith-runner` is a workspa
 ## Release Posture
 
 Quick verification proves only that the governance surface is intact. Runtime fast checks prove only repo-local type/unit and builtin skill fast behavior. Image smoke proves only a clean local image build/start fail-fast path with an explicit contract artifact. None of these prove image release quality, backend-real behavior, AgentSmith adoption, or release readiness.
+
+Image task-execution smoke adds one fake-Codex runner process and WebSocket path through the built image. It is still focused evidence only and does not prove backend-real behavior, AgentSmith adoption, or release readiness.
 
 The manual GHCR publish workflow proves only focused publish evidence: a digest-pinned `ghcr.io/agentsmith-project/agentsmith-runner` image and uploaded `runner-release-manifest` artifact. It does not update AgentSmith, change an adoption lock, change release contract runner digest, or establish release readiness.
 

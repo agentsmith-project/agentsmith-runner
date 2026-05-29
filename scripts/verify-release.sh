@@ -8,6 +8,7 @@ Usage:
   bash scripts/verify-release.sh --start-guard
   bash scripts/verify-release.sh --contract-consumer --artifact-root <dir>
   bash scripts/verify-release.sh --image-smoke --artifact-root <dir>
+  bash scripts/verify-release.sh --image-task-execution-smoke --artifact-root <dir>
   bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
   bash scripts/verify-release.sh
 
@@ -17,6 +18,7 @@ Current bootstrap status:
     It intentionally excludes runtime fast checks until CI has explicit contract artifact acquisition.
   --contract-consumer validates an explicit runner contract artifact root only.
   --image-smoke builds a local no-push runner image from an explicit runner contract artifact root and checks runtime prerequisites plus missing-env Usage.
+  --image-task-execution-smoke builds a local no-push runner image from an explicit runner contract artifact root and runs one fake-Codex task process over a local WebSocket harness.
   --release-manifest validates an explicit runner release manifest skeleton only.
   Full release mode is intentionally not implemented during bootstrap.
 USAGE
@@ -56,6 +58,7 @@ if [[ "${1:-}" == "--start-guard" ]]; then
   bash -n "$repo_root/scripts/test-runner-runtime-fast.sh"
   bash -n "$repo_root/scripts/test-runner-contract-consumer.sh"
   bash -n "$repo_root/scripts/test-runner-image-smoke.sh"
+  bash -n "$repo_root/scripts/test-runner-image-task-execution-smoke.sh"
   bash -n "$repo_root/scripts/test-runner-runtime-image-prereq-smoke.sh"
   bash -n "$repo_root/scripts/test-runner-release-manifest.sh"
 
@@ -85,6 +88,9 @@ if [[ "${1:-}" == "--start-guard" ]]; then
 
   echo "start guard: checking release manifest generator syntax"
   node --check "$repo_root/scripts/write-runner-release-manifest.mjs"
+
+  echo "start guard: checking image task-execution smoke harness syntax"
+  node --check "$repo_root/scripts/runner-task-execution-smoke.mjs"
 
   echo "start guard: running contract consumer self-test"
   bash "$repo_root/scripts/test-runner-contract-consumer.sh"
@@ -119,6 +125,17 @@ if [[ "${1:-}" == "--image-smoke" ]]; then
   exit 0
 fi
 
+if [[ "${1:-}" == "--image-task-execution-smoke" ]]; then
+  if [[ $# -ne 3 || "${2:-}" != "--artifact-root" ]]; then
+    echo "error: --image-task-execution-smoke requires exactly --artifact-root <dir>" >&2
+    usage >&2
+    exit 2
+  fi
+
+  bash "$repo_root/scripts/test-runner-image-task-execution-smoke.sh" --artifact-root "$3"
+  exit 0
+fi
+
 if [[ "${1:-}" == "--release-manifest" ]]; then
   if [[ $# -ne 3 || "${2:-}" != "--manifest" ]]; then
     echo "error: --release-manifest requires exactly --manifest <manifest-path>" >&2
@@ -145,6 +162,7 @@ This repo currently supports only:
   bash scripts/verify-release.sh --start-guard
   bash scripts/verify-release.sh --contract-consumer --artifact-root <dir>
   bash scripts/verify-release.sh --image-smoke --artifact-root <dir>
+  bash scripts/verify-release.sh --image-task-execution-smoke --artifact-root <dir>
   bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
 
 Quick mode is not release readiness.
@@ -152,6 +170,7 @@ Start guard is not release readiness.
 Runtime fast checks are separate until clean CI has explicit contract artifact acquisition.
 Contract consumer mode is not release readiness.
 Image smoke is not release readiness.
+Image task-execution smoke is not release readiness.
 Release manifest skeleton mode is not release readiness.
 MESSAGE
 exit 2

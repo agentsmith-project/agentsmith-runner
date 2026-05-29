@@ -96,6 +96,10 @@ The artifact root must contain `runner-contract-artifact.json` and the tgz named
 
 Image smoke is not release readiness. It is no GHCR publish, no registry login, no release manifest, no AgentSmith adoption, no lock update, and no release-ready claim. It proves only that a clean local image can build from the explicit contract artifact, contains the focused runtime prerequisites, and starts far enough to reject missing required runner env.
 
+## P5 Image Task-Execution Smoke
+
+The task-execution image smoke is a manual focused diagnostic documented in [docs/runbooks/README.md](docs/runbooks/README.md#p5-image-task-execution-smoke). Keep it no-push and keep smoke execution out of CI; it is not backend-real, not a real LLM run, not GHCR publish, not release readiness, and not AgentSmith adoption.
+
 ## P5 Runner Image Publish Focused Evidence
 
 Manual focused publish evidence lives in `.github/workflows/runner-image-publish.yml` and is `workflow_dispatch` only. It downloads the formal AgentSmith artifact named `agentsmith-runner-contract-artifact`, runs `--contract-consumer`, runs the no-push `--image-smoke`, pushes only `ghcr.io/agentsmith-project/agentsmith-runner` tags shaped as `release-<release_id>` and `sha-<git-sha-12>`, resolves a `sha256:<64>` digest, writes `artifacts/runner-release/runner-release-manifest.json`, verifies it with `--release-manifest`, and uploads artifact `runner-release-manifest`.
@@ -110,9 +114,9 @@ The start guard is CI-safe startup coverage for source-boundary, contract consum
 bash scripts/verify-release.sh --start-guard
 ```
 
-This runs quick governance, shell syntax checks, source-boundary validation, Node checker syntax checks, `bash scripts/test-runner-contract-consumer.sh`, and `bash scripts/test-runner-release-manifest.sh`. The contract and manifest self-tests use only local temporary fixtures and do not require an external artifact root or manifest artifact.
+This runs quick governance, shell syntax checks, source-boundary validation, Node checker syntax checks, `bash scripts/test-runner-contract-consumer.sh`, and `bash scripts/test-runner-release-manifest.sh`. The contract and manifest self-tests use only local temporary fixtures and do not require an external artifact root or manifest artifact. Coverage for the task-execution image smoke is syntax-only (`bash -n`/`node --check`); start guard does not run that smoke.
 
-Start guard is not release readiness. It intentionally excludes the runtime fast gate and image smoke, and it does not replace full release mode, image evidence, runtime evidence, AgentSmith adoption evidence, or an AgentSmith lock update.
+Start guard is not release readiness. It intentionally excludes the runtime fast gate and manual image smoke execution, and it does not replace full release mode, image evidence, runtime evidence, AgentSmith adoption evidence, or an AgentSmith lock update.
 
 ## P5.3a Runner Release Manifest Skeleton
 

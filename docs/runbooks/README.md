@@ -30,6 +30,18 @@ The command first validates the artifact root with `--contract-consumer`, builds
 
 Image smoke is not release readiness. Do not use it as a release gate, GHCR publish step, registry login step, release manifest generator, AgentSmith adoption step, lock update reason, or backend-real proof. It does not publish anything.
 
+## P5 Image Task-Execution Smoke
+
+Use this only when a formal runner contract artifact root has been supplied and local runner Node dependencies are installed:
+
+```bash
+bash scripts/verify-release.sh --image-task-execution-smoke --artifact-root <artifact-root>
+```
+
+The command first validates the artifact root with `--contract-consumer`, builds a local no-push image, starts the real `/app/dist/index.js` process in Docker, connects it to a local WebSocket harness, runs fake Codex from the formal `managedTaskRun` fixture, validates task HOME/workspace/artifacts env and projected dependency env, expects `agent.ready`, `agent.response.delta`, `agent.response.artifact`, and `agent.response.done`, checks that `agent.response.done` has no local token usage field, and scans task HOME for request-scoped sentinel leakage. It must finish with `image task-execution smoke passed`.
+
+Manual only during P5. Do not wire smoke execution into CI, and do not use it as backend-real proof, a real LLM run, a GHCR publish step, AgentSmith adoption, a lock update reason, or release readiness.
+
 ## P5.0 Contract Consumer Diagnostic
 
 Use this only when a formal runner contract artifact root has been supplied:
@@ -75,9 +87,9 @@ Use this for CI startup coverage of the local skeleton checks:
 bash scripts/verify-release.sh --start-guard
 ```
 
-The command runs quick governance, shell syntax checks, source-boundary validation, `node --check` for Node checkers, the local consumer self-test, and the local manifest self-test. Contract and manifest checks use generated temporary fixtures only and do not require a supplied artifact root or manifest artifact.
+The command runs quick governance, shell syntax checks, source-boundary validation, `node --check` for Node checkers, the local consumer self-test, and the local manifest self-test. Contract and manifest checks use generated temporary fixtures only and do not require a supplied artifact root or manifest artifact. Coverage for image task-execution smoke is syntax-only (`bash -n`/`node --check`); start guard does not run that smoke.
 
-Start guard is not release readiness. It intentionally excludes runtime fast checks and image smoke. Do not use it as a release gate, image publish step, AgentSmith adoption step, or reason to update locks.
+Start guard is not release readiness. It intentionally excludes runtime fast checks and manual image smoke execution. Do not use it as a release gate, image publish step, AgentSmith adoption step, or reason to update locks.
 
 ## Future Runbook Areas
 
