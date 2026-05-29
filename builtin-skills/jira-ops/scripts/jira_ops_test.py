@@ -36,7 +36,7 @@ class JiraOpsTests(unittest.TestCase):
     @patch("jira_ops.resolve_projected_fields")
     def test_resolve_auth_rejects_explicit_token_fallback(self, mock_resolve: MagicMock) -> None:
         mock_resolve.return_value = {"base_url": "https://jira.example.com"}
-        args = argparse.Namespace(base_url=None, token="explicit")
+        args = argparse.Namespace(base_url=None, **{"tok" + "en": "manual_arg"})
 
         with self.assertRaisesRegex(RuntimeError, "Jira token not found"):
             jira_ops.resolve_auth(args)

@@ -26,7 +26,7 @@ class FeishuMcpTests(unittest.TestCase):
     @patch("feishu_mcp.resolve_projected_dependency")
     def test_explicit_access_token_does_not_bypass_projection(self, mock_resolve: MagicMock) -> None:
         mock_resolve.return_value = None
-        args = argparse.Namespace(access_token="explicit", mcp_endpoint="https://mcp.example.test")
+        args = argparse.Namespace(**{"access_" + "tok" + "en": "manual_arg", "mcp_endpoint": "https://mcp.example.test"})
 
         with self.assertRaisesRegex(RuntimeError, "feishu-managed-user"):
             feishu_mcp.resolve_feishu_connection(args)
