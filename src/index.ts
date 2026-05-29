@@ -43,6 +43,7 @@ import {
 } from './terminal-runtime.js';
 import { prepareLaunchCommand } from './child-launcher.js';
 import { buildAgentRuntimeEnv } from './agent-runtime-env.js';
+import { buildRequestScopedChildEnv } from './request-env.js';
 import { buildTaskUserInstallEnv } from './user-install-env.js';
 import { installAgentTaskRunnerProcessIdentity } from './task-workspace-ownership.js';
 import {
@@ -1942,17 +1943,19 @@ async function runCodexRequest(requestId: string, payload: ServerStartPayload): 
     file: codexBin,
     args: codexArgs,
     cwd,
-    env: buildTaskUserInstallEnv(taskPaths.homeDir, {
-      ...process.env,
-      NO_COLOR: '1',
-      TASK_HOME: taskPaths.taskHome,
-      WORKSPACE_PATH: taskPaths.workspaceDir,
-      ARTIFACTS_PATH: taskPaths.artifactsDir,
-      ...buildAgentRuntimeEnv(executionContext),
-      ...(executionContext.execution_ticket ? {
-        [proxyExecutionTicketHeaderEnvName]: executionContext.execution_ticket,
-      } : {}),
-    }),
+    env: buildTaskUserInstallEnv(taskPaths.homeDir, buildRequestScopedChildEnv({
+      parentEnv: process.env,
+      requestEnv: {
+        NO_COLOR: '1',
+        TASK_HOME: taskPaths.taskHome,
+        WORKSPACE_PATH: taskPaths.workspaceDir,
+        ARTIFACTS_PATH: taskPaths.artifactsDir,
+        ...buildAgentRuntimeEnv(executionContext),
+        ...(executionContext.execution_ticket ? {
+          [proxyExecutionTicketHeaderEnvName]: executionContext.execution_ticket,
+        } : {}),
+      },
+    })),
   });
   const child = spawn(
     childCommand.file,

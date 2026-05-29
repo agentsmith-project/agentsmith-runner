@@ -1,12 +1,10 @@
 import json
 import os
-import re
 from pathlib import Path
 from typing import Any
 
 
 PROJECTED_DEPENDENCIES_ENV = "MBOS_AGENT_PROJECTED_DEPENDENCIES"
-PROJECTED_DEPENDENCY_ENV_PREFIX = "MBOS_AGENT_PROJECTED_DEPENDENCY_"
 
 
 def _read_json_env(name: str) -> Any | None:
@@ -17,13 +15,6 @@ def _read_json_env(name: str) -> Any | None:
         return json.loads(value)
     except json.JSONDecodeError as exc:
         raise RuntimeError(f"{name} must contain valid JSON.") from exc
-
-
-def _dependency_env_name(dependency_name: str) -> str:
-    suffix = re.sub(r"[^A-Za-z0-9]+", "_", dependency_name).strip("_").upper()
-    if not suffix:
-        raise RuntimeError("Dependency name cannot be converted to an environment key.")
-    return f"{PROJECTED_DEPENDENCY_ENV_PREFIX}{suffix}"
 
 
 def _read_json_file(path: Path) -> dict[str, Any]:
@@ -70,18 +61,10 @@ def list_projected_dependency_names() -> list[str]:
         for key in container:
             if isinstance(key, str):
                 names.append(key)
-    prefix = PROJECTED_DEPENDENCY_ENV_PREFIX
-    for key in os.environ:
-        if key.startswith(prefix):
-            names.append(key.removeprefix(prefix).lower().replace("_", "-"))
     return sorted(set(names))
 
 
 def _read_projected_dependency(dependency_name: str) -> Any | None:
-    per_dependency = _read_json_env(_dependency_env_name(dependency_name))
-    if per_dependency is not None:
-        return per_dependency
-
     bundle = _read_json_env(PROJECTED_DEPENDENCIES_ENV)
     if not isinstance(bundle, dict):
         return None

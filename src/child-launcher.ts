@@ -83,10 +83,7 @@ function buildBwrapCommand(input: {
   return {
     file: input.bwrapPath,
     args,
-    env: {
-      ...process.env,
-      ...input.env,
-    },
+    env: { ...input.env },
   };
 }
 

@@ -178,6 +178,12 @@ describe('terminal-runtime', () => {
   const originalXdgStateHome = process.env.XDG_STATE_HOME;
   const originalXdgCacheHome = process.env.XDG_CACHE_HOME;
   const originalXdgDataHome = process.env.XDG_DATA_HOME;
+  const originalMbosAgentKey = process.env.MBOS_AGENT_KEY;
+  const originalMbosAgentWsUrl = process.env.MBOS_AGENT_WS_URL;
+  const originalMbosAgentExecutionTicket = process.env.MBOS_AGENT_EXECUTION_TICKET;
+  const originalMbosCodexProxyExecutionTicket = process.env.MBOS_CODEX_PROXY_EXECUTION_TICKET;
+  const originalMbosAgentProjectedDependencies = process.env.MBOS_AGENT_PROJECTED_DEPENDENCIES;
+  const originalMbosAgentProjectedDependencyJiraAuth = process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -267,6 +273,36 @@ describe('terminal-runtime', () => {
       delete process.env.XDG_DATA_HOME;
     } else {
       process.env.XDG_DATA_HOME = originalXdgDataHome;
+    }
+    if (originalMbosAgentKey === undefined) {
+      delete process.env.MBOS_AGENT_KEY;
+    } else {
+      process.env.MBOS_AGENT_KEY = originalMbosAgentKey;
+    }
+    if (originalMbosAgentWsUrl === undefined) {
+      delete process.env.MBOS_AGENT_WS_URL;
+    } else {
+      process.env.MBOS_AGENT_WS_URL = originalMbosAgentWsUrl;
+    }
+    if (originalMbosAgentExecutionTicket === undefined) {
+      delete process.env.MBOS_AGENT_EXECUTION_TICKET;
+    } else {
+      process.env.MBOS_AGENT_EXECUTION_TICKET = originalMbosAgentExecutionTicket;
+    }
+    if (originalMbosCodexProxyExecutionTicket === undefined) {
+      delete process.env.MBOS_CODEX_PROXY_EXECUTION_TICKET;
+    } else {
+      process.env.MBOS_CODEX_PROXY_EXECUTION_TICKET = originalMbosCodexProxyExecutionTicket;
+    }
+    if (originalMbosAgentProjectedDependencies === undefined) {
+      delete process.env.MBOS_AGENT_PROJECTED_DEPENDENCIES;
+    } else {
+      process.env.MBOS_AGENT_PROJECTED_DEPENDENCIES = originalMbosAgentProjectedDependencies;
+    }
+    if (originalMbosAgentProjectedDependencyJiraAuth === undefined) {
+      delete process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH;
+    } else {
+      process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH = originalMbosAgentProjectedDependencyJiraAuth;
     }
   });
 
@@ -662,6 +698,42 @@ describe('terminal-runtime', () => {
         }),
       }),
     );
+  });
+
+  it('scrubs runner control and stale projection env before starting task terminals', async () => {
+    process.env.MBOS_AGENT_KEY = 'runner_control_key';
+    process.env.MBOS_AGENT_WS_URL = 'ws://runner-control.example/ws';
+    process.env.MBOS_AGENT_EXECUTION_TICKET = 'stale_parent_agent_ticket';
+    process.env.MBOS_CODEX_PROXY_EXECUTION_TICKET = 'stale_parent_proxy_ticket';
+    process.env.MBOS_AGENT_PROJECTED_DEPENDENCIES = '{"dependencies":{"stale":"parent"}}';
+    process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH = '{"fields":{"token":"stale_parent"}}';
+
+    const projectedDependencies = {
+      dependencies: {
+        'jira-auth': {
+          fields: {
+            token: 'current_projection_secret',
+          },
+        },
+      },
+    };
+
+    await startTerminalProcess({
+      executionContext: terminalExecutionContext({
+        run_id: 'run_1',
+        execution_ticket: 'current_terminal_ticket',
+        projected_dependencies: projectedDependencies,
+      }),
+      shell: '/usr/bin/bash',
+    });
+
+    const launchEnv = nodePtySpawnMock.mock.calls.at(-1)?.[2]?.env as NodeJS.ProcessEnv | undefined;
+    expect(launchEnv?.MBOS_AGENT_KEY).toBeUndefined();
+    expect(launchEnv?.MBOS_AGENT_WS_URL).toBeUndefined();
+    expect(launchEnv?.MBOS_AGENT_EXECUTION_TICKET).toBe('current_terminal_ticket');
+    expect(launchEnv?.MBOS_CODEX_PROXY_EXECUTION_TICKET).toBeUndefined();
+    expect(launchEnv?.MBOS_AGENT_PROJECTED_DEPENDENCIES).toBe(JSON.stringify(projectedDependencies));
+    expect(launchEnv?.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH).toBeUndefined();
   });
 
   it('rejects terminal execution context when task_id is missing', async () => {

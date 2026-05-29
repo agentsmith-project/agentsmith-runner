@@ -21,6 +21,12 @@ import { prepareLaunchCommand, resetChildLauncherForTests } from './child-launch
 describe('child-launcher', () => {
   const previousMode = process.env.MBOS_AGENT_TASK_RUNNER_MODE;
   const previousRequireBwrap = process.env.MBOS_AGENT_TASK_RUNNER_REQUIRE_BWRAP;
+  const previousAgentKey = process.env.MBOS_AGENT_KEY;
+  const previousAgentWsUrl = process.env.MBOS_AGENT_WS_URL;
+  const previousAgentExecutionTicket = process.env.MBOS_AGENT_EXECUTION_TICKET;
+  const previousCodexProxyExecutionTicket = process.env.MBOS_CODEX_PROXY_EXECUTION_TICKET;
+  const previousProjectedDependencies = process.env.MBOS_AGENT_PROJECTED_DEPENDENCIES;
+  const previousProjectedDependencyJiraAuth = process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -38,6 +44,36 @@ describe('child-launcher', () => {
       delete process.env.MBOS_AGENT_TASK_RUNNER_REQUIRE_BWRAP;
     } else {
       process.env.MBOS_AGENT_TASK_RUNNER_REQUIRE_BWRAP = previousRequireBwrap;
+    }
+    if (previousAgentKey === undefined) {
+      delete process.env.MBOS_AGENT_KEY;
+    } else {
+      process.env.MBOS_AGENT_KEY = previousAgentKey;
+    }
+    if (previousAgentWsUrl === undefined) {
+      delete process.env.MBOS_AGENT_WS_URL;
+    } else {
+      process.env.MBOS_AGENT_WS_URL = previousAgentWsUrl;
+    }
+    if (previousAgentExecutionTicket === undefined) {
+      delete process.env.MBOS_AGENT_EXECUTION_TICKET;
+    } else {
+      process.env.MBOS_AGENT_EXECUTION_TICKET = previousAgentExecutionTicket;
+    }
+    if (previousCodexProxyExecutionTicket === undefined) {
+      delete process.env.MBOS_CODEX_PROXY_EXECUTION_TICKET;
+    } else {
+      process.env.MBOS_CODEX_PROXY_EXECUTION_TICKET = previousCodexProxyExecutionTicket;
+    }
+    if (previousProjectedDependencies === undefined) {
+      delete process.env.MBOS_AGENT_PROJECTED_DEPENDENCIES;
+    } else {
+      process.env.MBOS_AGENT_PROJECTED_DEPENDENCIES = previousProjectedDependencies;
+    }
+    if (previousProjectedDependencyJiraAuth === undefined) {
+      delete process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH;
+    } else {
+      process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH = previousProjectedDependencyJiraAuth;
     }
   });
 
@@ -101,6 +137,45 @@ describe('child-launcher', () => {
       'codex',
       'exec',
       'hello',
+    ]));
+  });
+
+  it('does not leak runner control or stale request env into the managed local bwrap wrapper process', async () => {
+    process.env.MBOS_AGENT_TASK_RUNNER_MODE = 'managed_local';
+    process.env.MBOS_AGENT_KEY = 'runner_control_key';
+    process.env.MBOS_AGENT_WS_URL = 'ws://runner-control.example/ws';
+    process.env.MBOS_AGENT_EXECUTION_TICKET = 'stale_parent_agent_ticket';
+    process.env.MBOS_CODEX_PROXY_EXECUTION_TICKET = 'stale_parent_proxy_ticket';
+    process.env.MBOS_AGENT_PROJECTED_DEPENDENCIES = '{"dependencies":{"stale":"parent"}}';
+    process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH = '{"fields":{"token":"stale_parent"}}';
+    const inputEnv = {
+      HOME: '/home/task_1',
+      TASK_HOME: '/home/task_1',
+      WORKSPACE_PATH: '/home/task_1/workspace',
+      ARTIFACTS_PATH: '/home/task_1/workspace/.artifacts',
+      PATH: '/home/task_1/.local/bin:/usr/bin:/bin',
+      MBOS_AGENT_EXECUTION_TICKET: 'current_request_ticket',
+      MBOS_CODEX_PROXY_EXECUTION_TICKET: 'current_proxy_ticket',
+      MBOS_AGENT_PROJECTED_DEPENDENCIES: '{"dependencies":{"fresh":"request"}}',
+    };
+
+    const result = await prepareLaunchCommand({
+      file: 'codex',
+      args: ['exec', 'hello'],
+      cwd: '/home/task_1/workspace',
+      env: inputEnv,
+    });
+
+    expect(result.file).toBe('/usr/bin/bwrap');
+    expect(result.env).toEqual(inputEnv);
+    expect(result.env.MBOS_AGENT_KEY).toBeUndefined();
+    expect(result.env.MBOS_AGENT_WS_URL).toBeUndefined();
+    expect(result.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH).toBeUndefined();
+    expect(result.args).toEqual(expect.arrayContaining([
+      '--clearenv',
+      '--setenv', 'MBOS_AGENT_EXECUTION_TICKET', 'current_request_ticket',
+      '--setenv', 'MBOS_CODEX_PROXY_EXECUTION_TICKET', 'current_proxy_ticket',
+      '--setenv', 'MBOS_AGENT_PROJECTED_DEPENDENCIES', '{"dependencies":{"fresh":"request"}}',
     ]));
   });
 

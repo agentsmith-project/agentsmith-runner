@@ -12,6 +12,7 @@ import {
   type TaskWorkspacePaths,
 } from './task-workspace.js';
 import { buildAgentRuntimeEnv } from './agent-runtime-env.js';
+import { buildRequestScopedChildEnv } from './request-env.js';
 import { prepareLaunchCommand } from './child-launcher.js';
 import { inspectBuiltinSkills, resolveBuiltinSkillsConfig, seedBuiltinSkills } from './builtin-skills.js';
 import { buildTaskUserInstallEnv } from './user-install-env.js';
@@ -196,18 +197,20 @@ export async function prepareTerminalWorkspace(input: {
         cwd,
         artifacts_dir: taskPaths.artifactsDir,
       });
-      const env = buildTaskUserInstallEnv(taskPaths.homeDir, {
-        ...process.env,
-        TERM: process.env.TERM || 'xterm-256color',
-        NO_COLOR: '1',
-        TASK_HOME: taskPaths.taskHome,
-        WORKSPACE_PATH: taskPaths.workspaceDir,
-        ARTIFACTS_PATH: taskPaths.artifactsDir,
-        ...buildAgentRuntimeEnv(executionContext),
-        MBOS_AGENT_TASK_PREAMBLE: buildTaskHeadlessPreamble({
-          artifactsDir: taskPaths.artifactsDir,
-        }),
-      });
+      const env = buildTaskUserInstallEnv(taskPaths.homeDir, buildRequestScopedChildEnv({
+        parentEnv: process.env,
+        requestEnv: {
+          TERM: process.env.TERM || 'xterm-256color',
+          NO_COLOR: '1',
+          TASK_HOME: taskPaths.taskHome,
+          WORKSPACE_PATH: taskPaths.workspaceDir,
+          ARTIFACTS_PATH: taskPaths.artifactsDir,
+          ...buildAgentRuntimeEnv(executionContext),
+          MBOS_AGENT_TASK_PREAMBLE: buildTaskHeadlessPreamble({
+            artifactsDir: taskPaths.artifactsDir,
+          }),
+        },
+      }));
       const interactiveCommand = buildInteractiveCommand(shellFile);
       const launchCommand = await prepareLaunchCommand({
         file: interactiveCommand.file,

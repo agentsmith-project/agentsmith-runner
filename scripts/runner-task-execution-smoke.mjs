@@ -92,11 +92,32 @@ function requireEqual(name, actual, expected) {
   }
 }
 
+function requireMissing(name) {
+  if (Object.prototype.hasOwnProperty.call(process.env, name)) {
+    fail(name + ' must not be inherited by fake Codex');
+  }
+}
+
 requireEqual('cwd', process.cwd(), WORKSPACE_PATH);
 requireEqual('HOME', process.env.HOME, TASK_HOME);
 requireEqual('TASK_HOME', process.env.TASK_HOME, TASK_HOME);
 requireEqual('WORKSPACE_PATH', process.env.WORKSPACE_PATH, WORKSPACE_PATH);
 requireEqual('ARTIFACTS_PATH', process.env.ARTIFACTS_PATH, ARTIFACTS_PATH);
+requireMissing('MBOS_AGENT_KEY');
+requireMissing('MBOS_AGENT_WS_URL');
+requireMissing('MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET');
+
+for (const [name, value] of Object.entries(process.env)) {
+  const text = String(value || '');
+  if (
+    text.includes('SMOKE_RUNNER_KEY_')
+    || text.includes('SMOKE_STALE_EXECUTION_TICKET_')
+    || text.includes('SMOKE_STALE_PROXY_TICKET_')
+    || text.includes('SMOKE_STALE_PROJECTED_SECRET_')
+  ) {
+    fail(name + ' contains a runner-control or stale request sentinel');
+  }
+}
 
 const ticket = process.env.MBOS_AGENT_EXECUTION_TICKET || '';
 if (!ticket.startsWith('SMOKE_EXECUTION_TICKET_')) {
@@ -554,10 +575,15 @@ async function main() {
   const taskHomeHost = join(tmpRoot, 'task_1');
   const contractDir = join(tmpRoot, 'contract');
   const containerName = `agentsmith-runner-task-exec-smoke-${process.pid}-${randomUUID().slice(0, 8)}`;
+  const runnerKey = `SMOKE_RUNNER_KEY_${randomUUID()}`;
   const sentinels = {
+    runnerKey,
     ticket: `SMOKE_EXECUTION_TICKET_${randomUUID()}`,
     dependencySecret: `SMOKE_DEPENDENCY_SECRET_${randomUUID()}`,
     oauthToken: `SMOKE_OAUTH_TOKEN_${randomUUID()}`,
+    staleExecutionTicket: `SMOKE_STALE_EXECUTION_TICKET_${randomUUID()}`,
+    staleProxyTicket: `SMOKE_STALE_PROXY_TICKET_${randomUUID()}`,
+    staleProjectionSecret: `SMOKE_STALE_PROJECTED_SECRET_${randomUUID()}`,
   };
   let containerStarted = false;
   let server;
@@ -566,7 +592,6 @@ async function main() {
     await writeFakeCodex(fakeDir);
     await mkdir(taskHomeHost, { recursive: true });
     const executionContext = await buildExecutionContextFromContract(artifactRoot, contractDir, sentinels);
-    const runnerKey = `SMOKE_RUNNER_KEY_${randomUUID()}`;
     const harness = startHarnessServer({
       runnerKey,
       executionContext,
@@ -585,6 +610,14 @@ async function main() {
       `MBOS_AGENT_WS_URL=ws://127.0.0.1:${String(port)}`,
       '-e',
       `MBOS_AGENT_KEY=${runnerKey}`,
+      '-e',
+      `MBOS_AGENT_EXECUTION_TICKET=${sentinels.staleExecutionTicket}`,
+      '-e',
+      `MBOS_CODEX_PROXY_EXECUTION_TICKET=${sentinels.staleProxyTicket}`,
+      '-e',
+      `MBOS_AGENT_PROJECTED_DEPENDENCIES={"dependencies":{"smoke-secret":{"fields":{"value":"${sentinels.staleProjectionSecret}"}}}}`,
+      '-e',
+      `MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET={"fields":{"value":"${sentinels.staleProjectionSecret}"}}`,
       '-e',
       'CODEX_BIN=/tmp/fake-codex/codex',
       '-e',

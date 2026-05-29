@@ -58,8 +58,14 @@ class ContextCliTests(unittest.TestCase):
     @patch.dict(
         os.environ,
         {
-            "MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH": json.dumps(
-                {"fields": {"base_url": "https://jira.example.com", "token": "jira_token_123"}}
+            "MBOS_AGENT_PROJECTED_DEPENDENCIES": json.dumps(
+                {
+                    "dependencies": {
+                        "jira-auth": {
+                            "fields": {"base_url": "https://jira.example.com", "token": "jira_token_123"}
+                        }
+                    }
+                }
             )
         },
         clear=True,
@@ -77,6 +83,23 @@ class ContextCliTests(unittest.TestCase):
                 "token": "jira_token_123",
             },
         )
+
+    @patch.dict(
+        os.environ,
+        {
+            "MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH": json.dumps(
+                {"fields": {"base_url": "https://jira.example.com", "token": "jira_token_123"}}
+            )
+        },
+        clear=True,
+    )
+    def test_runtime_helper_ignores_legacy_per_dependency_env(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "Request projection 'jira-auth' is unavailable"):
+            capability_runtime.resolve_projected_fields(
+                Path(__file__).resolve().parents[2] / "jira-ops" / "scripts" / "jira_ops.py",
+                "jira-auth",
+                required=True,
+            )
 
 
 if __name__ == "__main__":
