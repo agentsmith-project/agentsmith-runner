@@ -22,7 +22,7 @@ python3 ~/.agents/skills/mbos-context/scripts/context_cli.py get --dependency ji
 1. Use `list` to see the dependency names projected for this run.
 2. Use `get --dependency <name>` to inspect one projection.
 3. Use `--field <field>` when a skill expects a specific field.
-4. If a projection is missing, ask AgentSmith to provide it for the run or pass explicit CLI parameters to the target skill.
+4. If a projection is missing, ask AgentSmith to provide it for the run.
 
 ## Safety Rules
 

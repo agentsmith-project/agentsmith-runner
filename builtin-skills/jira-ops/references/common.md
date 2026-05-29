@@ -2,13 +2,13 @@
 
 ## Authentication
 
-Use Bearer token auth. Prefer resolving the opaque `jira-auth` request projection supplied by AgentSmith.
+Use the opaque `jira-auth` request projection supplied by AgentSmith for Bearer token auth.
 
 Rules:
 
 - resolve the `jira-auth` dependency through the shared runtime helper
 - if the base URL is not present in the projection, pass `--base-url` explicitly
-- if the token is not present in the projection, ask AgentSmith to provide it for this run or pass `--token`
+- if the token is not present in the projection, ask AgentSmith to provide it for this run
 
 ## Proxy Rule
 

@@ -55,7 +55,7 @@ function buildTaskAgentsMd(): string {
     '6. The current working directory is `$HOME/workspace`, also exposed as `WORKSPACE_PATH`.',
     '7. Keep dynamic config, caches, installs, and toolchains under `HOME`; keep short-lived tickets, secrets, and connection credentials request-scoped.',
     '8. Builtin skills are installed under `~/.agents/skills`. Do not rely on `/etc/codex` for mutable runtime state.',
-    '9. Builtin skills may declare opaque dependency names. They only consume request-scoped projections supplied by AgentSmith or explicit CLI parameters.',
+    '9. Builtin skills may declare opaque dependency names. They only consume request-scoped projections supplied by AgentSmith; do not pass credentials as CLI parameters.',
     '10. Context policy, write policy, and credential resolution are defined by AgentSmith and the formal runner contract artifacts, not by local runner docs.',
     '11. If a required projection is unavailable, fail fast instead of searching workspace files for hidden config.',
     '12. If you need Python / Node / Rust tools or libraries, install them in user mode only so they stay under `HOME`.',

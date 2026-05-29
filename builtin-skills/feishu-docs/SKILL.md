@@ -7,7 +7,7 @@ description: Use for Feishu/Lark/飞书 document and wiki tasks when Codex shoul
 
 ## Overview
 
-Call Feishu remote MCP directly over HTTP through a local helper script. The helper consumes the opaque `feishu-managed-user` request projection supplied by AgentSmith, or an explicit `--access-token`, instead of browsing workspace files or registering Feishu as a Codex MCP server.
+Call Feishu remote MCP directly over HTTP through a local helper script. The helper consumes the opaque `feishu-managed-user` request projection supplied by AgentSmith instead of browsing workspace files or registering Feishu as a Codex MCP server.
 
 ## Quick Start
 
@@ -22,7 +22,7 @@ The helper script now defaults to the full Feishu tool whitelist. For tighter co
 
 ## Workflow
 
-1. Confirm the current runner session has the `feishu-managed-user` request projection or pass `--access-token` explicitly.
+1. Confirm the current runner session has the `feishu-managed-user` request projection.
 2. If the request is vague about the target document, start with `search-doc`.
 3. If the user provides a doc URL or doc id, use `fetch-doc`.
 4. For edits, call only the specific mutation tool needed, for example `update-doc` or `add-comments`.

@@ -40,19 +40,12 @@ def get_projected_connection_field(connection: dict[str, Any], *keys: str) -> st
 
 
 def resolve_feishu_connection(args: argparse.Namespace | None = None) -> dict[str, Any]:
-    explicit_token = getattr(args, "access_token", None)
     explicit_endpoint = getattr(args, "mcp_endpoint", None)
-    if isinstance(explicit_token, str) and explicit_token.strip():
-        fields: dict[str, str] = {"access_token": explicit_token.strip()}
-        if isinstance(explicit_endpoint, str) and explicit_endpoint.strip():
-            fields["feishu_mcp_endpoint"] = explicit_endpoint.strip()
-        return {"fields": fields}
-
     projected = load_feishu_projection()
     if projected is None:
         raise RuntimeError(
             "Feishu request projection 'feishu-managed-user' is unavailable. "
-            "Ask AgentSmith to project it for this run or pass --access-token."
+            "Ask AgentSmith to project it for this run."
         )
     if isinstance(explicit_endpoint, str) and explicit_endpoint.strip():
         fields = projected.get("fields")
@@ -166,13 +159,12 @@ def cmd_call_tool(args: argparse.Namespace) -> int:
 
 
 def add_connection_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--access-token", default=None)
     parser.add_argument("--mcp-endpoint", default=None)
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Call Feishu remote MCP over HTTP using a request projection or explicit token."
+        description="Call Feishu remote MCP over HTTP using a request projection."
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 

@@ -9,7 +9,7 @@ python3 ~/.agents/skills/feishu-docs/scripts/feishu_mcp.py call-tool search-doc 
 
 Credential source:
 
-- Resolve the `feishu-managed-user` request projection by dependency name, or pass `--access-token` explicitly
+- Resolve the `feishu-managed-user` request projection by dependency name
 - Do not browse workspace files for Feishu credentials
 - If the connection is missing or stale, reconnect or refresh it in AgentSmith
 

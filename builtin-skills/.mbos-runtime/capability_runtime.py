@@ -80,7 +80,7 @@ def read_projected_dependency(dependency_name: str, *, required: bool = False) -
         if required:
             raise RuntimeError(
                 f"Request projection '{dependency_name}' is unavailable. "
-                "Ask AgentSmith to project it for this run or pass explicit CLI parameters."
+                "Ask AgentSmith to project it for this run."
             )
         return {}
     if isinstance(payload, dict):

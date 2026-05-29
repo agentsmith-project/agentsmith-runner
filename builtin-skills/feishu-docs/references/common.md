@@ -8,7 +8,7 @@ Use:
 python3 ~/.agents/skills/feishu-docs/scripts/feishu_mcp.py call-tool <tool-name> --params '<json object>'
 ```
 
-AgentSmith may expose a Feishu connection to the runner as an opaque `feishu-managed-user` request projection. The helper consumes that projection by dependency name, or accepts an explicit token with `--access-token`.
+AgentSmith may expose a Feishu connection to the runner as an opaque `feishu-managed-user` request projection. The helper consumes that projection by dependency name.
 
 ## Credential Contract
 

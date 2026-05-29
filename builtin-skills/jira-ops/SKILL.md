@@ -1,13 +1,13 @@
 ---
 name: jira-ops
-description: Operate Jira with a bearer token for common issue workflows such as searching issues, reading issue details, adding comments, editing fields, and transitioning status. Use when the user wants to work with a Jira site over HTTP API and the current runner session has a Jira request projection or explicit auth inputs.
+description: Operate Jira with a request-projected bearer token for common issue workflows such as searching issues, reading issue details, adding comments, editing fields, and transitioning status. Use when the user wants to work with a Jira site over HTTP API and the current runner session has a Jira request projection.
 ---
 
 # Jira Ops
 
 ## Overview
 
-Use a local helper script to perform common Jira REST operations with Bearer token auth. The helper consumes the opaque `jira-auth` request projection supplied by AgentSmith, or explicit `--base-url` and `--token` arguments, and clears proxy environment variables before every request.
+Use a local helper script to perform common Jira REST operations with Bearer token auth. The helper consumes the opaque `jira-auth` request projection supplied by AgentSmith and clears proxy environment variables before every request.
 
 ## Quick Start
 
@@ -21,7 +21,7 @@ python ~/.agents/skills/jira-ops/scripts/jira_ops.py \
 ## Workflow
 
 1. Read [common.md](references/common.md) first.
-2. Resolve the `jira-auth` request projection first. If it is missing, fail fast and ask AgentSmith to project it for this run or pass `--base-url` and `--token`.
+2. Resolve the `jira-auth` request projection first. If it is missing, fail fast and ask AgentSmith to project it for this run.
 3. If the issue key is unknown, use [jql.md](references/jql.md) and search before mutating.
 4. If the user wants a common action, follow [workflows.md](references/workflows.md).
 5. Before field edits, inspect `editmeta` if field names or allowed values are unclear.
@@ -42,7 +42,7 @@ python ~/.agents/skills/jira-ops/scripts/jira_ops.py \
 ## Safety Rules
 
 - Always clear proxy environment variables before Jira access
-- Prefer the shared `jira-auth` request projection over hard-coded tokens in commands
+- Use the shared `jira-auth` request projection; do not pass tokens in commands
 - Search first if the issue key is uncertain
 - Read transitions with `--expand-fields` before transitioning an issue
 - Read `editmeta` before editing unfamiliar fields or custom fields

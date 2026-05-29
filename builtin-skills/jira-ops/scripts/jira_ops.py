@@ -43,12 +43,9 @@ def clear_proxy_env() -> None:
 
 
 def resolve_auth(args) -> tuple[str, str]:
-    if args.base_url and args.token:
-        return args.base_url, args.token
-
     projected_base_url, projected_token = load_jira_credentials_from_projection()
     base_url = args.base_url or projected_base_url
-    token = args.token or projected_token
+    token = projected_token
     if base_url and token:
         return base_url, token
 
@@ -58,7 +55,7 @@ def resolve_auth(args) -> tuple[str, str]:
         )
     if not token:
         raise RuntimeError(
-            "Jira token not found. Ask AgentSmith to project 'jira-auth' for this run or pass --token."
+            "Jira token not found. Ask AgentSmith to project 'jira-auth' for this run."
         )
     return base_url, token
 
@@ -210,10 +207,9 @@ def cmd_edit_fields(args):
 
 def build_parser():
     parser = argparse.ArgumentParser(
-        description="Common Jira operations over REST API with Bearer token auth from a request projection or CLI args."
+        description="Common Jira operations over REST API with Bearer token auth from a request projection."
     )
     parser.add_argument("--base-url", default=None, help="Jira base URL, for example https://jira.example.com")
-    parser.add_argument("--token", default=None, help="Bearer token")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("myself")

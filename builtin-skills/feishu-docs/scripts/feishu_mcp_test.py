@@ -2,6 +2,7 @@ import argparse
 import json
 import sys
 import unittest
+from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -23,14 +24,23 @@ class FeishuMcpTests(unittest.TestCase):
         self.assertEqual(mock_resolve.call_args.args[1], "feishu-managed-user")
 
     @patch("feishu_mcp.resolve_projected_dependency")
-    def test_explicit_access_token_does_not_require_projection(self, mock_resolve: MagicMock) -> None:
-        args = argparse.Namespace(**{"access_" + "token": "explicit", "mcp_endpoint": "https://mcp.example.test"})
+    def test_explicit_access_token_does_not_bypass_projection(self, mock_resolve: MagicMock) -> None:
+        mock_resolve.return_value = None
+        args = argparse.Namespace(access_token="explicit", mcp_endpoint="https://mcp.example.test")
 
-        connection = feishu_mcp.resolve_feishu_connection(args)
+        with self.assertRaisesRegex(RuntimeError, "feishu-managed-user"):
+            feishu_mcp.resolve_feishu_connection(args)
 
-        self.assertEqual(connection["fields"]["access_token"], "explicit")
-        self.assertEqual(connection["fields"]["feishu_mcp_endpoint"], "https://mcp.example.test")
-        mock_resolve.assert_not_called()
+        mock_resolve.assert_called_once()
+
+    def test_parser_rejects_explicit_access_token_arg(self) -> None:
+        parser = feishu_mcp.build_parser()
+
+        with patch("sys.stderr", new_callable=StringIO) as stderr, self.assertRaises(SystemExit) as raised:
+            parser.parse_args(["tools-list", "--access-token", "explicit"])
+
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("unrecognized arguments: --access-token", stderr.getvalue())
 
     def test_build_headers_accepts_projected_token_alias(self) -> None:
         headers = feishu_mcp.build_headers(
@@ -57,7 +67,7 @@ class FeishuMcpTests(unittest.TestCase):
         response = MagicMock()
         response.read.return_value = json.dumps({"result": {"ok": True}}).encode("utf-8")
         mock_urlopen.return_value.__enter__.return_value = response
-        args = argparse.Namespace(**{"access_" + "token": None, "mcp_endpoint": None})
+        args = argparse.Namespace(mcp_endpoint=None)
 
         result = feishu_mcp.rpc_call(args, "tools/list", {}, "search-doc")
 
