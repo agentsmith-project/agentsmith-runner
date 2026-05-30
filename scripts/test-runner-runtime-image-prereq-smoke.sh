@@ -67,8 +67,8 @@ run_bash_check \
   "mbos-context packaged skill check" \
   "test -f /etc/codex/skills/mbos-context/scripts/context_cli.py"
 
-expected_base_url="https://jira.example.test"
-projection='{"dependencies":{"jira-auth":{"fields":{"base_url":"https://jira.example.test"}}}}'
+expected_value="smoke-value"
+projection='{"dependencies":{"sample-dependency":{"fields":{"value":"smoke-value"}}}}'
 
 : >"$run_stdout"
 : >"$run_stderr"
@@ -77,7 +77,7 @@ docker run --rm --network=none \
   -e "MBOS_AGENT_PROJECTED_DEPENDENCIES=$projection" \
   --entrypoint /bin/bash \
   "$image_tag" \
-  -lc "python3 /etc/codex/skills/mbos-context/scripts/context_cli.py get --dependency jira-auth --field base_url" \
+  -lc "python3 /etc/codex/skills/mbos-context/scripts/context_cli.py get --dependency sample-dependency --field value" \
   >"$run_stdout" 2>"$run_stderr"
 run_status=$?
 set -e
@@ -88,8 +88,8 @@ if [[ "$run_status" -ne 0 ]]; then
   fail "mbos-context projection read failed with exit code $run_status"
 fi
 
-actual_base_url="$(cat "$run_stdout")"
-if [[ "$actual_base_url" != "$expected_base_url" ]]; then
+actual_value="$(cat "$run_stdout")"
+if [[ "$actual_value" != "$expected_value" ]]; then
   cat "$run_stdout"
   cat "$run_stderr" >&2
   fail "mbos-context projection read returned unexpected value"

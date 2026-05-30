@@ -26,7 +26,7 @@ describe('child-launcher', () => {
   const previousAgentExecutionTicket = process.env.MBOS_AGENT_EXECUTION_TICKET;
   const previousCodexProxyExecutionTicket = process.env.MBOS_CODEX_PROXY_EXECUTION_TICKET;
   const previousProjectedDependencies = process.env.MBOS_AGENT_PROJECTED_DEPENDENCIES;
-  const previousProjectedDependencyJiraAuth = process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH;
+  const previousProjectedDependencySmokeSecret = process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -70,10 +70,10 @@ describe('child-launcher', () => {
     } else {
       process.env.MBOS_AGENT_PROJECTED_DEPENDENCIES = previousProjectedDependencies;
     }
-    if (previousProjectedDependencyJiraAuth === undefined) {
-      delete process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH;
+    if (previousProjectedDependencySmokeSecret === undefined) {
+      delete process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET;
     } else {
-      process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH = previousProjectedDependencyJiraAuth;
+      process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET = previousProjectedDependencySmokeSecret;
     }
   });
 
@@ -147,7 +147,7 @@ describe('child-launcher', () => {
     process.env.MBOS_AGENT_EXECUTION_TICKET = 'stale_parent_agent_ticket';
     process.env.MBOS_CODEX_PROXY_EXECUTION_TICKET = 'stale_parent_proxy_ticket';
     process.env.MBOS_AGENT_PROJECTED_DEPENDENCIES = '{"dependencies":{"stale":"parent"}}';
-    process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH = '{"fields":{"token":"stale_parent"}}';
+    process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET = '{"fields":{"token":"stale_parent"}}';
     const inputEnv = {
       HOME: '/home/task_1',
       TASK_HOME: '/home/task_1',
@@ -170,7 +170,7 @@ describe('child-launcher', () => {
     expect(result.env).toEqual(inputEnv);
     expect(result.env.MBOS_AGENT_KEY).toBeUndefined();
     expect(result.env.MBOS_AGENT_WS_URL).toBeUndefined();
-    expect(result.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH).toBeUndefined();
+    expect(result.env.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET).toBeUndefined();
     expect(result.args).toEqual(expect.arrayContaining([
       '--clearenv',
       '--setenv', 'MBOS_AGENT_EXECUTION_TICKET', 'current_request_ticket',

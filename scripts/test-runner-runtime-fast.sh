@@ -35,7 +35,5 @@ npm --prefix "$repo_root" run test:fast
 
 echo "runtime fast: running builtin skill unit tests"
 python3 "$repo_root/builtin-skills/mbos-context/scripts/context_cli_test.py"
-python3 "$repo_root/builtin-skills/jira-ops/scripts/jira_ops_test.py"
-python3 "$repo_root/builtin-skills/feishu-docs/scripts/feishu_mcp_test.py"
 
 echo "runner runtime fast checks passed"

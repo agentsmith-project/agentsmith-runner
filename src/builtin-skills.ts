@@ -1,13 +1,13 @@
 import * as fs from 'node:fs';
 import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readBuiltinSkillCapabilityContract, type BuiltinSkillCapabilityContract } from './skill-capabilities.js';
 
 const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
 const FALLBACK_DEV_SKILLS_DIR = resolve(MODULE_DIR, '../builtin-skills');
 const PACKAGED_IMAGE_SKILLS_DIR = '/etc/codex/skills';
-const DEFAULT_BUILTIN_SKILLS = ['mbos-context', 'feishu-docs', 'jira-ops'];
+const DEFAULT_BUILTIN_SKILLS = ['mbos-context'];
 const MANIFEST_FILENAME = 'builtin-skills-manifest.json';
 const BUILTIN_SKILLS_LOCK_DIRNAME = '.builtin-skills-seed.lock';
 const SHARED_RUNTIME_DIRNAME = '.mbos-runtime';
@@ -157,6 +157,11 @@ function isSafeSkillName(name: string): boolean {
   return /^\.?[a-zA-Z0-9._-]+$/.test(name) && name !== '.' && name !== '..';
 }
 
+function isWithinDirectory(parentDir: string, childPath: string): boolean {
+  const relativePath = relative(resolve(parentDir), resolve(childPath));
+  return relativePath !== '' && !relativePath.startsWith('..') && !isAbsolute(relativePath);
+}
+
 function parseSkillList(input: string | undefined): string[] {
   if (typeof input !== 'string') return [...DEFAULT_BUILTIN_SKILLS];
   if (!input.trim()) return [];
@@ -218,6 +223,24 @@ async function readFileList(dir: string): Promise<string[]> {
     }
   }
   return results;
+}
+
+async function removeStaleManagedSkillDirectories(args: {
+  manifest: BuiltinSkillManifest | null;
+  targetDir: string;
+  selectedSkills: string[];
+}): Promise<void> {
+  const selectedSkillNames = new Set(args.selectedSkills);
+  for (const installedSkill of args.manifest?.installed_skills ?? []) {
+    if (selectedSkillNames.has(installedSkill) || !isSafeSkillName(installedSkill)) {
+      continue;
+    }
+    const targetSkillDir = resolve(args.targetDir, installedSkill);
+    if (!isWithinDirectory(args.targetDir, targetSkillDir)) {
+      continue;
+    }
+    await rm(targetSkillDir, { recursive: true, force: true });
+  }
 }
 
 export function resolveBuiltinSkillsConfig(): {
@@ -350,6 +373,11 @@ export async function seedBuiltinSkills(args: {
         await rewriteAbsoluteSkillPaths(SHARED_RUNTIME_DIRNAME, sharedRuntimeTargetDir);
         runtimeHelpers.push(SHARED_RUNTIME_DIRNAME);
       }
+      await removeStaleManagedSkillDirectories({
+        manifest: lockedManifest,
+        targetDir: args.targetDir,
+        selectedSkills: args.skills,
+      });
       const nextManifest: BuiltinSkillManifest = {
         version: 2,
         source_dir: args.sourceDir,

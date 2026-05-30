@@ -437,7 +437,7 @@ describe('agentsmith-runner entry lifecycle', () => {
     delete process.env.MBOS_AGENT_EXECUTION_TICKET;
     delete process.env.MBOS_CODEX_PROXY_EXECUTION_TICKET;
     delete process.env.MBOS_AGENT_PROJECTED_DEPENDENCIES;
-    delete process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH;
+    delete process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET;
   });
 
   function createCodexChild(): MockCodexChild {
@@ -1944,7 +1944,7 @@ describe('agentsmith-runner entry lifecycle', () => {
     process.env.MBOS_AGENT_EXECUTION_TICKET = 'stale_parent_agent_ticket';
     process.env.MBOS_CODEX_PROXY_EXECUTION_TICKET = 'stale_parent_proxy_ticket';
     process.env.MBOS_AGENT_PROJECTED_DEPENDENCIES = '{"dependencies":{"stale":"parent"}}';
-    process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH = '{"fields":{"token":"stale_parent"}}';
+    process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET = '{"fields":{"token":"stale_parent"}}';
 
     await import('./index.js');
     const socket = websocketInstances.at(-1);
@@ -1967,7 +1967,7 @@ describe('agentsmith-runner entry lifecycle', () => {
     expect(launchEnv?.MBOS_AGENT_EXECUTION_TICKET).toBeUndefined();
     expect(launchEnv?.MBOS_CODEX_PROXY_EXECUTION_TICKET).toBe('ticket_1');
     expect(launchEnv?.MBOS_AGENT_PROJECTED_DEPENDENCIES).toBeUndefined();
-    expect(launchEnv?.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH).toBeUndefined();
+    expect(launchEnv?.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET).toBeUndefined();
   });
 
   it('runs Codex from the visible workspace while HOME and artifact scans use explicit runtime paths', async () => {

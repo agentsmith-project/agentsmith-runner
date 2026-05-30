@@ -60,6 +60,26 @@ const FORBIDDEN_SOURCE_PATTERNS = [
     pattern: new RegExp(`['"]${mbosScope}(?!agent-runner-contract(?:['"/]))[^'"]+['"]`),
   },
 ];
+function literalPattern(input) {
+  return new RegExp(input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+}
+
+const FORBIDDEN_PROVIDER_BOUND_PATTERNS = [
+  ['Fei', 'shu'],
+  ['J', 'ira'],
+  ['La', 'rk'],
+  ['Atlas', 'sian'],
+  ['fei', 'shu-managed-user'],
+  ['jir', 'a-auth'],
+  ['mcp.', 'fei', 'shu'],
+  ['MBOS_AGENT_PROJECTED_DEPENDENCY_', 'J', 'IRA_AUTH'],
+].map((parts) => {
+  const term = parts.join('');
+  return {
+    label: `provider-bound term "${term}"`,
+    pattern: literalPattern(term),
+  };
+});
 const PRODUCT_SEMANTIC_SCAN_ROOTS = [
   'src',
   'builtin-skills',
@@ -241,6 +261,18 @@ function checkSourcePatterns() {
   }
 }
 
+function checkProviderBoundPatterns() {
+  for (const file of listTextFiles(repoRoot)) {
+    const relativePath = relative(repoRoot, file);
+    const text = readFileSync(file, 'utf8');
+    for (const { label, pattern } of FORBIDDEN_PROVIDER_BOUND_PATTERNS) {
+      if (pattern.test(relativePath) || pattern.test(text)) {
+        addError(`${relativePath} contains forbidden ${label}`);
+      }
+    }
+  }
+}
+
 function checkProductSemanticPatterns() {
   for (const scanRoot of PRODUCT_SEMANTIC_SCAN_ROOTS) {
     const absoluteRoot = join(repoRoot, scanRoot);
@@ -263,6 +295,16 @@ function checkProductSemanticPatterns() {
       }
     }
   }
+}
+
+function collectProviderBoundPatternErrors(relativePath, text) {
+  const violations = [];
+  for (const { label, pattern } of FORBIDDEN_PROVIDER_BOUND_PATTERNS) {
+    if (pattern.test(relativePath) || pattern.test(text)) {
+      violations.push(`${relativePath} contains forbidden ${label}`);
+    }
+  }
+  return violations;
 }
 
 function collectProductSemanticPatternErrors(relativePath, text) {
@@ -359,6 +401,54 @@ function runSelfTest() {
       expected: 'workspace access release fence payload field',
     },
   ];
+  const providerNegativeCases = [
+    {
+      label: 'removed docs provider',
+      text: ['Fei', 'shu'].join(''),
+      expected: 'provider-bound term',
+    },
+    {
+      label: 'removed issue provider',
+      text: ['J', 'ira'].join(''),
+      expected: 'provider-bound term',
+    },
+    {
+      label: 'removed docs alias',
+      text: ['La', 'rk'].join(''),
+      expected: 'provider-bound term',
+    },
+    {
+      label: 'removed platform vendor',
+      text: ['Atlas', 'sian'].join(''),
+      expected: 'provider-bound term',
+    },
+    {
+      label: 'removed managed projection name',
+      text: ['fei', 'shu-managed-user'].join(''),
+      expected: 'provider-bound term',
+    },
+    {
+      label: 'removed auth projection name',
+      text: ['jir', 'a-auth'].join(''),
+      expected: 'provider-bound term',
+    },
+    {
+      label: 'removed mcp endpoint family',
+      text: ['mcp.', 'fei', 'shu'].join(''),
+      expected: 'provider-bound term',
+    },
+    {
+      label: 'removed legacy env name',
+      text: ['MBOS_AGENT_PROJECTED_DEPENDENCY_', 'J', 'IRA_AUTH'].join(''),
+      expected: 'provider-bound term',
+    },
+    {
+      label: 'removed skill directory path',
+      relativePath: ['builtin-skills/', 'jir', 'a-ops', '/SKILL.md'].join(''),
+      text: 'neutral skill guidance',
+      expected: 'provider-bound term',
+    },
+  ];
   const positiveCases = [
     {
       label: 'formal workspace path fields',
@@ -381,8 +471,18 @@ function runSelfTest() {
       selfTestErrors.push(`self-test failed to reject ${testCase.label}`);
     }
   }
+  for (const testCase of providerNegativeCases) {
+    const relativePath = testCase.relativePath ?? `self-test/${testCase.label}.ts`;
+    const violations = collectProviderBoundPatternErrors(relativePath, testCase.text);
+    if (!violations.some((violation) => violation.includes(testCase.expected))) {
+      selfTestErrors.push(`self-test failed to reject ${testCase.label}`);
+    }
+  }
   for (const testCase of positiveCases) {
-    const violations = collectProductSemanticPatternErrors(`self-test/${testCase.label}.ts`, testCase.text);
+    const violations = [
+      ...collectProductSemanticPatternErrors(`self-test/${testCase.label}.ts`, testCase.text),
+      ...collectProviderBoundPatternErrors(`self-test/${testCase.label}.ts`, testCase.text),
+    ];
     if (violations.length > 0) {
       selfTestErrors.push(`self-test false positive for ${testCase.label}: ${violations.join('; ')}`);
     }
@@ -404,6 +504,7 @@ if (process.argv.includes('--self-test')) {
 checkRequiredPaths();
 checkPackageDependencies();
 checkSourcePatterns();
+checkProviderBoundPatterns();
 checkProductSemanticPatterns();
 
 if (errors.length > 0) {

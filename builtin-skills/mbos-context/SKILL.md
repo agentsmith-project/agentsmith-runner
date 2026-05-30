@@ -13,8 +13,8 @@ This skill does not define AgentSmith context policy or credential resolution. I
 
 ```bash
 python3 ~/.agents/skills/mbos-context/scripts/context_cli.py list
-python3 ~/.agents/skills/mbos-context/scripts/context_cli.py get --dependency jira-auth
-python3 ~/.agents/skills/mbos-context/scripts/context_cli.py get --dependency jira-auth --field base_url
+python3 ~/.agents/skills/mbos-context/scripts/context_cli.py get --dependency sample-dependency
+python3 ~/.agents/skills/mbos-context/scripts/context_cli.py get --dependency sample-dependency --field value
 ```
 
 ## Workflow

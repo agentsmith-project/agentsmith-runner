@@ -83,7 +83,7 @@ vi.mock('./builtin-skills.js', () => ({
   resolveBuiltinSkillsConfig: vi.fn(() => ({
     sourceDir: '/seed-skills',
     required: true,
-    skills: ['feishu-docs'],
+    skills: ['mbos-context'],
   })),
   inspectBuiltinSkills: inspectBuiltinSkillsMock,
   seedBuiltinSkills: seedBuiltinSkillsMock,
@@ -183,7 +183,7 @@ describe('terminal-runtime', () => {
   const originalMbosAgentExecutionTicket = process.env.MBOS_AGENT_EXECUTION_TICKET;
   const originalMbosCodexProxyExecutionTicket = process.env.MBOS_CODEX_PROXY_EXECUTION_TICKET;
   const originalMbosAgentProjectedDependencies = process.env.MBOS_AGENT_PROJECTED_DEPENDENCIES;
-  const originalMbosAgentProjectedDependencyJiraAuth = process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH;
+  const originalMbosAgentProjectedDependencySmokeSecret = process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -219,12 +219,12 @@ describe('terminal-runtime', () => {
     prepareTaskWorkspaceAssetsMock.mockResolvedValue(undefined);
     inspectBuiltinSkillsMock.mockResolvedValue({
       sourceDir: '/seed-skills',
-      available: ['feishu-docs'],
+      available: ['mbos-context'],
       missing: [],
     });
     seedBuiltinSkillsMock.mockResolvedValue({
       targetDir: `${TASK_HOME}/.agents/skills`,
-      seeded: ['feishu-docs'],
+      seeded: ['mbos-context'],
       manifestPath: `${TASK_HOME}/.mbos/builtin-skills-manifest.json`,
     });
     prepareLaunchCommandMock.mockImplementation(async (input: { file: string; args: string[]; env: NodeJS.ProcessEnv }) => ({
@@ -299,10 +299,10 @@ describe('terminal-runtime', () => {
     } else {
       process.env.MBOS_AGENT_PROJECTED_DEPENDENCIES = originalMbosAgentProjectedDependencies;
     }
-    if (originalMbosAgentProjectedDependencyJiraAuth === undefined) {
-      delete process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH;
+    if (originalMbosAgentProjectedDependencySmokeSecret === undefined) {
+      delete process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET;
     } else {
-      process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH = originalMbosAgentProjectedDependencyJiraAuth;
+      process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET = originalMbosAgentProjectedDependencySmokeSecret;
     }
   });
 
@@ -706,11 +706,11 @@ describe('terminal-runtime', () => {
     process.env.MBOS_AGENT_EXECUTION_TICKET = 'stale_parent_agent_ticket';
     process.env.MBOS_CODEX_PROXY_EXECUTION_TICKET = 'stale_parent_proxy_ticket';
     process.env.MBOS_AGENT_PROJECTED_DEPENDENCIES = '{"dependencies":{"stale":"parent"}}';
-    process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH = '{"fields":{"token":"stale_parent"}}';
+    process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET = '{"fields":{"token":"stale_parent"}}';
 
     const projectedDependencies = {
       dependencies: {
-        'jira-auth': {
+        'smoke-secret': {
           fields: {
             token: 'current_projection_secret',
           },
@@ -733,7 +733,7 @@ describe('terminal-runtime', () => {
     expect(launchEnv?.MBOS_AGENT_EXECUTION_TICKET).toBe('current_terminal_ticket');
     expect(launchEnv?.MBOS_CODEX_PROXY_EXECUTION_TICKET).toBeUndefined();
     expect(launchEnv?.MBOS_AGENT_PROJECTED_DEPENDENCIES).toBe(JSON.stringify(projectedDependencies));
-    expect(launchEnv?.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH).toBeUndefined();
+    expect(launchEnv?.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET).toBeUndefined();
   });
 
   it('rejects terminal execution context when task_id is missing', async () => {

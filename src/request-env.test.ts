@@ -22,7 +22,7 @@ describe('request-env', () => {
         MBOS_AGENT_EXECUTION_TICKET: 'stale_agent_ticket',
         MBOS_CODEX_PROXY_EXECUTION_TICKET: 'stale_proxy_ticket',
         MBOS_AGENT_PROJECTED_DEPENDENCIES: '{"dependencies":{"stale":"parent"}}',
-        MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH: '{"fields":{"token":"stale"}}',
+        MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET: '{"fields":{"token":"stale"}}',
       },
       requestEnv: {
         MBOS_AGENT_EXECUTION_TICKET: 'current_agent_ticket',
@@ -37,7 +37,7 @@ describe('request-env', () => {
     expect(env.MBOS_AGENT_EXECUTION_TICKET).toBe('current_agent_ticket');
     expect(env.MBOS_CODEX_PROXY_EXECUTION_TICKET).toBe('current_proxy_ticket');
     expect(env.MBOS_AGENT_PROJECTED_DEPENDENCIES).toBe(projectedDependencies);
-    expect(env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH).toBeUndefined();
+    expect(env.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET).toBeUndefined();
   });
 
   it('omits absent request-scoped tickets and bulk projection instead of carrying stale parent values', () => {
@@ -46,20 +46,20 @@ describe('request-env', () => {
         MBOS_AGENT_EXECUTION_TICKET: 'stale_agent_ticket',
         MBOS_CODEX_PROXY_EXECUTION_TICKET: 'stale_proxy_ticket',
         MBOS_AGENT_PROJECTED_DEPENDENCIES: '{"dependencies":{"stale":"parent"}}',
-        MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH: '{"fields":{"token":"stale"}}',
+        MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET: '{"fields":{"token":"stale"}}',
       },
       requestEnv: {
         MBOS_AGENT_EXECUTION_TICKET: '',
         MBOS_CODEX_PROXY_EXECUTION_TICKET: '',
         MBOS_AGENT_PROJECTED_DEPENDENCIES: '',
-        MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH: '{"fields":{"token":"current-but-legacy"}}',
+        MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET: '{"fields":{"token":"current-but-legacy"}}',
       },
     });
 
     expect(env.MBOS_AGENT_EXECUTION_TICKET).toBeUndefined();
     expect(env.MBOS_CODEX_PROXY_EXECUTION_TICKET).toBeUndefined();
     expect(env.MBOS_AGENT_PROJECTED_DEPENDENCIES).toBeUndefined();
-    expect(env.MBOS_AGENT_PROJECTED_DEPENDENCY_JIRA_AUTH).toBeUndefined();
+    expect(env.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET).toBeUndefined();
   });
 
   it('drops ambient secret-like parent env while preserving safe runtime env', () => {
