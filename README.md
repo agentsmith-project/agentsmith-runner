@@ -107,9 +107,9 @@ The task-execution image smoke is a manual focused diagnostic documented in [doc
 
 ## P5 Runner Image Publish Focused Evidence
 
-Manual focused publish evidence lives in `.github/workflows/runner-image-publish.yml` and is `workflow_dispatch` only. It downloads the formal AgentSmith artifact named `agentsmith-runner-contract-artifact`, runs `--contract-consumer`, runs the no-push `--image-smoke`, pushes only `ghcr.io/agentsmith-project/agentsmith-runner` tags shaped as `release-<release_id>` and `sha-<git-sha-12>`, resolves a `sha256:<64>` digest, writes `artifacts/runner-release/runner-release-manifest.json`, verifies it with `--release-manifest`, and uploads artifact `runner-release-manifest`.
+Manual focused publish evidence lives in `.github/workflows/runner-image-publish.yml` and is `workflow_dispatch` only. It downloads the formal AgentSmith artifact named `agentsmith-runner-contract-artifact`, runs `--contract-consumer`, runs the no-push `--image-smoke`, pushes only `ghcr.io/agentsmith-project/agentsmith-runner` tags shaped as `release-<release_id>` and `sha-<git-sha-12>`, resolves a `sha256:<64>` digest, runs `--locked-image-task-execution-smoke` against `$RUNNER_RELEASE_REF@$RUNNER_IMAGE_DIGEST`, writes `artifacts/runner-release/runner-release-manifest.json`, verifies it with `--release-manifest`, and uploads artifact `runner-release-manifest`.
 
-This workflow produces a digest-pinned GHCR image plus manifest artifact as focused evidence. It does not create a `latest` tag, old GHCR alias, AgentSmith adoption lock, AgentSmith repo change, release contract runner digest change, or release readiness claim.
+This workflow produces a digest-pinned GHCR image plus manifest artifact as focused evidence, with one fake-Codex locked runtime smoke over the resolved digest. It does not create a `latest` tag, old GHCR alias, AgentSmith adoption lock, AgentSmith repo change, release contract runner digest change, or release readiness claim.
 
 ## P5.1/P5.3a/P5.3b Start Guard
 

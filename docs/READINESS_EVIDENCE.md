@@ -23,6 +23,7 @@ Current phase: P5 focused runner work.
 | P5 runner image smoke | focused diagnostic | scripts/verify-release.sh --image-smoke --artifact-root <artifact-root> |
 | Manual runner image smoke workflow | explicit artifact diagnostic | .github/workflows/runner-image-smoke.yml |
 | P5 image task-execution smoke | focused diagnostic | scripts/verify-release.sh --image-task-execution-smoke --artifact-root <artifact-root> |
+| P5 locked-image task-execution smoke | focused diagnostic | scripts/verify-release.sh --locked-image-task-execution-smoke --artifact-root <artifact-root> --image <digest-pinned-ghcr-image-ref> |
 | P5 runner image publish workflow | focused publish evidence | .github/workflows/runner-image-publish.yml |
 | P5.1 start guard | focused diagnostic | scripts/verify-release.sh --start-guard |
 | Quick verify entrypoint present | present | scripts/verify-release.sh |
@@ -92,13 +93,19 @@ The locked-image task-execution smoke is also a focused diagnostic: it reuses th
 
 Manual publish evidence is produced only by `.github/workflows/runner-image-publish.yml` through `workflow_dispatch`.
 
-The workflow downloads the formal AgentSmith artifact `agentsmith-runner-contract-artifact`, runs contract consumer validation, runs no-push image smoke, pushes `ghcr.io/agentsmith-project/agentsmith-runner` without a `latest` tag or old alias, resolves the pushed digest, writes `artifacts/runner-release/runner-release-manifest.json`, verifies it with:
+The workflow downloads the formal AgentSmith artifact `agentsmith-runner-contract-artifact`, runs contract consumer validation, runs no-push image smoke, pushes `ghcr.io/agentsmith-project/agentsmith-runner` without a `latest` tag or old alias, resolves the pushed digest, runs locked-image task-execution smoke with:
+
+```bash
+bash scripts/verify-release.sh --locked-image-task-execution-smoke --artifact-root artifacts/runner-contract --image "$RUNNER_RELEASE_REF@$RUNNER_IMAGE_DIGEST"
+```
+
+It then writes `artifacts/runner-release/runner-release-manifest.json` and verifies it with:
 
 ```bash
 bash scripts/verify-release.sh --release-manifest --manifest artifacts/runner-release/runner-release-manifest.json
 ```
 
-It uploads artifact `runner-release-manifest`. This is focused publish evidence only: digest-pinned GHCR image plus manifest artifact. It is not release readiness, not AgentSmith adoption evidence, not an AgentSmith lock update, not an AgentSmith repo change, and not a release contract runner digest change.
+It uploads artifact `runner-release-manifest`. This is focused publish evidence only: digest-pinned GHCR image plus manifest artifact, with one fake-Codex safety smoke against the resolved digest. It is not release readiness, not AgentSmith adoption evidence, not an AgentSmith lock update, not an AgentSmith repo change, and not a release contract runner digest change.
 
 ## P5.0 Focused Evidence
 

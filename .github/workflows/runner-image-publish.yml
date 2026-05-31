@@ -78,6 +78,14 @@ jobs:
             echo "RUNNER_SHA_REF=${RUNNER_IMAGE}:${sha_tag}"
           } >> "$GITHUB_ENV"
 
+      - name: Install host smoke dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/runner-host-smoke-deps" --omit=dev --no-save --package-lock=false --no-audit --no-fund ws@8.18.3
+          mkdir -p node_modules
+          cp -R "$RUNNER_TEMP/runner-host-smoke-deps/node_modules/ws" node_modules/ws
+
       - name: Download AgentSmith runner contract artifact
         uses: actions/download-artifact@v8.0.1
         with:
@@ -149,6 +157,9 @@ jobs:
           fi
           echo "RUNNER_IMAGE_DIGEST=$digest" >> "$GITHUB_ENV"
           echo "Published focused runner image evidence: $RUNNER_RELEASE_REF@$digest"
+
+      - name: Run locked digest-pinned task-execution smoke
+        run: bash scripts/verify-release.sh --locked-image-task-execution-smoke --artifact-root artifacts/runner-contract --image "$RUNNER_RELEASE_REF@$RUNNER_IMAGE_DIGEST"
 
       - name: Write runner release manifest
         shell: bash

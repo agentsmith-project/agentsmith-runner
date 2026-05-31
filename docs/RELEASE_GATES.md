@@ -101,9 +101,15 @@ bash scripts/verify-release.sh --contract-consumer --artifact-root artifacts/run
 bash scripts/verify-release.sh --image-smoke --artifact-root artifacts/runner-contract
 ```
 
-It then pushes only `ghcr.io/agentsmith-project/agentsmith-runner`, using safe non-`latest` tags `release-<release_id>` and `sha-<git-sha-12>`, resolves a `sha256:<64>` image digest, generates `artifacts/runner-release/runner-release-manifest.json`, verifies it with `bash scripts/verify-release.sh --release-manifest --manifest ...`, and uploads artifact `runner-release-manifest`.
+It then pushes only `ghcr.io/agentsmith-project/agentsmith-runner`, using safe non-`latest` tags `release-<release_id>` and `sha-<git-sha-12>`, resolves a `sha256:<64>` image digest, runs:
 
-This is focused publish evidence only. It is not release readiness, not AgentSmith adoption, not an AgentSmith lock update, not an AgentSmith repo change, and not a release contract runner digest change.
+```bash
+bash scripts/verify-release.sh --locked-image-task-execution-smoke --artifact-root artifacts/runner-contract --image "$RUNNER_RELEASE_REF@$RUNNER_IMAGE_DIGEST"
+```
+
+It then generates `artifacts/runner-release/runner-release-manifest.json`, verifies it with `bash scripts/verify-release.sh --release-manifest --manifest ...`, and uploads artifact `runner-release-manifest`.
+
+This locked smoke proves only that the resolved digest-pinned image can run the fake-Codex safety harness. The workflow remains focused publish evidence only. It is not release readiness, not AgentSmith adoption, not an AgentSmith lock update, not an AgentSmith repo change, and not a release contract runner digest change.
 
 ## P5.3a Runner Release Manifest Skeleton Mode
 

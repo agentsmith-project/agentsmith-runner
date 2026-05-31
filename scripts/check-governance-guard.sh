@@ -46,6 +46,29 @@ forbid_grep() {
   fi
 }
 
+require_order() {
+  local before_pattern="$1"
+  local after_pattern="$2"
+  local path="$3"
+  local label="$4"
+  local before_line=""
+  local after_line=""
+
+  before_line="$(grep -Enim 1 -- "$before_pattern" "$path" | cut -d: -f1 || true)"
+  after_line="$(grep -Enim 1 -- "$after_pattern" "$path" | cut -d: -f1 || true)"
+
+  if [[ -z "$before_line" || -z "$after_line" ]]; then
+    fail "$label"
+    return
+  fi
+
+  if (( before_line < after_line )); then
+    pass "$label"
+  else
+    fail "$label"
+  fi
+}
+
 scan_files() {
   find . \
     -path ./.git -prune -o \
@@ -387,6 +410,11 @@ check_runner_image_publish_focused_evidence() {
   require_grep "imagetools inspect" "$workflow" "runner image publish inspects pushed image"
   require_grep "Manifest[.]Digest" "$workflow" "runner image publish reads manifest digest"
   require_grep "sha256:\\[a-f0-9\\][{]64[}]" "$workflow" "runner image publish validates sha256 digest"
+  require_grep "npm install .*ws@8[.]18[.]3" "$workflow" "runner image publish installs host dependency ws for locked smoke"
+  require_grep "verify-release[.]sh --locked-image-task-execution-smoke --artifact-root artifacts/runner-contract --image \"[$]RUNNER_RELEASE_REF@[$]RUNNER_IMAGE_DIGEST\"" "$workflow" "runner image publish runs locked digest-pinned task-execution smoke"
+  require_order "npm install .*ws@8[.]18[.]3" "verify-release[.]sh --locked-image-task-execution-smoke" "$workflow" "runner image publish installs host dependency ws before locked smoke"
+  require_order "Manifest[.]Digest" "verify-release[.]sh --locked-image-task-execution-smoke" "$workflow" "runner image publish resolves image digest before locked smoke"
+  require_order "verify-release[.]sh --locked-image-task-execution-smoke" "write-runner-release-manifest[.]mjs" "$workflow" "runner image publish runs locked smoke before release manifest generation"
 
   require_grep "write-runner-release-manifest[.]mjs" "$workflow" "runner image publish generates release manifest"
   require_grep "verify-release[.]sh --release-manifest --manifest artifacts/runner-release/runner-release-manifest[.]json" "$workflow" "runner image publish verifies release manifest"

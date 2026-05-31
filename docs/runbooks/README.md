@@ -85,9 +85,9 @@ Inputs:
 - `agentsmith_contract_run_id`: required positive AgentSmith workflow run id that produced `agentsmith-runner-contract-artifact`.
 - `release_id`: optional safe id; if empty, the workflow uses `runner-${GITHUB_RUN_ID}`.
 
-The workflow validates the formal contract artifact, runs no-push image smoke, pushes only `ghcr.io/agentsmith-project/agentsmith-runner` with safe non-`latest` tags, resolves the pushed digest, generates and verifies `artifacts/runner-release/runner-release-manifest.json`, and uploads artifact `runner-release-manifest`.
+The workflow validates the formal contract artifact, runs no-push image smoke, pushes only `ghcr.io/agentsmith-project/agentsmith-runner` with safe non-`latest` tags, resolves the pushed digest, runs `--locked-image-task-execution-smoke` with `--image "$RUNNER_RELEASE_REF@$RUNNER_IMAGE_DIGEST"`, generates and verifies `artifacts/runner-release/runner-release-manifest.json`, and uploads artifact `runner-release-manifest`.
 
-This is focused publish evidence only. Do not use it as release readiness, AgentSmith adoption, an AgentSmith lock update, an AgentSmith repo change, or a release contract runner digest change.
+This is focused publish evidence only. The locked smoke proves only that the resolved digest-pinned image can run the fake-Codex safety harness. Do not use it as release readiness, AgentSmith adoption, an AgentSmith lock update, an AgentSmith repo change, or a release contract runner digest change.
 
 ## P5.1/P5.3a/P5.3b Start Guard
 
