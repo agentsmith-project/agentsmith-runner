@@ -117,10 +117,21 @@ requireMissing('MBOS_AGENT_KEY');
 requireMissing('MBOS_AGENT_WS_URL');
 requireMissing('MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET');
 requireMissing('MBOS_AGENT_TASK_RUNNER_MODE');
+requireMissing('MBOS_AGENT_BUILTIN_SKILLS_DIR');
+requireMissing('MBOS_AGENT_BUILTIN_SKILLS_REQUIRED');
+requireMissing('MBOS_AGENT_BUILTIN_SKILLS');
+requireMissing('MBOS_AGENT_CODEX_YOLO');
+requireMissing('MBOS_AGENT_CANCEL_KILL_DELAY_MS');
 requireMissing('MBOS_AGENT_RUNNER_DEBUG');
+requireMissing('MBOS_AGENT_RUNNER_INSTANCE_ID');
+requireMissing('MBOS_AGENT_RUNNER_SESSION_ID');
 requireMissing('MBOS_AGENT_RECONNECT_BASE_MS');
 requireMissing('MBOS_AGENT_RECONNECT_MAX_MS');
+requireMissing('NOTEBOOK_TERMINAL_CLOSE_GRACE_MS');
 requireMissing('CODEX_BIN');
+requireMissing('OPENAI_API_KEY');
+requireMissing('GITHUB_TOKEN');
+requireMissing('HTTP_PROXY');
 
 for (const [name, value] of Object.entries(process.env)) {
   const text = String(value || '');
@@ -129,8 +140,11 @@ for (const [name, value] of Object.entries(process.env)) {
     || text.includes('SMOKE_STALE_EXECUTION_TICKET_')
     || text.includes('SMOKE_STALE_PROXY_TICKET_')
     || text.includes('SMOKE_STALE_PROJECTED_SECRET_')
+    || text.includes('SMOKE_OPENAI_API_KEY_')
+    || text.includes('SMOKE_GITHUB_TOKEN_')
+    || text.includes('SMOKE_HTTP_PROXY_PASSWORD_')
   ) {
-    fail(name + ' contains a runner-control or stale request sentinel');
+    fail(name + ' contains a runner-control, stale request, or ambient secret sentinel');
   }
 }
 
@@ -697,6 +711,9 @@ async function main() {
     staleExecutionTicket: `SMOKE_STALE_EXECUTION_TICKET_${randomUUID()}`,
     staleProxyTicket: `SMOKE_STALE_PROXY_TICKET_${randomUUID()}`,
     staleProjectionSecret: `SMOKE_STALE_PROJECTED_SECRET_${randomUUID()}`,
+    openAiApiKey: `SMOKE_OPENAI_API_KEY_${randomUUID()}`,
+    githubToken: `SMOKE_GITHUB_TOKEN_${randomUUID()}`,
+    httpProxyPassword: `SMOKE_HTTP_PROXY_PASSWORD_${randomUUID()}`,
   };
   let containerStarted = false;
   let server;
@@ -732,15 +749,37 @@ async function main() {
       '-e',
       `MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET={"fields":{"value":"${sentinels.staleProjectionSecret}"}}`,
       '-e',
+      'MBOS_AGENT_BUILTIN_SKILLS_DIR=/etc/codex/skills',
+      '-e',
+      'MBOS_AGENT_BUILTIN_SKILLS_REQUIRED=1',
+      '-e',
+      'MBOS_AGENT_BUILTIN_SKILLS=mbos-context',
+      '-e',
+      'MBOS_AGENT_CODEX_YOLO=0',
+      '-e',
+      'MBOS_AGENT_CANCEL_KILL_DELAY_MS=1000',
+      '-e',
       'CODEX_BIN=/tmp/fake-codex/codex',
       '-e',
       'MBOS_AGENT_TASK_RUNNER_MODE=managed_platform',
       '-e',
       'MBOS_AGENT_RUNNER_DEBUG=0',
       '-e',
+      'MBOS_AGENT_RUNNER_INSTANCE_ID=runner_image_task_execution_smoke',
+      '-e',
+      'MBOS_AGENT_RUNNER_SESSION_ID=runner_session_image_task_execution_smoke',
+      '-e',
       'MBOS_AGENT_RECONNECT_BASE_MS=1000',
       '-e',
       'MBOS_AGENT_RECONNECT_MAX_MS=1000',
+      '-e',
+      'NOTEBOOK_TERMINAL_CLOSE_GRACE_MS=1000',
+      '-e',
+      `OPENAI_API_KEY=${sentinels.openAiApiKey}`,
+      '-e',
+      `GITHUB_TOKEN=${sentinels.githubToken}`,
+      '-e',
+      `HTTP_PROXY=http://smoke:${sentinels.httpProxyPassword}@127.0.0.1:9`,
       '-v',
       `${fakeDir}:/tmp/fake-codex:ro`,
       '-v',

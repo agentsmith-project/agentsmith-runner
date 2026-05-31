@@ -24,9 +24,17 @@ describe('request-env', () => {
         MBOS_AGENT_PROJECTED_DEPENDENCIES: '{"dependencies":{"stale":"parent"}}',
         MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET: '{"fields":{"token":"stale"}}',
         MBOS_AGENT_TASK_RUNNER_MODE: 'managed_platform',
+        MBOS_AGENT_BUILTIN_SKILLS_DIR: '/etc/codex/skills',
+        MBOS_AGENT_BUILTIN_SKILLS_REQUIRED: '1',
+        MBOS_AGENT_BUILTIN_SKILLS: 'mbos-context',
+        MBOS_AGENT_CODEX_YOLO: '0',
+        MBOS_AGENT_CANCEL_KILL_DELAY_MS: '1000',
         MBOS_AGENT_RUNNER_DEBUG: '1',
+        MBOS_AGENT_RUNNER_INSTANCE_ID: 'runner_instance',
+        MBOS_AGENT_RUNNER_SESSION_ID: 'runner_session',
         MBOS_AGENT_RECONNECT_BASE_MS: '1000',
         MBOS_AGENT_RECONNECT_MAX_MS: '5000',
+        NOTEBOOK_TERMINAL_CLOSE_GRACE_MS: '1000',
         CODEX_BIN: '/tmp/codex',
       },
       requestEnv: {
@@ -44,9 +52,17 @@ describe('request-env', () => {
     expect(env.MBOS_AGENT_PROJECTED_DEPENDENCIES).toBe(projectedDependencies);
     expect(env.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET).toBeUndefined();
     expect(env.MBOS_AGENT_TASK_RUNNER_MODE).toBeUndefined();
+    expect(env.MBOS_AGENT_BUILTIN_SKILLS_DIR).toBeUndefined();
+    expect(env.MBOS_AGENT_BUILTIN_SKILLS_REQUIRED).toBeUndefined();
+    expect(env.MBOS_AGENT_BUILTIN_SKILLS).toBeUndefined();
+    expect(env.MBOS_AGENT_CODEX_YOLO).toBeUndefined();
+    expect(env.MBOS_AGENT_CANCEL_KILL_DELAY_MS).toBeUndefined();
     expect(env.MBOS_AGENT_RUNNER_DEBUG).toBeUndefined();
+    expect(env.MBOS_AGENT_RUNNER_INSTANCE_ID).toBeUndefined();
+    expect(env.MBOS_AGENT_RUNNER_SESSION_ID).toBeUndefined();
     expect(env.MBOS_AGENT_RECONNECT_BASE_MS).toBeUndefined();
     expect(env.MBOS_AGENT_RECONNECT_MAX_MS).toBeUndefined();
+    expect(env.NOTEBOOK_TERMINAL_CLOSE_GRACE_MS).toBeUndefined();
     expect(env.CODEX_BIN).toBeUndefined();
   });
 
