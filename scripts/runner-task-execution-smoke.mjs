@@ -5,7 +5,6 @@ import { chmod, mkdir, mkdtemp, readFile, readdir, readlink, rm, stat, writeFile
 import { tmpdir } from 'node:os';
 import { basename, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { WebSocketServer } from 'ws';
 
 const TASK_HOME = '/home/task_1';
 const WORKSPACE_PATH = `${TASK_HOME}/workspace`;
@@ -78,6 +77,19 @@ function errorMessage(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
+function assertNoRequestScopedSentinelsInArgv(argv, sentinels) {
+  const values = Object.values(sentinels)
+    .filter((value) => typeof value === 'string' && value.length > 0);
+  for (let index = 0; index < argv.length; index += 1) {
+    const text = String(argv[index] ?? '');
+    for (const value of values) {
+      if (text.includes(value)) {
+        fail(`Codex argv contains request-scoped sentinel at argv[${String(index)}]`);
+      }
+    }
+  }
+}
+
 async function writeFakeCodex(fakeDir) {
   await mkdir(fakeDir, { recursive: true });
   const fakeCodexPath = join(fakeDir, 'codex');
@@ -105,6 +117,19 @@ function requireEqual(name, actual, expected) {
 function requireMissing(name) {
   if (Object.prototype.hasOwnProperty.call(process.env, name)) {
     fail(name + ' must not be inherited by fake Codex');
+  }
+}
+
+function assertNoRequestScopedSentinelsInArgv(argv, sentinels) {
+  const values = Object.values(sentinels)
+    .filter((value) => typeof value === 'string' && value.length > 0);
+  for (let index = 0; index < argv.length; index += 1) {
+    const text = String(argv[index] || '');
+    for (const value of values) {
+      if (text.includes(value)) {
+        fail('Codex argv contains request-scoped sentinel at argv[' + String(index) + ']');
+      }
+    }
   }
 }
 
@@ -176,6 +201,18 @@ if (typeof dependencySecret !== 'string' || !dependencySecret.startsWith('SMOKE_
 if (typeof oauthToken !== 'string' || !oauthToken.startsWith('SMOKE_OAUTH_TOKEN_')) {
   fail('projected OAuth token missing');
 }
+assertNoRequestScopedSentinelsInArgv(process.argv, {
+  ticket,
+  dependencySecret,
+  oauthToken,
+  runnerKeyPrefix: 'SMOKE_RUNNER_KEY_',
+  staleExecutionTicketPrefix: 'SMOKE_STALE_EXECUTION_TICKET_',
+  staleProxyTicketPrefix: 'SMOKE_STALE_PROXY_TICKET_',
+  staleProjectionSecretPrefix: 'SMOKE_STALE_PROJECTED_SECRET_',
+  openAiApiKeyPrefix: 'SMOKE_OPENAI_API_KEY_',
+  githubTokenPrefix: 'SMOKE_GITHUB_TOKEN_',
+  httpProxyPasswordPrefix: 'SMOKE_HTTP_PROXY_PASSWORD_',
+});
 
 const contextCli = join(TASK_HOME, '.agents', 'skills', 'mbos-context', 'scripts', 'context_cli.py');
 const contextCliResult = spawnSync('python3', [
@@ -372,7 +409,8 @@ function framePayload(frame) {
   return typeof frame.payload === 'object' && frame.payload !== null ? frame.payload : {};
 }
 
-function startHarnessServer(args) {
+async function startHarnessServer(args) {
+  const { WebSocketServer } = await import('ws');
   const state = {
     frames: [],
     readySeen: false,
@@ -656,6 +694,29 @@ async function expectSentinelScanFailure(root, expectedText, label) {
   fail(`${label} did not fail`);
 }
 
+function expectArgvSentinelFailure() {
+  try {
+    assertNoRequestScopedSentinelsInArgv(
+      ['codex', 'exec', '-c', 'ticket=SMOKE_SELF_TEST_ARGV_SENTINEL'],
+      { ticket: 'SMOKE_SELF_TEST_ARGV_SENTINEL' },
+    );
+  } catch (error) {
+    const message = errorMessage(error);
+    if (message.includes('Codex argv contains request-scoped sentinel')) {
+      return;
+    }
+    fail(`argv sentinel detector self-test failed with unexpected error: ${message}`);
+  }
+  fail('argv sentinel detector self-test did not fail');
+}
+
+function expectArgvSentinelPass() {
+  assertNoRequestScopedSentinelsInArgv(
+    ['codex', 'exec', '--model', 'gpt-5-codex', '-c', 'model_provider="proxy"'],
+    { ticket: 'SMOKE_SELF_TEST_ARGV_SENTINEL' },
+  );
+}
+
 async function runSelfTest() {
   const tmpRoot = await mkdtemp(join(tmpdir(), 'agentsmith-runner-smoke-selfcheck-'));
   try {
@@ -663,6 +724,8 @@ async function runSelfTest() {
     await mkdir(join(safeRoot, 'notes'), { recursive: true });
     await writeFile(join(safeRoot, 'notes', 'credential-filename-note.txt'), 'safe note\n', 'utf8');
     await assertNoSentinelsPersisted(safeRoot, {});
+    expectArgvSentinelPass();
+    expectArgvSentinelFailure();
 
     const deniedPaths = [
       '.netrc',
@@ -730,7 +793,7 @@ async function main() {
     await writeFakeCodex(fakeDir);
     await mkdir(taskHomeHost, { recursive: true });
     const executionContext = await buildExecutionContextFromContract(artifactRoot, contractDir, sentinels);
-    const harness = startHarnessServer({
+    const harness = await startHarnessServer({
       runnerKey,
       executionContext,
     });

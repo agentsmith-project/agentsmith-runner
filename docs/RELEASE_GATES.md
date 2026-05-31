@@ -76,7 +76,7 @@ Image smoke is not release readiness. It does not publish an image, log in to a 
 bash scripts/verify-release.sh --image-task-execution-smoke --artifact-root <artifact-root>
 ```
 
-This explicit mode is a manual, focused no-push image task-execution smoke for a supplied runner contract artifact root. It validates the artifact root, builds a local image, and drives one fake-Codex task through a local WebSocket harness. The harness checks task HOME/workspace/artifacts env, projected dependency reading through the seeded `mbos-context` skill CLI, runner/control env scrubbing, local response frames, and request-scoped sentinel plus obvious credential path leakage under task HOME. Operator steps live in [runbooks/README.md](runbooks/README.md#p5-image-task-execution-smoke).
+This explicit mode is a manual, focused no-push image task-execution smoke for a supplied runner contract artifact root. It validates the artifact root, builds a local image, and drives one fake-Codex task through a local WebSocket harness. The harness checks task HOME/workspace/artifacts env, projected dependency reading through the seeded `mbos-context` skill CLI, runner/control env scrubbing, Codex CLI argv sentinel leakage, local response frames, and request-scoped sentinel plus obvious credential path leakage under task HOME. Operator steps live in [runbooks/README.md](runbooks/README.md#p5-image-task-execution-smoke).
 
 Image task-execution smoke is not release readiness. It does not call AgentSmith, issue a real ticket, call a real LLM, publish an image, produce provenance, update AgentSmith adoption, update an AgentSmith lock, or replace the future full release gate.
 

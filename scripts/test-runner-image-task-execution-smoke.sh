@@ -71,6 +71,8 @@ run_self_test() {
     fi
   done
 
+  node "$repo_root/scripts/runner-task-execution-smoke.mjs" --self-test
+
   echo "image task-execution smoke script self-test passed"
 }
 
