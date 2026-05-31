@@ -147,7 +147,7 @@ describe('child-launcher', () => {
     process.env.MBOS_AGENT_EXECUTION_TICKET = 'stale_parent_agent_ticket';
     process.env.MBOS_CODEX_PROXY_EXECUTION_TICKET = 'stale_parent_proxy_ticket';
     process.env.MBOS_AGENT_PROJECTED_DEPENDENCIES = '{"dependencies":{"stale":"parent"}}';
-    process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET = '{"fields":{"token":"stale_parent"}}';
+    process.env.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET = '{"fields":{"value":"stale_parent"}}';
     const inputEnv = {
       HOME: '/home/task_1',
       TASK_HOME: '/home/task_1',

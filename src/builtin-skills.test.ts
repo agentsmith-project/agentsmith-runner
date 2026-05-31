@@ -77,15 +77,28 @@ describe('builtin-skills', () => {
     }
   });
 
-  it('treats a sanitized-empty explicit skill list as empty instead of restoring defaults', () => {
+  it('rejects invalid explicit skill names instead of silently sanitizing them', () => {
     const previousSkills = process.env.MBOS_AGENT_BUILTIN_SKILLS;
     const previousRequired = process.env.MBOS_AGENT_BUILTIN_SKILLS_REQUIRED;
     process.env.MBOS_AGENT_BUILTIN_SKILLS = ', , ###';
     process.env.MBOS_AGENT_BUILTIN_SKILLS_REQUIRED = '0';
     try {
-      const config = resolveBuiltinSkillsConfig();
-      expect(config.required).toBe(false);
-      expect(config.skills).toEqual([]);
+      expect(() => resolveBuiltinSkillsConfig()).toThrow('builtin_skill_name_invalid:###');
+    } finally {
+      if (previousSkills === undefined) delete process.env.MBOS_AGENT_BUILTIN_SKILLS;
+      else process.env.MBOS_AGENT_BUILTIN_SKILLS = previousSkills;
+      if (previousRequired === undefined) delete process.env.MBOS_AGENT_BUILTIN_SKILLS_REQUIRED;
+      else process.env.MBOS_AGENT_BUILTIN_SKILLS_REQUIRED = previousRequired;
+    }
+  });
+
+  it('rejects dot-prefixed builtin skill names from env selection', () => {
+    const previousSkills = process.env.MBOS_AGENT_BUILTIN_SKILLS;
+    const previousRequired = process.env.MBOS_AGENT_BUILTIN_SKILLS_REQUIRED;
+    process.env.MBOS_AGENT_BUILTIN_SKILLS = 'mbos-context,.system';
+    process.env.MBOS_AGENT_BUILTIN_SKILLS_REQUIRED = '1';
+    try {
+      expect(() => resolveBuiltinSkillsConfig()).toThrow('builtin_skill_name_forbidden:.system');
     } finally {
       if (previousSkills === undefined) delete process.env.MBOS_AGENT_BUILTIN_SKILLS;
       else process.env.MBOS_AGENT_BUILTIN_SKILLS = previousSkills;
@@ -109,7 +122,7 @@ describe('builtin-skills', () => {
               name: 'sample-dependency',
               kind: 'opaque_projection',
               provider_label: 'sample',
-              expected_fields: ['access_token'],
+              expected_fields: ['value'],
               required: true,
             },
           ],
@@ -127,7 +140,7 @@ describe('builtin-skills', () => {
               name: 'extra-dependency',
               kind: 'opaque_projection',
               provider_label: 'extra',
-              expected_fields: ['base_url', 'token'],
+              expected_fields: ['endpoint', 'value'],
               required: true,
             },
           ],
@@ -210,7 +223,7 @@ describe('builtin-skills', () => {
               name: 'sample-dependency',
               kind: 'opaque_projection',
               provider_label: 'sample',
-              expected_fields: ['access_token'],
+              expected_fields: ['value'],
               required: true,
             },
           ],
@@ -255,6 +268,37 @@ describe('builtin-skills', () => {
       })).rejects.toThrow('builtin_skill_contract_missing:extra-skill');
     } finally {
       rmSync(sourceRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects dot-prefixed selected skill dirs during inspection and seeding', async () => {
+    const sourceRoot = mkdtempSync(join(tmpdir(), 'runner-skills-src-'));
+    const targetRoot = mkdtempSync(join(tmpdir(), 'runner-skills-target-'));
+    const manifestRoot = mkdtempSync(join(tmpdir(), 'runner-skills-manifest-'));
+    try {
+      mkdirSync(join(sourceRoot, '.hidden-skill'), { recursive: true });
+      writeFileSync(join(sourceRoot, '.hidden-skill', 'SKILL.md'), 'hidden');
+      writeFileSync(
+        join(sourceRoot, '.hidden-skill', 'capabilities.json'),
+        JSON.stringify({ version: 1, skill_name: '.hidden-skill', dependencies: [] }),
+      );
+
+      await expect(inspectBuiltinSkills({
+        sourceDir: sourceRoot,
+        skills: ['.system'],
+        required: true,
+      })).rejects.toThrow('builtin_skill_name_forbidden:.system');
+
+      await expect(seedBuiltinSkills({
+        sourceDir: sourceRoot,
+        skills: ['.hidden-skill'],
+        targetDir: targetRoot,
+        manifestDir: manifestRoot,
+      })).rejects.toThrow('builtin_skill_name_forbidden:.hidden-skill');
+    } finally {
+      rmSync(sourceRoot, { recursive: true, force: true });
+      rmSync(targetRoot, { recursive: true, force: true });
+      rmSync(manifestRoot, { recursive: true, force: true });
     }
   });
 
@@ -468,7 +512,7 @@ describe('builtin-skills', () => {
           name: 'sample-dependency',
           kind: 'opaque_projection',
           provider_label: 'sample',
-          expected_fields: ['access_token', 'uat'],
+          expected_fields: ['value', 'endpoint'],
           required: true,
         },
       ],
@@ -478,7 +522,7 @@ describe('builtin-skills', () => {
       name: 'sample-dependency',
       kind: 'opaque_projection',
       provider_label: 'sample',
-      expected_fields: ['access_token', 'uat'],
+      expected_fields: ['value', 'endpoint'],
       required: true,
     });
   });

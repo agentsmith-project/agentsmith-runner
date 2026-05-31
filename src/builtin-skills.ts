@@ -154,7 +154,22 @@ function parseBooleanFlag(input: string | undefined, fallback: boolean): boolean
 }
 
 function isSafeSkillName(name: string): boolean {
-  return /^\.?[a-zA-Z0-9._-]+$/.test(name) && name !== '.' && name !== '..';
+  return /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(name);
+}
+
+function validateBuiltinSkillName(name: string): void {
+  if (name.startsWith('.')) {
+    throw new Error(`builtin_skill_name_forbidden:${name}`);
+  }
+  if (!isSafeSkillName(name)) {
+    throw new Error(`builtin_skill_name_invalid:${name}`);
+  }
+}
+
+function validateBuiltinSkillNames(skills: string[]): void {
+  for (const skill of skills) {
+    validateBuiltinSkillName(skill);
+  }
 }
 
 function isWithinDirectory(parentDir: string, childPath: string): boolean {
@@ -168,8 +183,8 @@ function parseSkillList(input: string | undefined): string[] {
   const skills = input
     .split(',')
     .map((item) => item.trim())
-    .filter((item) => item.length > 0)
-    .filter((item) => isSafeSkillName(item));
+    .filter((item) => item.length > 0);
+  validateBuiltinSkillNames(skills);
   if (skills.length === 0) return [];
   return Array.from(new Set(skills));
 }
@@ -271,6 +286,7 @@ export async function inspectBuiltinSkills(args: {
   sourceDir: string;
   skillContracts: Record<string, BuiltinSkillCapabilityContract>;
 }> {
+  validateBuiltinSkillNames(args.skills);
   const available: string[] = [];
   const missing: string[] = [];
   const skillContracts: Record<string, BuiltinSkillCapabilityContract> = {};
@@ -314,6 +330,7 @@ export async function seedBuiltinSkills(args: {
   seeded: string[];
   manifestPath: string;
 }> {
+  validateBuiltinSkillNames(args.skills);
   await mkdir(args.targetDir, { recursive: true });
   await mkdir(args.manifestDir, { recursive: true });
   const manifestPath = getBuiltinSkillManifestPath(args.manifestDir);

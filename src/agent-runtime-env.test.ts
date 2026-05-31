@@ -9,7 +9,7 @@ describe('buildAgentRuntimeEnv', () => {
         plain: 'value',
         structured: {
           fields: {
-            token: 'secret_ref',
+            value: 'opaque_ref',
           },
         },
       },

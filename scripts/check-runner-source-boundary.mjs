@@ -370,6 +370,43 @@ function checkNpmPackDistributionBoundary() {
   }
 }
 
+function collectTrackedSystemSkillErrors(gitLsFilesOutput) {
+  const trackedFiles = gitLsFilesOutput
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .filter((line) => line === 'builtin-skills/.system' || line.startsWith('builtin-skills/.system/'));
+  if (trackedFiles.length === 0) {
+    return [];
+  }
+  const sample = trackedFiles.slice(0, 5).join(', ');
+  const suffix = trackedFiles.length > 5 ? `, ... (${trackedFiles.length} files)` : '';
+  return [`git tracked source must not include builtin-skills/.system/**: ${sample}${suffix}`];
+}
+
+function checkGitTrackedSystemSkills() {
+  const result = spawnSync(
+    'git',
+    ['ls-files', '--', 'builtin-skills/.system/**'],
+    {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    },
+  );
+  if (result.error) {
+    addError(`git tracked source check failed to start: ${result.error.message}`);
+    return;
+  }
+  if (result.status !== 0) {
+    const detail = (result.stderr || result.stdout || '').trim();
+    addError(`git tracked source check failed with exit code ${result.status}${detail ? `: ${detail}` : ''}`);
+    return;
+  }
+  for (const error of collectTrackedSystemSkillErrors(result.stdout)) {
+    addError(error);
+  }
+}
+
 function readTextFile(relativePath) {
   return readFileSync(join(repoRoot, relativePath), 'utf8');
 }
@@ -672,6 +709,20 @@ function runSelfTest() {
       expected: 'provider-bound ambient smoke sentinel',
     },
   ];
+  const trackedSystemSkillErrors = collectTrackedSystemSkillErrors([
+    'builtin-skills/.system/skill-installer/SKILL.md',
+    'builtin-skills/mbos-context/SKILL.md',
+  ].join('\n'));
+  if (!trackedSystemSkillErrors.some((violation) => violation.includes('builtin-skills/.system/**'))) {
+    selfTestErrors.push('self-test failed to reject tracked .system builtin skills');
+  }
+  const cleanTrackedSystemSkillErrors = collectTrackedSystemSkillErrors([
+    'builtin-skills/.mbos-runtime/capability_runtime.py',
+    'builtin-skills/mbos-context/SKILL.md',
+  ].join('\n'));
+  if (cleanTrackedSystemSkillErrors.length > 0) {
+    selfTestErrors.push(`self-test false positive for clean tracked builtin skills: ${cleanTrackedSystemSkillErrors.join('; ')}`);
+  }
   const positiveCases = [
     {
       label: 'formal workspace path fields',
@@ -749,6 +800,7 @@ checkRequiredPaths();
 checkPackageDependencies();
 checkPackageFilesAllowlist();
 checkNpmPackDistributionBoundary();
+checkGitTrackedSystemSkills();
 checkDockerContextBoundary();
 checkSourcePatterns();
 checkProviderBoundPatterns();

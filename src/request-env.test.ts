@@ -22,7 +22,7 @@ describe('request-env', () => {
         MBOS_AGENT_EXECUTION_TICKET: 'stale_agent_ticket',
         MBOS_CODEX_PROXY_EXECUTION_TICKET: 'stale_proxy_ticket',
         MBOS_AGENT_PROJECTED_DEPENDENCIES: '{"dependencies":{"stale":"parent"}}',
-        MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET: '{"fields":{"token":"stale"}}',
+        MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET: '{"fields":{"value":"stale"}}',
         MBOS_AGENT_TASK_RUNNER_MODE: 'managed_platform',
         MBOS_AGENT_TASK_RUNNER_REQUIRE_BWRAP: '1',
         MBOS_AGENT_ARTIFACT_SCAN_MAX_FILES: '100',
@@ -88,13 +88,13 @@ describe('request-env', () => {
         MBOS_AGENT_EXECUTION_TICKET: 'stale_agent_ticket',
         MBOS_CODEX_PROXY_EXECUTION_TICKET: 'stale_proxy_ticket',
         MBOS_AGENT_PROJECTED_DEPENDENCIES: '{"dependencies":{"stale":"parent"}}',
-        MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET: '{"fields":{"token":"stale"}}',
+        MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET: '{"fields":{"value":"stale"}}',
       },
       requestEnv: {
         MBOS_AGENT_EXECUTION_TICKET: '',
         MBOS_CODEX_PROXY_EXECUTION_TICKET: '',
         MBOS_AGENT_PROJECTED_DEPENDENCIES: '',
-        MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET: '{"fields":{"token":"current-but-legacy"}}',
+        MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET: '{"fields":{"value":"current-but-legacy"}}',
       },
     });
 

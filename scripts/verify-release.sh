@@ -42,6 +42,9 @@ if [[ "${1:-}" == "--quick" ]]; then
 
   bash -n "$repo_root/scripts/check-governance-guard.sh"
   bash "$repo_root/scripts/check-governance-guard.sh"
+  node --check "$repo_root/scripts/check-runner-source-boundary.mjs"
+  node "$repo_root/scripts/check-runner-source-boundary.mjs" --self-test
+  node "$repo_root/scripts/check-runner-source-boundary.mjs"
   echo "quick governance check passed"
   echo "quick mode is not release readiness"
   exit 0
