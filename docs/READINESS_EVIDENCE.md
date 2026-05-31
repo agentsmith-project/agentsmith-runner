@@ -86,6 +86,8 @@ The focused image task-execution smoke is a manual diagnostic; the command and o
 
 Its evidence claim is limited to one local fake-Codex task through a no-push image. It is not backend-real runtime evidence, a real LLM run, GHCR publish evidence, AgentSmith adoption evidence, an AgentSmith lock update, or release readiness.
 
+The locked-image task-execution smoke is also a focused diagnostic: it reuses the same fake-Codex harness against a supplied canonical digest-pinned GHCR runner image ref. It is not backend-real runtime evidence, a real LLM run, publish evidence, AgentSmith adoption evidence, or release readiness.
+
 ## P5 Publish Focused Evidence
 
 Manual publish evidence is produced only by `.github/workflows/runner-image-publish.yml` through `workflow_dispatch`.

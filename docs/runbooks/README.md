@@ -34,15 +34,23 @@ Image smoke is not release readiness. Do not use it as a release gate, GHCR publ
 
 ## P5 Image Task-Execution Smoke
 
-Use this only when a formal runner contract artifact root has been supplied and local runner Node dependencies are installed:
+Use the local no-push build mode only when a formal runner contract artifact root has been supplied and local runner Node dependencies are installed:
 
 ```bash
 bash scripts/verify-release.sh --image-task-execution-smoke --artifact-root <artifact-root>
 ```
 
-The command first validates the artifact root with `--contract-consumer`, builds a local no-push image, starts the real `/app/dist/index.js` process in Docker, connects it to a local WebSocket harness, runs fake Codex from the formal `managedTaskRun` fixture, validates task HOME/workspace/artifacts env and projected dependency env, expects `agent.ready`, `agent.response.delta`, `agent.response.artifact`, and `agent.response.done`, checks that `agent.response.done` has no local token usage field, and scans task HOME for request-scoped sentinel leakage. It must finish with `image task-execution smoke passed`.
+The command first validates the artifact root with `--contract-consumer`, builds a local no-push image, starts the real `/app/dist/index.js` process in Docker, connects it to a local WebSocket harness, runs fake Codex from the formal `managedTaskRun` fixture, validates task HOME/workspace/artifacts env and projected dependency env, expects `agent.ready`, `agent.response.delta`, `agent.response.artifact`, and `agent.response.done`, checks that `agent.response.done` has no local token usage field, and scans task HOME for request-scoped sentinel and obvious credential path leakage. It must finish with `image task-execution smoke passed`.
 
-Manual only during P5. Do not wire smoke execution into CI, and do not use it as backend-real proof, a real LLM run, a GHCR publish step, AgentSmith adoption, a lock update reason, or release readiness.
+Use the locked-image mode only for a supplied canonical digest-pinned GHCR runner image ref:
+
+```bash
+bash scripts/verify-release.sh --locked-image-task-execution-smoke --artifact-root <artifact-root> --image <digest-pinned-ghcr-image-ref>
+```
+
+Locked-image mode rejects tag-only refs, `latest`, local image refs, old repos, and non-lowercase digest refs; accepted refs match `ghcr.io/agentsmith-project/agentsmith-runner:<safe-tag>@sha256:<64hex>`. It skips the local Docker build and runs the same fake-Codex task harness against the supplied image. It does not log in to a registry, push an image, or generate a release manifest.
+
+Manual only during P5. Do not wire either task-execution smoke into default push/PR CI, and do not use either as backend-real proof, a real LLM run, a GHCR publish step, AgentSmith adoption, a lock update reason, or release readiness.
 
 ## P5.0 Contract Consumer Diagnostic
 

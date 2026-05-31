@@ -9,6 +9,7 @@ Usage:
   bash scripts/verify-release.sh --contract-consumer --artifact-root <dir>
   bash scripts/verify-release.sh --image-smoke --artifact-root <dir>
   bash scripts/verify-release.sh --image-task-execution-smoke --artifact-root <dir>
+  bash scripts/verify-release.sh --locked-image-task-execution-smoke --artifact-root <dir> --image <digest-pinned-ghcr-image-ref>
   bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
   bash scripts/verify-release.sh
 
@@ -19,6 +20,7 @@ Current bootstrap status:
   --contract-consumer validates an explicit runner contract artifact root only.
   --image-smoke builds a local no-push runner image from an explicit runner contract artifact root and checks runtime prerequisites plus missing-env Usage.
   --image-task-execution-smoke builds a local no-push runner image from an explicit runner contract artifact root and runs one fake-Codex task process over a local WebSocket harness.
+  --locked-image-task-execution-smoke runs the same fake-Codex task process against an explicit digest-pinned GHCR runner image ref; it skips local build and remains focused/manual only.
   --release-manifest validates an explicit runner release manifest skeleton only.
   Full release mode is intentionally not implemented during bootstrap.
 USAGE
@@ -136,6 +138,17 @@ if [[ "${1:-}" == "--image-task-execution-smoke" ]]; then
   exit 0
 fi
 
+if [[ "${1:-}" == "--locked-image-task-execution-smoke" ]]; then
+  if [[ $# -ne 5 || "${2:-}" != "--artifact-root" || "${4:-}" != "--image" ]]; then
+    echo "error: --locked-image-task-execution-smoke requires exactly --artifact-root <dir> --image <digest-pinned-ghcr-image-ref>" >&2
+    usage >&2
+    exit 2
+  fi
+
+  bash "$repo_root/scripts/test-runner-image-task-execution-smoke.sh" --artifact-root "$3" --image "$5"
+  exit 0
+fi
+
 if [[ "${1:-}" == "--release-manifest" ]]; then
   if [[ $# -ne 3 || "${2:-}" != "--manifest" ]]; then
     echo "error: --release-manifest requires exactly --manifest <manifest-path>" >&2
@@ -163,6 +176,7 @@ This repo currently supports only:
   bash scripts/verify-release.sh --contract-consumer --artifact-root <dir>
   bash scripts/verify-release.sh --image-smoke --artifact-root <dir>
   bash scripts/verify-release.sh --image-task-execution-smoke --artifact-root <dir>
+  bash scripts/verify-release.sh --locked-image-task-execution-smoke --artifact-root <dir> --image <digest-pinned-ghcr-image-ref>
   bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
 
 Quick mode is not release readiness.
@@ -171,6 +185,7 @@ Runtime fast checks are separate until clean CI has explicit contract artifact a
 Contract consumer mode is not release readiness.
 Image smoke is not release readiness.
 Image task-execution smoke is not release readiness.
+Locked image task-execution smoke is not release readiness.
 Release manifest skeleton mode is not release readiness.
 MESSAGE
 exit 2

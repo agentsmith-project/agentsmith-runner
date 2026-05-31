@@ -76,9 +76,19 @@ Image smoke is not release readiness. It does not publish an image, log in to a 
 bash scripts/verify-release.sh --image-task-execution-smoke --artifact-root <artifact-root>
 ```
 
-This explicit mode is a manual, focused no-push image task-execution smoke for a supplied runner contract artifact root. It validates the artifact root, builds a local image, and drives one fake-Codex task through a local WebSocket harness; operator steps live in [runbooks/README.md](runbooks/README.md#p5-image-task-execution-smoke).
+This explicit mode is a manual, focused no-push image task-execution smoke for a supplied runner contract artifact root. It validates the artifact root, builds a local image, and drives one fake-Codex task through a local WebSocket harness. The harness checks task HOME/workspace/artifacts env, projected dependency reading through the seeded `mbos-context` skill CLI, runner/control env scrubbing, local response frames, and request-scoped sentinel plus obvious credential path leakage under task HOME. Operator steps live in [runbooks/README.md](runbooks/README.md#p5-image-task-execution-smoke).
 
 Image task-execution smoke is not release readiness. It does not call AgentSmith, issue a real ticket, call a real LLM, publish an image, produce provenance, update AgentSmith adoption, update an AgentSmith lock, or replace the future full release gate.
+
+## P5 Locked-Image Task-Execution Smoke Mode
+
+```bash
+bash scripts/verify-release.sh --locked-image-task-execution-smoke --artifact-root <artifact-root> --image <digest-pinned-ghcr-image-ref>
+```
+
+This explicit mode is a manual, focused task-execution smoke for an already published runner image ref. The image ref must be canonical and digest-pinned: `ghcr.io/agentsmith-project/agentsmith-runner:<safe-tag>@sha256:<64hex>`. The wrapper rejects tag-only refs, `latest`, local images, old repos, and non-lowercase digest refs before Docker execution. It validates the supplied artifact root, skips the local image build, and drives the same fake-Codex local WebSocket harness against the supplied image.
+
+Locked-image task-execution smoke is not backend-real, not a real LLM run, not a registry login, not a publish step, not release manifest generation, not AgentSmith adoption, and not release readiness. Do not wire it into default push/PR CI.
 
 ## P5 Runner Image Publish Focused Evidence
 
@@ -126,6 +136,7 @@ Start guard is not release readiness. It intentionally excludes runtime fast che
 - P5.0 contract consumer mode is not release readiness.
 - P5 runner image smoke is not release readiness.
 - P5 image task-execution smoke is not release readiness.
+- P5 locked-image task-execution smoke is not release readiness.
 - P5 runner image publish focused evidence is not release readiness.
 - P5.3a release manifest skeleton mode is not release readiness.
 - P5.1 start guard is not release readiness.

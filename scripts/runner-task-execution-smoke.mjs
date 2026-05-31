@@ -15,9 +15,18 @@ const FINAL_ANSWER = 'Image task execution smoke complete.';
 const ARTIFACT_FILENAME = 'task-execution-smoke.txt';
 const forbiddenDoneUsageField = ['usage', 'tokens'].join('_');
 const MAX_SENTINEL_SCAN_FILE_BYTES = 10 * 1024 * 1024;
+const DENIED_CREDENTIAL_PATHS = Object.freeze([
+  '.aws/credentials',
+  '.config/gcloud/application_default_credentials.json',
+]);
+const DENIED_CREDENTIAL_BASENAMES = Object.freeze([
+  '.netrc',
+  'credentials.json',
+]);
 
 function usage() {
   console.error('Usage: node scripts/runner-task-execution-smoke.mjs --image <image-tag> --artifact-root <dir>');
+  console.error('Self-test: node scripts/runner-task-execution-smoke.mjs --self-test');
   console.error('Requires Linux/local Docker networking because the harness uses docker run --network host.');
 }
 
@@ -73,6 +82,7 @@ async function writeFakeCodex(fakeDir) {
   await mkdir(fakeDir, { recursive: true });
   const fakeCodexPath = join(fakeDir, 'codex');
   await writeFile(fakeCodexPath, `#!/usr/bin/env node
+import { spawnSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -106,6 +116,11 @@ requireEqual('ARTIFACTS_PATH', process.env.ARTIFACTS_PATH, ARTIFACTS_PATH);
 requireMissing('MBOS_AGENT_KEY');
 requireMissing('MBOS_AGENT_WS_URL');
 requireMissing('MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET');
+requireMissing('MBOS_AGENT_TASK_RUNNER_MODE');
+requireMissing('MBOS_AGENT_RUNNER_DEBUG');
+requireMissing('MBOS_AGENT_RECONNECT_BASE_MS');
+requireMissing('MBOS_AGENT_RECONNECT_MAX_MS');
+requireMissing('CODEX_BIN');
 
 for (const [name, value] of Object.entries(process.env)) {
   const text = String(value || '');
@@ -139,6 +154,20 @@ if (typeof dependencySecret !== 'string' || !dependencySecret.startsWith('SMOKE_
 if (typeof oauthToken !== 'string' || !oauthToken.startsWith('SMOKE_OAUTH_TOKEN_')) {
   fail('projected OAuth token missing');
 }
+
+const contextCli = join(TASK_HOME, '.agents', 'skills', 'mbos-context', 'scripts', 'context_cli.py');
+const contextCliResult = spawnSync('python3', [
+  contextCli,
+  'get',
+  '--dependency',
+  'smoke-secret',
+  '--field',
+  'value',
+], { encoding: 'utf8' });
+if (contextCliResult.status !== 0) {
+  fail('mbos-context projected dependency lookup failed: ' + String(contextCliResult.stderr || '').trim());
+}
+requireEqual('mbos-context projected dependency secret', contextCliResult.stdout.trim(), dependencySecret);
 
 await mkdir(ARTIFACTS_PATH, { recursive: true });
 await writeFile(
@@ -443,6 +472,29 @@ async function assertNoSentinelsPersisted(root, sentinels) {
     return relativePath.length > 0 ? relativePath : '.';
   }
 
+  function deniedCredentialPathLabel(path) {
+    const normalizedPath = path.split('\\').join('/');
+    for (const basename of DENIED_CREDENTIAL_BASENAMES) {
+      if (normalizedPath === basename || normalizedPath.endsWith(`/${basename}`)) {
+        return basename;
+      }
+    }
+    for (const deniedPath of DENIED_CREDENTIAL_PATHS) {
+      if (normalizedPath === deniedPath || normalizedPath.endsWith(`/${deniedPath}`)) {
+        return deniedPath;
+      }
+    }
+    return null;
+  }
+
+  function recordCredentialPathHit(path) {
+    const shown = displayPath(path);
+    const deniedLabel = deniedCredentialPathLabel(shown);
+    if (deniedLabel) {
+      findings.push(`credential path denied (${deniedLabel}): ${shown}`);
+    }
+  }
+
   function recordPathHit(path) {
     const shown = displayPath(path);
     for (const value of values) {
@@ -463,6 +515,7 @@ async function assertNoSentinelsPersisted(root, sentinels) {
     }
     for (const entry of entries) {
       const path = join(dir, entry.name);
+      recordCredentialPathHit(path);
       recordPathHit(path);
 
       if (entry.isDirectory()) {
@@ -568,7 +621,67 @@ async function closeServer(wss) {
   });
 }
 
+async function expectSentinelScanFailure(root, expectedText, label) {
+  try {
+    await assertNoSentinelsPersisted(root, {});
+  } catch (error) {
+    const message = errorMessage(error);
+    if (message.includes(expectedText)) {
+      return;
+    }
+    fail(`${label} failed with unexpected scan error: ${message}`);
+  }
+  fail(`${label} did not fail`);
+}
+
+async function runSelfTest() {
+  const tmpRoot = await mkdtemp(join(tmpdir(), 'agentsmith-runner-smoke-selfcheck-'));
+  try {
+    const safeRoot = join(tmpRoot, 'safe');
+    await mkdir(join(safeRoot, 'notes'), { recursive: true });
+    await writeFile(join(safeRoot, 'notes', 'credential-filename-note.txt'), 'safe note\n', 'utf8');
+    await assertNoSentinelsPersisted(safeRoot, {});
+
+    const deniedPaths = [
+      '.netrc',
+      '.aws/credentials',
+      '.config/gcloud/application_default_credentials.json',
+      'credentials.json',
+      'nested/credentials.json',
+    ];
+    for (let index = 0; index < deniedPaths.length; index += 1) {
+      const caseRoot = join(tmpRoot, `denied-${String(index)}`);
+      const deniedPath = join(caseRoot, deniedPaths[index]);
+      await mkdir(resolve(deniedPath, '..'), { recursive: true });
+      await writeFile(deniedPath, '{}\n', 'utf8');
+      await expectSentinelScanFailure(caseRoot, 'credential path denied', `credential path denylist ${deniedPaths[index]}`);
+    }
+
+    const sentinelRoot = join(tmpRoot, 'sentinel');
+    await mkdir(sentinelRoot, { recursive: true });
+    await writeFile(join(sentinelRoot, 'note.txt'), 'SMOKE_SELF_TEST_SENTINEL\n', 'utf8');
+    try {
+      await assertNoSentinelsPersisted(sentinelRoot, { sentinel: 'SMOKE_SELF_TEST_SENTINEL' });
+    } catch (error) {
+      const message = errorMessage(error);
+      if (message.includes('sentinel in file contents')) {
+        console.log('runner task-execution smoke self-test passed');
+        return;
+      }
+      fail(`sentinel scan self-test failed with unexpected scan error: ${message}`);
+    }
+    fail('sentinel scan self-test did not fail');
+  } finally {
+    await rm(tmpRoot, { recursive: true, force: true });
+  }
+}
+
 async function main() {
+  if (process.argv.length === 3 && process.argv[2] === '--self-test') {
+    await runSelfTest();
+    return;
+  }
+
   const { image, artifactRoot } = parseArgs(process.argv.slice(2));
   const tmpRoot = await mkdtemp(join(tmpdir(), 'agentsmith-runner-task-exec-smoke-'));
   const fakeDir = join(tmpRoot, 'fake-codex');

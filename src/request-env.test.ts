@@ -23,6 +23,11 @@ describe('request-env', () => {
         MBOS_CODEX_PROXY_EXECUTION_TICKET: 'stale_proxy_ticket',
         MBOS_AGENT_PROJECTED_DEPENDENCIES: '{"dependencies":{"stale":"parent"}}',
         MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET: '{"fields":{"token":"stale"}}',
+        MBOS_AGENT_TASK_RUNNER_MODE: 'managed_platform',
+        MBOS_AGENT_RUNNER_DEBUG: '1',
+        MBOS_AGENT_RECONNECT_BASE_MS: '1000',
+        MBOS_AGENT_RECONNECT_MAX_MS: '5000',
+        CODEX_BIN: '/tmp/codex',
       },
       requestEnv: {
         MBOS_AGENT_EXECUTION_TICKET: 'current_agent_ticket',
@@ -38,6 +43,11 @@ describe('request-env', () => {
     expect(env.MBOS_CODEX_PROXY_EXECUTION_TICKET).toBe('current_proxy_ticket');
     expect(env.MBOS_AGENT_PROJECTED_DEPENDENCIES).toBe(projectedDependencies);
     expect(env.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET).toBeUndefined();
+    expect(env.MBOS_AGENT_TASK_RUNNER_MODE).toBeUndefined();
+    expect(env.MBOS_AGENT_RUNNER_DEBUG).toBeUndefined();
+    expect(env.MBOS_AGENT_RECONNECT_BASE_MS).toBeUndefined();
+    expect(env.MBOS_AGENT_RECONNECT_MAX_MS).toBeUndefined();
+    expect(env.CODEX_BIN).toBeUndefined();
   });
 
   it('omits absent request-scoped tickets and bulk projection instead of carrying stale parent values', () => {
