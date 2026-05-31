@@ -3,6 +3,7 @@ node_modules
 dist
 coverage
 .artifacts
+builtin-skills/.system
 *.log
 .DS_Store
 package-lock.json

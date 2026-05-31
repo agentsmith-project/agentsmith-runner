@@ -8,8 +8,13 @@
   "types": "dist/index.d.ts",
   "files": [
     "dist",
-    "builtin-skills",
-    "README.md"
+    "builtin-skills/mbos-context",
+    "builtin-skills/.mbos-runtime",
+    "builtin-skills/README.md",
+    "README.md",
+    "DEVELOPMENT.md",
+    "docs",
+    "scripts"
   ],
   "scripts": {
     "build": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node24 --external:node-pty --external:ws --outfile=dist/index.js --log-level=warning",

@@ -70,6 +70,7 @@ tar -C "$repo_root" \
   --exclude='./dist' \
   --exclude='./coverage' \
   --exclude='./.artifacts' \
+  --exclude='./builtin-skills/.system' \
   -cf - . | tar -C "$build_context" -xf -
 cp "$artifact_tgz" "$build_context/contract-artifact/$artifact_filename"
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 const repoRoot = new URL('..', import.meta.url).pathname.replace(/\/scripts\/?$/, '');
 const errors = [];
@@ -10,6 +11,20 @@ const REQUIRED_PATHS = [
   'tsconfig.json',
   'src/index.ts',
   'builtin-skills/README.md',
+];
+const REQUIRED_PACKAGE_FILES = [
+  'dist',
+  'builtin-skills/mbos-context',
+  'builtin-skills/.mbos-runtime',
+  'builtin-skills/README.md',
+  'README.md',
+  'DEVELOPMENT.md',
+  'docs',
+  'scripts',
+];
+const FORBIDDEN_DISTRIBUTION_PATH_PREFIXES = [
+  'builtin-skills/.system',
+  'package/builtin-skills/.system',
 ];
 const DEPENDENCY_FIELDS = [
   'dependencies',
@@ -33,6 +48,10 @@ const IGNORED_DIRECTORIES = new Set([
   'coverage',
   '.artifacts',
 ]);
+const DOCKER_CONTEXT_SCRIPTS = [
+  'scripts/test-runner-image-smoke.sh',
+  'scripts/test-runner-image-task-execution-smoke.sh',
+];
 const TEXT_FILE_PATTERN = /\.(?:cjs|cts|js|json|md|mjs|mts|py|sh|ts|txt|yaml|yml)$/;
 const FORBIDDEN_SOURCE_PATTERNS = [
   {
@@ -257,6 +276,125 @@ function checkPackageDependencies() {
       if (LOCAL_DEPENDENCY_PROTOCOL.test(specifier.trim())) {
         addError(`package.json ${field}.${name} must not use file:, link:, portal:, or workspace:`);
       }
+    }
+  }
+}
+
+function normalizePackageFileEntry(entry) {
+  return entry.replace(/\/+$/, '');
+}
+
+function checkPackageFilesAllowlist() {
+  const packageJson = readJson(join(repoRoot, 'package.json'));
+  if (!packageJson) {
+    return;
+  }
+  if (!Array.isArray(packageJson.files)) {
+    addError('package.json files must be an explicit runner source distribution allowlist');
+    return;
+  }
+
+  const actual = packageJson.files.map((entry) => {
+    if (typeof entry !== 'string') {
+      addError('package.json files entries must be strings');
+      return '';
+    }
+    return normalizePackageFileEntry(entry);
+  });
+  const actualSet = new Set(actual.filter((entry) => entry.length > 0));
+  const requiredSet = new Set(REQUIRED_PACKAGE_FILES);
+
+  for (const requiredFile of REQUIRED_PACKAGE_FILES) {
+    if (!actualSet.has(requiredFile)) {
+      addError(`package.json files must include explicit distribution path: ${requiredFile}`);
+    }
+  }
+  for (const entry of actualSet) {
+    if (!requiredSet.has(entry)) {
+      addError(`package.json files contains non-allowlisted distribution path: ${entry}`);
+    }
+    for (const forbiddenPrefix of FORBIDDEN_DISTRIBUTION_PATH_PREFIXES) {
+      if (entry === forbiddenPrefix || entry.startsWith(`${forbiddenPrefix}/`)) {
+        addError(`package.json files must not include forbidden distribution path: ${entry}`);
+      }
+    }
+  }
+}
+
+function parseNpmPackDryRun() {
+  const result = spawnSync(
+    'npm',
+    ['pack', '--dry-run', '--json', '--ignore-scripts'],
+    {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        npm_config_loglevel: 'silent',
+      },
+    },
+  );
+  if (result.error) {
+    addError(`npm pack dry-run failed to start: ${result.error.message}`);
+    return [];
+  }
+  if (result.status !== 0) {
+    const detail = (result.stderr || result.stdout || '').trim();
+    addError(`npm pack dry-run failed with exit code ${result.status}${detail ? `: ${detail}` : ''}`);
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(result.stdout);
+    if (!Array.isArray(parsed) || parsed.length !== 1 || !Array.isArray(parsed[0]?.files)) {
+      addError('npm pack dry-run output must contain exactly one package with a files array');
+      return [];
+    }
+    return parsed[0].files
+      .map((entry) => entry?.path)
+      .filter((entry) => typeof entry === 'string');
+  } catch (error) {
+    addError(`npm pack dry-run output must be JSON: ${error.message}`);
+    return [];
+  }
+}
+
+function checkNpmPackDistributionBoundary() {
+  const packedFiles = parseNpmPackDryRun();
+  for (const packedFile of packedFiles) {
+    for (const forbiddenPrefix of FORBIDDEN_DISTRIBUTION_PATH_PREFIXES) {
+      if (packedFile === forbiddenPrefix || packedFile.startsWith(`${forbiddenPrefix}/`)) {
+        addError(`npm pack dry-run must not include ${forbiddenPrefix}: ${packedFile}`);
+      }
+    }
+  }
+}
+
+function readTextFile(relativePath) {
+  return readFileSync(join(repoRoot, relativePath), 'utf8');
+}
+
+function dockerignoreIncludesSystemSkillExclusion(text) {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith('#'))
+    .some((line) => line === 'builtin-skills/.system' || line === 'builtin-skills/.system/**');
+}
+
+function checkDockerContextBoundary() {
+  const dockerignoreText = readTextFile('.dockerignore');
+  if (!dockerignoreIncludesSystemSkillExclusion(dockerignoreText)) {
+    addError('.dockerignore must explicitly exclude builtin-skills/.system from Docker build contexts');
+  }
+
+  for (const relativePath of DOCKER_CONTEXT_SCRIPTS) {
+    const text = readTextFile(relativePath);
+    if (text.includes('cp -R "$repo_root/builtin-skills" "$build_context/builtin-skills"')) {
+      addError(`${relativePath} must not copy the entire builtin-skills tree into Docker build context`);
+    }
+    if (text.includes('tar -C "$repo_root"') && !text.includes("--exclude='./builtin-skills/.system'")) {
+      addError(`${relativePath} Docker build context tar must exclude builtin-skills/.system`);
     }
   }
 }
@@ -609,6 +747,9 @@ if (process.argv.includes('--self-test')) {
 
 checkRequiredPaths();
 checkPackageDependencies();
+checkPackageFilesAllowlist();
+checkNpmPackDistributionBoundary();
+checkDockerContextBoundary();
 checkSourcePatterns();
 checkProviderBoundPatterns();
 checkRunnerSmokeFixturePatterns();
