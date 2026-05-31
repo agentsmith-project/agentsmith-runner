@@ -80,6 +80,35 @@ const FORBIDDEN_PROVIDER_BOUND_PATTERNS = [
     pattern: literalPattern(term),
   };
 });
+const RUNNER_SMOKE_FIXTURE_SCAN_PATHS = new Set([
+  'scripts/runner-task-execution-smoke.mjs',
+]);
+const FORBIDDEN_RUNNER_SMOKE_FIXTURE_PATTERNS = [
+  {
+    label: 'provider-bound smoke projection name "smoke-oauth"',
+    pattern: /smoke-oauth/,
+  },
+  {
+    label: 'provider-bound smoke projection field "access_token"',
+    pattern: /\baccess_token\b/,
+  },
+  {
+    label: 'provider-bound smoke sentinel "SMOKE_OAUTH_TOKEN_"',
+    pattern: /SMOKE_OAUTH_TOKEN_/,
+  },
+  {
+    label: 'provider-bound smoke prose "OAuth token"',
+    pattern: /OAuth token/i,
+  },
+  {
+    label: 'provider-bound ambient smoke env "GITHUB_TOKEN"',
+    pattern: /\bGITHUB_TOKEN\b/,
+  },
+  {
+    label: 'provider-bound ambient smoke sentinel "SMOKE_GITHUB_TOKEN_"',
+    pattern: /SMOKE_GITHUB_TOKEN_/,
+  },
+];
 const PRODUCT_SEMANTIC_SCAN_ROOTS = [
   'src',
   'builtin-skills',
@@ -273,6 +302,17 @@ function checkProviderBoundPatterns() {
   }
 }
 
+function checkRunnerSmokeFixturePatterns() {
+  for (const relativePath of RUNNER_SMOKE_FIXTURE_SCAN_PATHS) {
+    const text = readFileSync(join(repoRoot, relativePath), 'utf8');
+    for (const { label, pattern } of FORBIDDEN_RUNNER_SMOKE_FIXTURE_PATTERNS) {
+      if (pattern.test(text)) {
+        addError(`${relativePath} contains forbidden ${label}`);
+      }
+    }
+  }
+}
+
 function checkProductSemanticPatterns() {
   for (const scanRoot of PRODUCT_SEMANTIC_SCAN_ROOTS) {
     const absoluteRoot = join(repoRoot, scanRoot);
@@ -301,6 +341,19 @@ function collectProviderBoundPatternErrors(relativePath, text) {
   const violations = [];
   for (const { label, pattern } of FORBIDDEN_PROVIDER_BOUND_PATTERNS) {
     if (pattern.test(relativePath) || pattern.test(text)) {
+      violations.push(`${relativePath} contains forbidden ${label}`);
+    }
+  }
+  return violations;
+}
+
+function collectRunnerSmokeFixturePatternErrors(relativePath, text) {
+  const violations = [];
+  if (!RUNNER_SMOKE_FIXTURE_SCAN_PATHS.has(relativePath)) {
+    return violations;
+  }
+  for (const { label, pattern } of FORBIDDEN_RUNNER_SMOKE_FIXTURE_PATTERNS) {
+    if (pattern.test(text)) {
       violations.push(`${relativePath} contains forbidden ${label}`);
     }
   }
@@ -449,6 +502,38 @@ function runSelfTest() {
       expected: 'provider-bound term',
     },
   ];
+  const smokeFixtureNegativeCases = [
+    {
+      label: 'provider-bound smoke projection name',
+      text: "projected.dependencies['smoke-oauth']",
+      expected: 'provider-bound smoke projection name',
+    },
+    {
+      label: 'provider-bound smoke projection field',
+      text: "fields: { access_token: sentinel }",
+      expected: 'provider-bound smoke projection field',
+    },
+    {
+      label: 'provider-bound smoke oauth sentinel',
+      text: "const token = 'SMOKE_OAUTH_TOKEN_123';",
+      expected: 'provider-bound smoke sentinel',
+    },
+    {
+      label: 'provider-bound smoke oauth prose',
+      text: "fail('projected OAuth token missing');",
+      expected: 'provider-bound smoke prose',
+    },
+    {
+      label: 'provider-bound ambient GitHub env',
+      text: "requireMissing('GITHUB_TOKEN');",
+      expected: 'provider-bound ambient smoke env',
+    },
+    {
+      label: 'provider-bound ambient GitHub sentinel',
+      text: "const githubToken = 'SMOKE_GITHUB_TOKEN_123';",
+      expected: 'provider-bound ambient smoke sentinel',
+    },
+  ];
   const positiveCases = [
     {
       label: 'formal workspace path fields',
@@ -462,6 +547,16 @@ function runSelfTest() {
         "  library_root_path: '.',",
         '};',
       ].join('\n'),
+    },
+    {
+      label: 'GitHub Actions infrastructure token',
+      relativePath: '.github/workflows/runner-image-publish.yml',
+      text: 'password: ${{ secrets.GITHUB_TOKEN }}',
+    },
+    {
+      label: 'request env sanitizer known secret',
+      relativePath: 'src/request-env.ts',
+      text: "const keys = new Set(['GITHUB_TOKEN']);",
     },
   ];
   const selfTestErrors = [];
@@ -478,10 +573,21 @@ function runSelfTest() {
       selfTestErrors.push(`self-test failed to reject ${testCase.label}`);
     }
   }
+  for (const testCase of smokeFixtureNegativeCases) {
+    const violations = collectRunnerSmokeFixturePatternErrors(
+      'scripts/runner-task-execution-smoke.mjs',
+      testCase.text,
+    );
+    if (!violations.some((violation) => violation.includes(testCase.expected))) {
+      selfTestErrors.push(`self-test failed to reject ${testCase.label}`);
+    }
+  }
   for (const testCase of positiveCases) {
+    const relativePath = testCase.relativePath ?? `self-test/${testCase.label}.ts`;
     const violations = [
-      ...collectProductSemanticPatternErrors(`self-test/${testCase.label}.ts`, testCase.text),
-      ...collectProviderBoundPatternErrors(`self-test/${testCase.label}.ts`, testCase.text),
+      ...collectProductSemanticPatternErrors(relativePath, testCase.text),
+      ...collectProviderBoundPatternErrors(relativePath, testCase.text),
+      ...collectRunnerSmokeFixturePatternErrors(relativePath, testCase.text),
     ];
     if (violations.length > 0) {
       selfTestErrors.push(`self-test false positive for ${testCase.label}: ${violations.join('; ')}`);
@@ -505,6 +611,7 @@ checkRequiredPaths();
 checkPackageDependencies();
 checkSourcePatterns();
 checkProviderBoundPatterns();
+checkRunnerSmokeFixturePatterns();
 checkProductSemanticPatterns();
 
 if (errors.length > 0) {

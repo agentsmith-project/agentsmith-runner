@@ -163,7 +163,7 @@ requireMissing('MBOS_AGENT_RECONNECT_MAX_MS');
 requireMissing('NOTEBOOK_TERMINAL_CLOSE_GRACE_MS');
 requireMissing('CODEX_BIN');
 requireMissing('OPENAI_API_KEY');
-requireMissing('GITHUB_TOKEN');
+requireMissing('AMBIENT_ACCESS_TOKEN');
 requireMissing('HTTP_PROXY');
 
 for (const [name, value] of Object.entries(process.env)) {
@@ -174,7 +174,7 @@ for (const [name, value] of Object.entries(process.env)) {
     || text.includes('SMOKE_STALE_PROXY_TICKET_')
     || text.includes('SMOKE_STALE_PROJECTED_SECRET_')
     || text.includes('SMOKE_OPENAI_API_KEY_')
-    || text.includes('SMOKE_GITHUB_TOKEN_')
+    || text.includes('SMOKE_AMBIENT_TOKEN_')
     || text.includes('SMOKE_HTTP_PROXY_PASSWORD_')
   ) {
     fail(name + ' contains a runner-control, stale request, or ambient secret sentinel');
@@ -193,24 +193,19 @@ try {
 } catch {
   fail('MBOS_AGENT_PROJECTED_DEPENDENCIES must be JSON');
 }
-const dependencySecret = projected?.dependencies?.['smoke-secret']?.fields?.value;
-const oauthToken = projected?.dependencies?.['smoke-oauth']?.fields?.access_token;
-if (typeof dependencySecret !== 'string' || !dependencySecret.startsWith('SMOKE_DEPENDENCY_SECRET_')) {
-  fail('projected dependency secret missing');
-}
-if (typeof oauthToken !== 'string' || !oauthToken.startsWith('SMOKE_OAUTH_TOKEN_')) {
-  fail('projected OAuth token missing');
+const opaqueProjection = projected?.dependencies?.['smoke-opaque']?.fields?.value;
+if (typeof opaqueProjection !== 'string' || !opaqueProjection.startsWith('SMOKE_OPAQUE_PROJECTION_')) {
+  fail('projected opaque projection missing');
 }
 assertNoRequestScopedSentinelsInArgv(process.argv, {
   ticket,
-  dependencySecret,
-  oauthToken,
+  opaqueProjection,
   runnerKeyPrefix: 'SMOKE_RUNNER_KEY_',
   staleExecutionTicketPrefix: 'SMOKE_STALE_EXECUTION_TICKET_',
   staleProxyTicketPrefix: 'SMOKE_STALE_PROXY_TICKET_',
   staleProjectionSecretPrefix: 'SMOKE_STALE_PROJECTED_SECRET_',
   openAiApiKeyPrefix: 'SMOKE_OPENAI_API_KEY_',
-  githubTokenPrefix: 'SMOKE_GITHUB_TOKEN_',
+  ambientTokenPrefix: 'SMOKE_AMBIENT_TOKEN_',
   httpProxyPasswordPrefix: 'SMOKE_HTTP_PROXY_PASSWORD_',
 });
 
@@ -219,14 +214,14 @@ const contextCliResult = spawnSync('python3', [
   contextCli,
   'get',
   '--dependency',
-  'smoke-secret',
+  'smoke-opaque',
   '--field',
   'value',
 ], { encoding: 'utf8' });
 if (contextCliResult.status !== 0) {
   fail('mbos-context projected dependency lookup failed: ' + String(contextCliResult.stderr || '').trim());
 }
-requireEqual('mbos-context projected dependency secret', contextCliResult.stdout.trim(), dependencySecret);
+requireEqual('mbos-context projected opaque projection', contextCliResult.stdout.trim(), opaqueProjection);
 
 await mkdir(ARTIFACTS_PATH, { recursive: true });
 await writeFile(
@@ -308,14 +303,9 @@ async function buildExecutionContextFromContract(artifactRoot, contractDir, sent
     task_inputs: [],
     projected_dependencies: {
       dependencies: {
-        'smoke-secret': {
+        'smoke-opaque': {
           fields: {
-            value: sentinels.dependencySecret,
-          },
-        },
-        'smoke-oauth': {
-          fields: {
-            access_token: sentinels.oauthToken,
+            value: sentinels.opaqueProjection,
           },
         },
       },
@@ -777,13 +767,12 @@ async function main() {
   const sentinels = {
     runnerKey,
     ticket: `SMOKE_EXECUTION_TICKET_${randomUUID()}`,
-    dependencySecret: `SMOKE_DEPENDENCY_SECRET_${randomUUID()}`,
-    oauthToken: `SMOKE_OAUTH_TOKEN_${randomUUID()}`,
+    opaqueProjection: `SMOKE_OPAQUE_PROJECTION_${randomUUID()}`,
     staleExecutionTicket: `SMOKE_STALE_EXECUTION_TICKET_${randomUUID()}`,
     staleProxyTicket: `SMOKE_STALE_PROXY_TICKET_${randomUUID()}`,
     staleProjectionSecret: `SMOKE_STALE_PROJECTED_SECRET_${randomUUID()}`,
     openAiApiKey: `SMOKE_OPENAI_API_KEY_${randomUUID()}`,
-    githubToken: `SMOKE_GITHUB_TOKEN_${randomUUID()}`,
+    ambientToken: `SMOKE_AMBIENT_TOKEN_${randomUUID()}`,
     httpProxyPassword: `SMOKE_HTTP_PROXY_PASSWORD_${randomUUID()}`,
   };
   let containerStarted = false;
@@ -816,7 +805,7 @@ async function main() {
       '-e',
       `MBOS_CODEX_PROXY_EXECUTION_TICKET=${sentinels.staleProxyTicket}`,
       '-e',
-      `MBOS_AGENT_PROJECTED_DEPENDENCIES={"dependencies":{"smoke-secret":{"fields":{"value":"${sentinels.staleProjectionSecret}"}}}}`,
+      `MBOS_AGENT_PROJECTED_DEPENDENCIES={"dependencies":{"smoke-opaque":{"fields":{"value":"${sentinels.staleProjectionSecret}"}}}}`,
       '-e',
       `MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET={"fields":{"value":"${sentinels.staleProjectionSecret}"}}`,
       '-e',
@@ -864,7 +853,7 @@ async function main() {
       '-e',
       `OPENAI_API_KEY=${sentinels.openAiApiKey}`,
       '-e',
-      `GITHUB_TOKEN=${sentinels.githubToken}`,
+      `AMBIENT_ACCESS_TOKEN=${sentinels.ambientToken}`,
       '-e',
       `HTTP_PROXY=http://smoke:${sentinels.httpProxyPassword}@127.0.0.1:9`,
       '-v',
