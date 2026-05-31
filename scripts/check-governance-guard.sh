@@ -69,6 +69,59 @@ require_order() {
   fi
 }
 
+first_matching_line() {
+  local pattern="$1"
+  local path="$2"
+
+  grep -Enim 1 -- "$pattern" "$path" | cut -d: -f1 || true
+}
+
+digest_pair_comparison_line() {
+  local path="$1"
+  local left="$2"
+  local right="$3"
+  local left_to_right
+  local right_to_left
+
+  left_to_right="[$][{]?${left}[}]?\"?[[:space:]]*(==|!=)[[:space:]]*\"?[$][{]?${right}[}]?"
+  right_to_left="[$][{]?${right}[}]?\"?[[:space:]]*(==|!=)[[:space:]]*\"?[$][{]?${left}[}]?"
+  first_matching_line "${left_to_right}|${right_to_left}" "$path"
+}
+
+require_digest_triple_comparison_before_export() {
+  local path="$1"
+  local export_pattern="$2"
+  local br_line
+  local bs_line
+  local rs_line
+  local export_line
+
+  br_line="$(digest_pair_comparison_line "$path" "build_digest" "release_digest")"
+  bs_line="$(digest_pair_comparison_line "$path" "build_digest" "sha_digest")"
+  rs_line="$(digest_pair_comparison_line "$path" "release_digest" "sha_digest")"
+  export_line="$(first_matching_line "$export_pattern" "$path")"
+
+  if [[ -z "$export_line" ]]; then
+    fail "runner image publish exports compared digest"
+    return
+  fi
+
+  if [[ -n "$br_line" && -n "$bs_line" ]] && (( br_line < export_line && bs_line < export_line )); then
+    pass "runner image publish compares build/release/sha digests before exporting image digest"
+    return
+  fi
+  if [[ -n "$br_line" && -n "$rs_line" ]] && (( br_line < export_line && rs_line < export_line )); then
+    pass "runner image publish compares build/release/sha digests before exporting image digest"
+    return
+  fi
+  if [[ -n "$bs_line" && -n "$rs_line" ]] && (( bs_line < export_line && rs_line < export_line )); then
+    pass "runner image publish compares build/release/sha digests before exporting image digest"
+    return
+  fi
+
+  fail "runner image publish compares build/release/sha digests before exporting image digest"
+}
+
 scan_files() {
   find . \
     -path ./.git -prune -o \
@@ -407,13 +460,23 @@ check_runner_image_publish_focused_evidence() {
   require_grep "[[:space:]]--push" "$workflow" "runner image publish pushes image"
   require_grep "[[:space:]]--provenance=false" "$workflow" "runner image publish disables build provenance attestation"
   require_grep "[[:space:]]--sbom=false" "$workflow" "runner image publish disables build SBOM"
+  require_grep "[[:space:]]--metadata-file" "$workflow" "runner image publish writes build metadata file"
+  require_grep "containerimage[.]digest" "$workflow" "runner image publish reads build metadata container image digest"
   require_grep "imagetools inspect" "$workflow" "runner image publish inspects pushed image"
+  require_grep "imagetools inspect \"[$]RUNNER_RELEASE_REF\"" "$workflow" "runner image publish inspects release tag digest"
+  require_grep "imagetools inspect \"[$]RUNNER_SHA_REF\"" "$workflow" "runner image publish inspects sha tag digest"
   require_grep "Manifest[.]Digest" "$workflow" "runner image publish reads manifest digest"
   require_grep "sha256:\\[a-f0-9\\][{]64[}]" "$workflow" "runner image publish validates sha256 digest"
+  require_grep "build_digest" "$workflow" "runner image publish tracks build digest"
+  require_grep "release_digest" "$workflow" "runner image publish tracks release tag digest"
+  require_grep "sha_digest" "$workflow" "runner image publish tracks sha tag digest"
+  local runner_digest_export_pattern="RUNNER_IMAGE_DIGEST=[$][{]?(build_digest|release_digest|sha_digest)[}]?"
+  require_grep "$runner_digest_export_pattern" "$workflow" "runner image publish exports compared digest"
+  require_digest_triple_comparison_before_export "$workflow" "$runner_digest_export_pattern"
   require_grep "npm install .*ws@8[.]18[.]3" "$workflow" "runner image publish installs host dependency ws for locked smoke"
   require_grep "verify-release[.]sh --locked-image-task-execution-smoke --artifact-root artifacts/runner-contract --image \"[$]RUNNER_RELEASE_REF@[$]RUNNER_IMAGE_DIGEST\"" "$workflow" "runner image publish runs locked digest-pinned task-execution smoke"
   require_order "npm install .*ws@8[.]18[.]3" "verify-release[.]sh --locked-image-task-execution-smoke" "$workflow" "runner image publish installs host dependency ws before locked smoke"
-  require_order "Manifest[.]Digest" "verify-release[.]sh --locked-image-task-execution-smoke" "$workflow" "runner image publish resolves image digest before locked smoke"
+  require_order "$runner_digest_export_pattern" "verify-release[.]sh --locked-image-task-execution-smoke" "$workflow" "runner image publish resolves compared digest before locked smoke"
   require_order "verify-release[.]sh --locked-image-task-execution-smoke" "write-runner-release-manifest[.]mjs" "$workflow" "runner image publish runs locked smoke before release manifest generation"
 
   require_grep "write-runner-release-manifest[.]mjs" "$workflow" "runner image publish generates release manifest"

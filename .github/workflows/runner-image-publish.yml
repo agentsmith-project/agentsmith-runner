@@ -137,26 +137,63 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          metadata_file="$RUNNER_TEMP/runner-image-build-metadata.json"
+          rm -f "$metadata_file"
           docker buildx build \
             --push \
             --provenance=false \
             --sbom=false \
+            --metadata-file "$metadata_file" \
             --tag "$RUNNER_RELEASE_REF" \
             --tag "$RUNNER_SHA_REF" \
             --build-arg "CONTRACT_TGZ=$CONTRACT_TGZ" \
             .
+          if [[ ! -s "$metadata_file" ]]; then
+            echo "build metadata file was not written: $metadata_file" >&2
+            exit 1
+          fi
+          echo "RUNNER_IMAGE_METADATA_FILE=$metadata_file" >> "$GITHUB_ENV"
 
-      - name: Resolve pushed image digest
+      - name: Resolve and verify pushed image digests
         shell: bash
         run: |
           set -euo pipefail
-          digest="$(docker buildx imagetools inspect "$RUNNER_RELEASE_REF" --format '{{.Manifest.Digest}}')"
-          if ! [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]; then
-            echo "published image digest has invalid format: $digest" >&2
+          build_digest="$(
+            node -e '
+          const { readFileSync } = require("node:fs");
+          const metadata = JSON.parse(readFileSync(process.argv[1], "utf8"));
+          const digest = metadata["containerimage.digest"];
+          if (typeof digest !== "string" || digest.length === 0) {
+            throw new Error("build metadata containerimage.digest is missing");
+          }
+          console.log(digest);
+          ' "$RUNNER_IMAGE_METADATA_FILE"
+          )"
+          release_digest="$(docker buildx imagetools inspect "$RUNNER_RELEASE_REF" --format '{{.Manifest.Digest}}')"
+          sha_digest="$(docker buildx imagetools inspect "$RUNNER_SHA_REF" --format '{{.Manifest.Digest}}')"
+
+          if ! [[ "$build_digest" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+            echo "build metadata image digest has invalid format: $build_digest" >&2
             exit 1
           fi
-          echo "RUNNER_IMAGE_DIGEST=$digest" >> "$GITHUB_ENV"
-          echo "Published focused runner image evidence: $RUNNER_RELEASE_REF@$digest"
+          if ! [[ "$release_digest" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+            echo "release tag image digest has invalid format: $release_digest" >&2
+            exit 1
+          fi
+          if ! [[ "$sha_digest" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+            echo "sha tag image digest has invalid format: $sha_digest" >&2
+            exit 1
+          fi
+          if [[ "$build_digest" != "$release_digest" || "$build_digest" != "$sha_digest" ]]; then
+            echo "published image digest mismatch:" >&2
+            echo "  build metadata: $build_digest" >&2
+            echo "  release tag:    $release_digest" >&2
+            echo "  sha tag:        $sha_digest" >&2
+            exit 1
+          fi
+
+          echo "RUNNER_IMAGE_DIGEST=$build_digest" >> "$GITHUB_ENV"
+          echo "Published focused runner image evidence: $RUNNER_RELEASE_REF@$build_digest"
 
       - name: Run locked digest-pinned task-execution smoke
         run: bash scripts/verify-release.sh --locked-image-task-execution-smoke --artifact-root artifacts/runner-contract --image "$RUNNER_RELEASE_REF@$RUNNER_IMAGE_DIGEST"
