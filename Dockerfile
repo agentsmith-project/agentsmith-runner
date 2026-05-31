@@ -12,7 +12,8 @@ ARG CONTRACT_TGZ=__missing_runner_contract_artifact__.tgz
 
 COPY package.json tsconfig.json ./
 COPY src ./src
-COPY builtin-skills ./builtin-skills
+COPY builtin-skills/mbos-context ./builtin-skills/mbos-context
+COPY builtin-skills/.mbos-runtime ./builtin-skills/.mbos-runtime
 COPY ${CONTRACT_TGZ} /tmp/agent-runner-contract.tgz
 
 RUN test -n "$CONTRACT_TGZ" \
@@ -42,7 +43,8 @@ RUN apt-get update \
 
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/builtin-skills /etc/codex/skills
+COPY --from=build /app/builtin-skills/mbos-context /etc/codex/skills/mbos-context
+COPY --from=build /app/builtin-skills/.mbos-runtime /etc/codex/skills/.mbos-runtime
 COPY --from=build /app/node_modules ./node_modules
 
 ENTRYPOINT ["node", "/app/dist/index.js"]

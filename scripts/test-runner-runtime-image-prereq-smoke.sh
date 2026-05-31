@@ -66,6 +66,15 @@ run_bash_check "python3 version check" "python3 --version"
 run_bash_check \
   "mbos-context packaged skill check" \
   "test -f /etc/codex/skills/mbos-context/scripts/context_cli.py"
+run_bash_check \
+  "packaged skills top-level allowlist check" \
+  "set -euo pipefail; find /etc/codex/skills -mindepth 1 -maxdepth 1 -printf '%f\n' | sort | diff -u <(printf '%s\n' .mbos-runtime mbos-context) -"
+run_bash_check \
+  "system skill directory exclusion check" \
+  "test ! -e /etc/codex/skills/.system"
+run_bash_check \
+  "provider installer capability exclusion check" \
+  "set -euo pipefail; ! find /etc/codex/skills -type f -print0 | xargs -0 grep -IEn 'GITHUB_TOKEN|GH_TOKEN|OAuth|skill-installer|github_utils'"
 
 expected_value="smoke-value"
 projection='{"dependencies":{"sample-dependency":{"fields":{"value":"smoke-value"}}}}'
