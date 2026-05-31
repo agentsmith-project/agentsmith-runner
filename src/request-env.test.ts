@@ -24,6 +24,14 @@ describe('request-env', () => {
         MBOS_AGENT_PROJECTED_DEPENDENCIES: '{"dependencies":{"stale":"parent"}}',
         MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET: '{"fields":{"token":"stale"}}',
         MBOS_AGENT_TASK_RUNNER_MODE: 'managed_platform',
+        MBOS_AGENT_TASK_RUNNER_REQUIRE_BWRAP: '1',
+        MBOS_AGENT_ARTIFACT_SCAN_MAX_FILES: '100',
+        MBOS_AGENT_ARTIFACT_SCAN_MAX_FILE_BYTES: '1048576',
+        MBOS_AGENT_ARTIFACT_INLINE_IMAGE_MAX_BYTES: '65536',
+        MBOS_AGENT_ARTIFACT_TEXT_PREVIEW_MAX_BYTES: '4096',
+        MBOS_AGENT_WORKSPACE_FILE_SCAN_MAX_FILES: '250',
+        MBOS_AGENT_WORKSPACE_FILE_CHANGE_LIST_MAX: '25',
+        MBOS_AGENT_TASK_ASSET_IO_TIMEOUT_MS: '30000',
         MBOS_AGENT_BUILTIN_SKILLS_DIR: '/etc/codex/skills',
         MBOS_AGENT_BUILTIN_SKILLS_REQUIRED: '1',
         MBOS_AGENT_BUILTIN_SKILLS: 'mbos-context',
@@ -52,6 +60,14 @@ describe('request-env', () => {
     expect(env.MBOS_AGENT_PROJECTED_DEPENDENCIES).toBe(projectedDependencies);
     expect(env.MBOS_AGENT_PROJECTED_DEPENDENCY_SMOKE_SECRET).toBeUndefined();
     expect(env.MBOS_AGENT_TASK_RUNNER_MODE).toBeUndefined();
+    expect(env.MBOS_AGENT_TASK_RUNNER_REQUIRE_BWRAP).toBeUndefined();
+    expect(env.MBOS_AGENT_ARTIFACT_SCAN_MAX_FILES).toBeUndefined();
+    expect(env.MBOS_AGENT_ARTIFACT_SCAN_MAX_FILE_BYTES).toBeUndefined();
+    expect(env.MBOS_AGENT_ARTIFACT_INLINE_IMAGE_MAX_BYTES).toBeUndefined();
+    expect(env.MBOS_AGENT_ARTIFACT_TEXT_PREVIEW_MAX_BYTES).toBeUndefined();
+    expect(env.MBOS_AGENT_WORKSPACE_FILE_SCAN_MAX_FILES).toBeUndefined();
+    expect(env.MBOS_AGENT_WORKSPACE_FILE_CHANGE_LIST_MAX).toBeUndefined();
+    expect(env.MBOS_AGENT_TASK_ASSET_IO_TIMEOUT_MS).toBeUndefined();
     expect(env.MBOS_AGENT_BUILTIN_SKILLS_DIR).toBeUndefined();
     expect(env.MBOS_AGENT_BUILTIN_SKILLS_REQUIRED).toBeUndefined();
     expect(env.MBOS_AGENT_BUILTIN_SKILLS).toBeUndefined();
