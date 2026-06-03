@@ -433,6 +433,7 @@ check_image_smoke_not_release() {
   require_grep "test-runner-image-smoke[.]sh" scripts/verify-release.sh "verify entrypoint delegates image smoke to focused script"
   require_grep "test-runner-runtime-image-prereq-smoke[.]sh" scripts/test-runner-image-smoke.sh "image smoke runs runtime image prerequisite smoke"
   require_grep 'ENTRYPOINT[[:space:]]+\["node",[[:space:]]*"/app/dist/index[.]js"\]' Dockerfile "Dockerfile uses absolute runner entrypoint"
+  forbid_grep "^#[[:space:]]*syntax=docker/dockerfile" Dockerfile "Dockerfile does not require Docker Hub build frontend"
   require_grep 'run_missing_env_usage_check .*--workdir[[:space:]]+/tmp' scripts/test-runner-image-smoke.sh "image smoke covers non-app working directory startup"
   forbid_grep "runner-image-smoke:" .github/workflows/ci.yml "default CI does not define runner-image-smoke job"
   forbid_grep "repository:[[:space:]]*agentsmith-project/agentsmith" .github/workflows/ci.yml "default CI does not checkout AgentSmith"
