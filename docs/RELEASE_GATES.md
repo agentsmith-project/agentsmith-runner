@@ -1,6 +1,6 @@
 # Release Gates
 
-Current phase: P5 focused runner work, with repo-local runner runtime source, builtin skills, focused fast checks, a no-push image build/start smoke, and manual focused GHCR publish evidence.
+Current phase: GA runner handoff work, with repo-local runner runtime source, builtin skills, focused fast checks, a no-push image build/start smoke, manual digest-pinned GHCR publish evidence, runner release manifest generation, and runner-side GA handoff evidence.
 
 ## Quick Mode
 
@@ -109,7 +109,17 @@ bash scripts/verify-release.sh --locked-image-task-execution-smoke --artifact-ro
 
 It then generates `artifacts/runner-release/runner-release-manifest.json`, verifies it with `bash scripts/verify-release.sh --release-manifest --manifest ...`, and uploads artifact `runner-release-manifest`.
 
-This locked smoke proves only that the resolved digest-pinned image can run the fake-Codex safety harness. The workflow remains focused publish evidence only. It is not release readiness, not AgentSmith adoption, not an AgentSmith lock update, not an AgentSmith repo change, and not a release contract runner digest change.
+This locked smoke proves only that the resolved digest-pinned image can run the fake-Codex safety harness. The workflow remains focused publish evidence only, with a runner GA handoff report for downstream aggregation. It is not release readiness, not AgentSmith adoption, not an AgentSmith lock update, not an AgentSmith repo change, and not a release contract runner digest change.
+
+## Runner GA Handoff Mode
+
+```bash
+bash scripts/verify-release.sh --ga-handoff --manifest <manifest-path> --output-dir <dir>
+```
+
+This explicit mode validates the supplied runner release manifest and writes `<dir>/runner-ga-handoff-report.json`. The report uses schema `agentsmith.runner-ga-handoff-report/v1`, status `pass`, the raw manifest sha256, the digest-pinned runner image, the contract artifact binding, and runner manifest provenance.
+
+Runner GA handoff does not issue formal_verdict, does not update AgentSmith locks, does not modify the release contract, and does not replace AgentSmith product readiness or the release-kit final GA verdict. It is the runner-side handoff artifact that downstream GA aggregation can cite after AgentSmith adopts the manifest and lock.
 
 ## P5.3a Runner Release Manifest Skeleton Mode
 
@@ -144,6 +154,7 @@ Start guard is not release readiness. It intentionally excludes runtime fast che
 - P5 image task-execution smoke is not release readiness.
 - P5 locked-image task-execution smoke is not release readiness.
 - P5 runner image publish focused evidence is not release readiness.
+- Runner GA handoff is not a formal verdict.
 - P5.3a release manifest skeleton mode is not release readiness.
 - P5.1 start guard is not release readiness.
 - Passing CI quick mode is not release readiness.

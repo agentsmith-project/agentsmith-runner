@@ -4,6 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 checker="$repo_root/scripts/check-runner-release-manifest.mjs"
 generator="$repo_root/scripts/write-runner-release-manifest.mjs"
+handoff_writer="$repo_root/scripts/write-runner-ga-handoff-report.mjs"
 verify_release="$repo_root/scripts/verify-release.sh"
 tmp_root="$(mktemp -d)"
 
@@ -318,6 +319,69 @@ expect_verify_success() {
   pass "$label"
 }
 
+expect_ga_handoff_success() {
+  local label="$1"
+  local manifest_path="$2"
+  local output_dir="$3"
+  local output
+
+  if ! output="$(bash "$verify_release" --ga-handoff --manifest "$manifest_path" --output-dir "$output_dir" 2>&1)"; then
+    echo "$output"
+    fail "$label should have passed"
+  fi
+
+  if ! grep -q 'runner GA handoff report written' <<<"$output"; then
+    echo "$output"
+    fail "$label did not print the handoff report success marker"
+  fi
+
+  if ! grep -q 'not a formal verdict' <<<"$output"; then
+    echo "$output"
+    fail "$label did not print the non-verdict marker"
+  fi
+
+  node - "$manifest_path" "$output_dir/runner-ga-handoff-report.json" <<'NODE'
+const { createHash } = require('node:crypto');
+const { readFileSync } = require('node:fs');
+
+const [manifestPath, reportPath] = process.argv.slice(2);
+const manifestRaw = readFileSync(manifestPath);
+const manifest = JSON.parse(manifestRaw.toString('utf8'));
+const report = JSON.parse(readFileSync(reportPath, 'utf8'));
+const manifestSha = `sha256:${createHash('sha256').update(manifestRaw).digest('hex')}`;
+
+if (report.schema_version !== 'agentsmith.runner-ga-handoff-report/v1') {
+  throw new Error('unexpected runner GA handoff schema');
+}
+if (report.scope !== 'runner_ga_handoff_evidence') {
+  throw new Error('unexpected runner GA handoff scope');
+}
+if (report.status !== 'pass') {
+  throw new Error('runner GA handoff status must be pass');
+}
+if (Object.prototype.hasOwnProperty.call(report, 'formal_verdict')) {
+  throw new Error('runner GA handoff report must not contain formal_verdict');
+}
+if (report.release_id !== manifest.release_id || report.git_sha !== manifest.git_sha) {
+  throw new Error('runner GA handoff report must project manifest identity');
+}
+if (report.image?.image !== manifest.image.image || report.image?.digest !== manifest.image.digest) {
+  throw new Error('runner GA handoff report must project manifest image');
+}
+if (report.manifest?.input_sha256 !== manifestSha) {
+  throw new Error('runner GA handoff report must bind manifest input sha256');
+}
+if (report.manifest?.subject_sha256 !== manifest.artifact_provenance.subject_sha256) {
+  throw new Error('runner GA handoff report must project manifest subject sha');
+}
+if (!Array.isArray(report.checks) || report.checks.some((check) => check.status !== 'pass')) {
+  throw new Error('runner GA handoff checks must all pass');
+}
+NODE
+
+  pass "$label"
+}
+
 expect_generator_failure() {
   local label="$1"
   local pattern="$2"
@@ -346,6 +410,7 @@ expect_generator_failure() {
 
 contract_artifact_root="$tmp_root/contract-artifact"
 write_contract_descriptor "$contract_artifact_root"
+node --check "$handoff_writer"
 
 generated_manifest="$tmp_root/generated/runner-release-manifest.json"
 image_digest="sha256:$(printf 'b%.0s' {1..64})"
@@ -364,6 +429,7 @@ node "$generator" \
   --output "$generated_manifest" >/dev/null
 expect_success "generated runner release manifest fixture" "$generated_manifest"
 expect_verify_success "verify-release generated manifest fixture" "$generated_manifest"
+expect_ga_handoff_success "verify-release generated GA handoff fixture" "$generated_manifest" "$tmp_root/ga-handoff"
 
 expect_generator_failure \
   "generator rejects image-ref with digest" \

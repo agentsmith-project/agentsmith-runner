@@ -2,7 +2,7 @@
 
 This directory holds focused operator and developer runbook notes for the runner repo.
 
-Current status: P5 focused runner work. Runtime fast checks, a focused no-push image smoke, a manual image smoke workflow that consumes an explicit artifact, and a manual focused GHCR publish evidence workflow are available, but no runner image deploy, release, or adoption runbook is authoritative yet.
+Current status: GA runner handoff work. Runtime fast checks, a focused no-push image smoke, a manual image smoke workflow that consumes an explicit artifact, a manual digest-pinned GHCR publish evidence workflow, and runner GA handoff report generation are available. AgentSmith adoption locks and the final GA verdict remain outside this repo.
 
 ## P5.3b Runtime Fast Diagnostic
 
@@ -85,9 +85,21 @@ Inputs:
 - `agentsmith_contract_run_id`: required positive AgentSmith workflow run id that produced `agentsmith-runner-contract-artifact`.
 - `release_id`: optional safe id; if empty, the workflow uses `runner-${GITHUB_RUN_ID}`.
 
-The workflow validates the formal contract artifact, runs no-push image smoke, pushes only `ghcr.io/agentsmith-project/agentsmith-runner` with safe non-`latest` tags, resolves the pushed digest, runs `--locked-image-task-execution-smoke` with `--image "$RUNNER_RELEASE_REF@$RUNNER_IMAGE_DIGEST"`, generates and verifies `artifacts/runner-release/runner-release-manifest.json`, and uploads artifact `runner-release-manifest`.
+The workflow validates the formal contract artifact, runs no-push image smoke, pushes only `ghcr.io/agentsmith-project/agentsmith-runner` with safe non-`latest` tags, resolves the pushed digest, runs `--locked-image-task-execution-smoke` with `--image "$RUNNER_RELEASE_REF@$RUNNER_IMAGE_DIGEST"`, generates and verifies `artifacts/runner-release/runner-release-manifest.json`, writes `artifacts/runner-ga-handoff/runner-ga-handoff-report.json`, and uploads artifacts `runner-release-manifest` and `runner-ga-handoff`.
 
 This is focused publish evidence only. The locked smoke proves only that the resolved digest-pinned image can run the fake-Codex safety harness. Do not use it as release readiness, AgentSmith adoption, an AgentSmith lock update, an AgentSmith repo change, or a release contract runner digest change.
+
+## Runner GA Handoff
+
+Use this only with a supplied runner release manifest:
+
+```bash
+bash scripts/verify-release.sh --ga-handoff --manifest <manifest-path> --output-dir <dir>
+```
+
+The command validates the manifest, then writes `<dir>/runner-ga-handoff-report.json`. The report is the runner-side GA handoff evidence for downstream AgentSmith adoption and release-kit final aggregation.
+
+Runner GA handoff is not a formal verdict, does not contain `formal_verdict`, does not update AgentSmith locks, and does not replace AgentSmith product readiness or the release-kit final GA verdict.
 
 ## P5.1/P5.3a/P5.3b Start Guard
 
@@ -104,7 +116,7 @@ Start guard is not release readiness. It intentionally excludes runtime fast che
 ## Future Runbook Areas
 
 - Local runner development setup.
-- Runner image deploy and release handoff.
+- Runner image deploy handoff beyond the GA handoff report.
 - Builtin skills runtime diagnostics beyond the fast unit gate.
 - Contract conformance execution.
 - Release evidence generation.

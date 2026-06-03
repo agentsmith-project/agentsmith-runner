@@ -218,6 +218,9 @@ jobs:
       - name: Verify runner release manifest
         run: bash scripts/verify-release.sh --release-manifest --manifest artifacts/runner-release/runner-release-manifest.json
 
+      - name: Write runner GA handoff report
+        run: bash scripts/verify-release.sh --ga-handoff --manifest artifacts/runner-release/runner-release-manifest.json --output-dir artifacts/runner-ga-handoff
+
       - name: Upload runner release manifest artifact
         uses: actions/upload-artifact@v7.0.1
         with:
@@ -225,7 +228,15 @@ jobs:
           path: artifacts/runner-release/runner-release-manifest.json
           if-no-files-found: error
 
+      - name: Upload runner GA handoff artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: runner-ga-handoff
+          path: artifacts/runner-ga-handoff/runner-ga-handoff-report.json
+          if-no-files-found: error
+
       - name: Focused evidence notice
         run: |
           echo "Focused publish evidence only: digest-pinned GHCR image plus runner-release-manifest artifact."
+          echo "Runner GA handoff is evidence only, not a formal verdict."
           echo "This is not release readiness, not AgentSmith adoption, and not an AgentSmith lock update."

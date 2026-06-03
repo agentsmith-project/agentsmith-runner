@@ -200,6 +200,7 @@ check_required_files() {
     scripts/test-runner-runtime-image-prereq-smoke.sh
     scripts/check-runner-release-manifest.mjs
     scripts/write-runner-release-manifest.mjs
+    scripts/write-runner-ga-handoff-report.mjs
     scripts/test-runner-release-manifest.sh
   )
 
@@ -339,6 +340,7 @@ check_start_guard_not_release() {
   require_grep "test-runner-release-manifest[.]sh" scripts/verify-release.sh "start guard runs release manifest self-test"
   require_grep "check-runner-release-manifest[.]mjs" scripts/verify-release.sh "start guard checks release manifest syntax"
   require_grep "write-runner-release-manifest[.]mjs" scripts/verify-release.sh "start guard checks release manifest generator syntax"
+  require_grep "write-runner-ga-handoff-report[.]mjs" scripts/verify-release.sh "start guard checks runner GA handoff report writer syntax"
 }
 
 check_release_manifest_skeleton_not_release() {
@@ -369,6 +371,38 @@ check_release_manifest_skeleton_not_release() {
   require_grep "P5.3a release manifest skeleton" docs/RISK_REGISTER.md "risk register tracks manifest skeleton misuse"
   require_grep "release manifest skeleton" .github/pull_request_template.md "PR template separates manifest skeleton evidence"
   require_grep "Release manifest skeleton mode is not release readiness" scripts/verify-release.sh "verify entrypoint says manifest mode is not release readiness"
+}
+
+check_runner_ga_handoff_evidence() {
+  local workflow=".github/workflows/runner-image-publish.yml"
+
+  require_grep "bash scripts/verify-release[.]sh --ga-handoff --manifest <manifest-path> --output-dir <dir>" README.md "README documents runner GA handoff command"
+  require_grep "Runner GA handoff is not a formal verdict" README.md "README says runner GA handoff is not a formal verdict"
+  require_grep "runner-ga-handoff-report[.]json" README.md "README names runner GA handoff report"
+
+  require_grep "bash scripts/verify-release[.]sh --ga-handoff --manifest <manifest-path> --output-dir <dir>" DEVELOPMENT.md "DEVELOPMENT documents runner GA handoff command"
+  require_grep "not a formal verdict" DEVELOPMENT.md "DEVELOPMENT keeps runner GA handoff out of formal verdict"
+
+  require_grep "bash scripts/verify-release[.]sh --ga-handoff --manifest <manifest-path> --output-dir <dir>" docs/RELEASE_GATES.md "RELEASE_GATES documents runner GA handoff command"
+  require_grep "does not issue formal_verdict" docs/RELEASE_GATES.md "RELEASE_GATES keeps runner GA handoff non-verdict"
+
+  require_grep "runner-ga-handoff-report[.]json" docs/READINESS_EVIDENCE.md "readiness evidence names runner GA handoff report"
+  require_grep "not a formal verdict" docs/READINESS_EVIDENCE.md "readiness evidence keeps runner GA handoff non-verdict"
+
+  require_grep "runner-ga-handoff-report[.]json" docs/runbooks/README.md "runbooks document runner GA handoff report"
+  require_grep "not a formal verdict" docs/runbooks/README.md "runbooks keep runner GA handoff non-verdict"
+
+  require_grep "write-runner-ga-handoff-report[.]mjs" scripts/verify-release.sh "verify entrypoint delegates runner GA handoff report writing"
+  require_grep "Runner GA handoff is not a formal verdict" scripts/verify-release.sh "verify entrypoint says runner GA handoff is non-verdict"
+  require_grep "write-runner-ga-handoff-report[.]mjs" scripts/test-runner-release-manifest.sh "manifest self-test covers runner GA handoff writer"
+  require_grep "formal_verdict" scripts/test-runner-release-manifest.sh "manifest self-test rejects formal verdict field in runner GA handoff"
+
+  require_grep "verify-release[.]sh --ga-handoff --manifest artifacts/runner-release/runner-release-manifest[.]json --output-dir artifacts/runner-ga-handoff" "$workflow" "runner image publish writes runner GA handoff report"
+  require_order "verify-release[.]sh --release-manifest" "verify-release[.]sh --ga-handoff" "$workflow" "runner image publish validates manifest before GA handoff"
+  require_order "verify-release[.]sh --ga-handoff" "name:[[:space:]]*runner-ga-handoff" "$workflow" "runner image publish writes GA handoff before uploading it"
+  require_grep "name:[[:space:]]*runner-ga-handoff" "$workflow" "runner image publish uploads runner GA handoff artifact"
+  require_grep "path:[[:space:]]*artifacts/runner-ga-handoff/runner-ga-handoff-report[.]json" "$workflow" "runner image publish uploads runner GA handoff report path"
+  require_grep "not a formal verdict" "$workflow" "runner image publish labels runner GA handoff as non-verdict"
 }
 
 check_image_smoke_not_release() {
@@ -652,6 +686,7 @@ check_contract_consumer_source_boundary
 check_quick_not_release
 check_start_guard_not_release
 check_release_manifest_skeleton_not_release
+check_runner_ga_handoff_evidence
 check_image_smoke_not_release
 check_runner_image_publish_focused_evidence
 check_local_handoff_documented

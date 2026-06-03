@@ -1,6 +1,6 @@
 # AgentSmith Runner
 
-AgentSmith Runner is the implementation home for the AgentSmith managed runner execution process. Current P5 scope has repo-local runtime source, builtin skills, a focused dev/fast runtime gate, a focused no-push image build/start smoke, and a manual focused GHCR publish evidence workflow while keeping release readiness, AgentSmith adoption locks, and product semantics out of scope.
+AgentSmith Runner is the implementation home for the AgentSmith managed runner execution process. Current GA handoff scope has repo-local runtime source, builtin skills, a focused dev/fast runtime gate, a focused no-push image build/start smoke, a manual GHCR publish evidence workflow, runner release manifest generation, and runner-side GA handoff evidence while keeping AgentSmith adoption locks, product semantics, product readiness, and the final GA verdict out of scope.
 
 Canonical repository identity: `github.com/agentsmith-project/agentsmith-runner`
 
@@ -19,6 +19,7 @@ This repo owns:
 - Runner image.
 - Runner-side CI.
 - Focused runner image publish evidence.
+- Runner release manifest and runner-side GA handoff evidence.
 - Runner contract conformance tests.
 
 This repo only consumes the AgentSmith runner contract. AgentSmith and its shared contract flow remain the source of truth for product objects, API semantics, protocol schemas, fixtures, and supported protocol version fail-fast behavior.
@@ -42,7 +43,7 @@ This repo does not own:
 - Frontend management surface.
 - AgentSmith product release readiness.
 
-This P5 slice keeps image smoke no-push, keeps default push/PR CI on quick/start guards only, and adds separate manual workflows for image smoke diagnostics and focused publish evidence. It does not move product tests, product contracts, AgentSmith release gates, AgentSmith adoption locks, release readiness authority, or AgentSmith lock updates.
+This GA handoff slice keeps image smoke no-push, keeps default push/PR CI on quick/start guards only, and adds separate manual workflows for image smoke diagnostics and digest-pinned publish evidence. It does not move product tests, product contracts, AgentSmith release gates, AgentSmith adoption locks, final GA verdict authority, or AgentSmith lock updates.
 
 ## Boundary Rules
 
@@ -71,7 +72,7 @@ The current quick check validates governance skeleton and boundary claims only:
 bash scripts/verify-release.sh --quick
 ```
 
-Quick mode is not release readiness. The full repo-local release gate is a future authority and is not implemented in this stage.
+Quick mode is not release readiness. The full formal release gate remains out of scope in this repo; use the runner GA handoff command below for runner-side GA evidence.
 
 Default push/PR CI runs quick verification and the start guard. It does not checkout AgentSmith, build `@mbos/agent-runner-contract`, generate a runner contract artifact root, or run image smoke.
 
@@ -107,9 +108,19 @@ The task-execution image smoke is a manual focused diagnostic documented in [doc
 
 ## P5 Runner Image Publish Focused Evidence
 
-Manual focused publish evidence lives in `.github/workflows/runner-image-publish.yml` and is `workflow_dispatch` only. It downloads the formal AgentSmith artifact named `agentsmith-runner-contract-artifact`, runs `--contract-consumer`, runs the no-push `--image-smoke`, pushes only `ghcr.io/agentsmith-project/agentsmith-runner` tags shaped as `release-<release_id>` and `sha-<git-sha-12>`, resolves a `sha256:<64>` digest, runs `--locked-image-task-execution-smoke` against `$RUNNER_RELEASE_REF@$RUNNER_IMAGE_DIGEST`, writes `artifacts/runner-release/runner-release-manifest.json`, verifies it with `--release-manifest`, and uploads artifact `runner-release-manifest`.
+Manual focused publish evidence lives in `.github/workflows/runner-image-publish.yml` and is `workflow_dispatch` only. It downloads the formal AgentSmith artifact named `agentsmith-runner-contract-artifact`, runs `--contract-consumer`, runs the no-push `--image-smoke`, pushes only `ghcr.io/agentsmith-project/agentsmith-runner` tags shaped as `release-<release_id>` and `sha-<git-sha-12>`, resolves a `sha256:<64>` digest, runs `--locked-image-task-execution-smoke` against `$RUNNER_RELEASE_REF@$RUNNER_IMAGE_DIGEST`, writes `artifacts/runner-release/runner-release-manifest.json`, verifies it with `--release-manifest`, writes `artifacts/runner-ga-handoff/runner-ga-handoff-report.json`, and uploads artifacts `runner-release-manifest` and `runner-ga-handoff`.
 
 This workflow produces a digest-pinned GHCR image plus manifest artifact as focused evidence, with one fake-Codex locked runtime smoke over the resolved digest. It does not create a `latest` tag, old GHCR alias, AgentSmith adoption lock, AgentSmith repo change, release contract runner digest change, or release readiness claim.
+
+## Runner GA Handoff Report
+
+The runner-side GA handoff command is:
+
+```bash
+bash scripts/verify-release.sh --ga-handoff --manifest <manifest-path> --output-dir <dir>
+```
+
+It validates the supplied runner release manifest, then writes `<dir>/runner-ga-handoff-report.json` with the manifest digest, image digest, contract artifact binding, and runner provenance projected from the manifest. Runner GA handoff is not a formal verdict, does not issue `formal_verdict`, does not update AgentSmith locks, and does not replace AgentSmith product readiness or the release-kit final GA verdict.
 
 ## P5.1/P5.3a/P5.3b Start Guard
 

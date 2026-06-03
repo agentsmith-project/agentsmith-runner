@@ -1,6 +1,6 @@
 # Readiness Evidence
 
-Current phase: P5 focused runner work.
+Current phase: GA runner handoff work.
 
 ## Bootstrap Evidence
 
@@ -25,6 +25,7 @@ Current phase: P5 focused runner work.
 | P5 image task-execution smoke | focused diagnostic | scripts/verify-release.sh --image-task-execution-smoke --artifact-root <artifact-root> |
 | P5 locked-image task-execution smoke | focused diagnostic | scripts/verify-release.sh --locked-image-task-execution-smoke --artifact-root <artifact-root> --image <digest-pinned-ghcr-image-ref> |
 | P5 runner image publish workflow | focused publish evidence | .github/workflows/runner-image-publish.yml |
+| Runner GA handoff report | runner-side GA handoff evidence, not a formal verdict | runner-ga-handoff-report.json |
 | P5.1 start guard | focused diagnostic | scripts/verify-release.sh --start-guard |
 | Quick verify entrypoint present | present | scripts/verify-release.sh |
 | CI quick guard present | present | .github/workflows/ci.yml |
@@ -106,6 +107,18 @@ bash scripts/verify-release.sh --release-manifest --manifest artifacts/runner-re
 ```
 
 It uploads artifact `runner-release-manifest`. This is focused publish evidence only: digest-pinned GHCR image plus manifest artifact, with one fake-Codex safety smoke against the resolved digest. It is not release readiness, not AgentSmith adoption evidence, not an AgentSmith lock update, not an AgentSmith repo change, and not a release contract runner digest change.
+
+## Runner GA Handoff Evidence
+
+The runner GA handoff command is:
+
+```bash
+bash scripts/verify-release.sh --ga-handoff --manifest <manifest-path> --output-dir <dir>
+```
+
+Expected output includes `runner GA handoff report written` and `not a formal verdict`. The command validates the manifest and writes `<dir>/runner-ga-handoff-report.json`. The report binds the manifest input sha256, runner image digest, contract artifact fields, manifest subject sha, and runner CI provenance.
+
+The manual publish workflow writes and uploads artifact `runner-ga-handoff` after manifest verification. This report is runner-side handoff evidence only. It is not a formal verdict, does not contain `formal_verdict`, does not update AgentSmith locks, and does not replace AgentSmith product readiness or release-kit final GA verdict.
 
 ## P5.0 Focused Evidence
 

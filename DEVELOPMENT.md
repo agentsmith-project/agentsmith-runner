@@ -1,10 +1,10 @@
 # Development
 
-This repository is intentionally narrow during P5. The current goal is to make runner runtime source, builtin skills, dev/fast checks, focused no-push image build/start smoke, and manual focused GHCR publish evidence repo-local while keeping release readiness, adoption, and product semantics out of scope.
+This repository is intentionally narrow during GA handoff. The current goal is to keep runner runtime source, builtin skills, dev/fast checks, focused no-push image build/start smoke, manual digest-pinned GHCR publish evidence, runner release manifest, and runner-side GA handoff evidence repo-local while keeping AgentSmith adoption locks, product semantics, product readiness, and the final GA verdict out of scope.
 
 ## Current Phase
 
-P5 focused runner work: runner runtime source and builtin skills have a repo-local fast gate, the runner image has a focused build/start smoke, default push/PR CI runs only quick/start guards, and manual GHCR publish produces focused evidence only.
+GA handoff runner work: runner runtime source and builtin skills have a repo-local fast gate, the runner image has a focused build/start smoke, default push/PR CI runs only quick/start guards, manual GHCR publish produces digest-pinned evidence, and the runner GA handoff report projects that evidence for AgentSmith adoption and release-kit final aggregation.
 
 Allowed now:
 
@@ -25,6 +25,7 @@ Allowed now:
 - Dockerfile plus focused image smoke that consumes an explicit runner contract artifact root.
 - Manual `workflow_dispatch` image smoke workflow that downloads the formal AgentSmith runner contract artifact and runs no-push image smoke.
 - Manual `workflow_dispatch` GHCR publish workflow that produces digest-pinned image evidence and uploads `runner-release-manifest`.
+- Runner GA handoff report generation from a verified runner release manifest.
 
 Not allowed now:
 
@@ -36,7 +37,7 @@ Not allowed now:
 - `latest`, old GHCR aliases, or tag-only image evidence.
 - AgentSmith adoption lock updates.
 - AgentSmith repo changes or release contract runner digest changes.
-- Release readiness claims.
+- Formal release readiness claims or final GA verdict claims.
 - Product API, Context Store, Files, managed credential, audit, usage, or frontend management code.
 - AgentSmith product gate scripts or copied implementation assets from adjacent family repos.
 
@@ -118,6 +119,14 @@ This command validates only a supplied `agentsmith.runner-release-manifest/v1` J
 
 Release manifest skeleton mode is not release readiness. It is not an image build, not runtime evidence, not AgentSmith adoption evidence, and not an AgentSmith lock update.
 
+Runner GA handoff:
+
+```bash
+bash scripts/verify-release.sh --ga-handoff --manifest <manifest-path> --output-dir <dir>
+```
+
+This command validates the supplied manifest with `--release-manifest`, then writes `<dir>/runner-ga-handoff-report.json`. The report projects runner release id, git sha, image digest, contract artifact binding, manifest digest, and CI provenance for downstream AgentSmith adoption and release-kit final aggregation. It is not a formal verdict, does not contain `formal_verdict`, does not update AgentSmith locks, and does not replace AgentSmith product readiness or the release-kit final GA verdict.
+
 Script syntax check:
 
 ```bash
@@ -132,6 +141,7 @@ node --check scripts/check-runner-source-boundary.mjs
 node --check scripts/check-runner-contract-consumer.mjs
 node --check scripts/check-runner-release-manifest.mjs
 node --check scripts/write-runner-release-manifest.mjs
+node --check scripts/write-runner-ga-handoff-report.mjs
 node --check scripts/runner-task-execution-smoke.mjs
 ```
 
@@ -155,7 +165,7 @@ Quick verification proves only that the governance surface is intact. Runtime fa
 
 Image task-execution smoke adds one fake-Codex runner process and WebSocket path through the built image. It is still focused evidence only and does not prove backend-real behavior, AgentSmith adoption, or release readiness.
 
-The manual GHCR publish workflow proves only focused publish evidence: a digest-pinned `ghcr.io/agentsmith-project/agentsmith-runner` image and uploaded `runner-release-manifest` artifact. It does not update AgentSmith, change an adoption lock, change release contract runner digest, or establish release readiness.
+The manual GHCR publish workflow proves runner-side publish evidence: a digest-pinned `ghcr.io/agentsmith-project/agentsmith-runner` image, uploaded `runner-release-manifest` artifact, and uploaded `runner-ga-handoff` artifact. It does not update AgentSmith, change an adoption lock, change release contract runner digest, issue a formal verdict, or replace the release-kit final GA verdict.
 
 Local diagnostics, dev diagnostics, and backend-real diagnostics can become focused evidence later, but they are not release proof for this repository.
 

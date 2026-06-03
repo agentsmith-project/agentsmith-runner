@@ -10,9 +10,9 @@ This repository is the canonical AgentSmith runner repository:
 - Remote URL: `https://github.com/agentsmith-project/agentsmith-runner.git`
 - Default branch: `main`
 
-Current phase: P5 focused runner work. Runtime source, builtin skills, focused dev/fast checks, focused no-push image build/start smoke, and a manual focused GHCR publish evidence workflow live here; release readiness, AgentSmith adoption locks, and product semantics do not.
+Current phase: GA runner handoff work. Runtime source, builtin skills, focused dev/fast checks, focused no-push image build/start smoke, manual digest-pinned GHCR publish evidence, runner release manifest generation, and runner-side GA handoff evidence live here; AgentSmith adoption locks, product semantics, product readiness, and the final GA verdict do not.
 
-The repo is for runner execution process, builtin skills runtime, runner image, runner CI, focused runner image publish evidence, and runner contract conformance tests. It only consumes the AgentSmith runner contract.
+The repo is for runner execution process, builtin skills runtime, runner image, runner CI, runner image publish evidence, runner release manifest and GA handoff evidence, and runner contract conformance tests. It only consumes the AgentSmith runner contract.
 
 It is not responsible for Agent task API, Agent Runners API, Context Store, Files/file library, managed credentials, audit/usage, frontend management surface, product permissions, workspace/project governance, product release readiness, or the source of truth for the runner contract.
 
@@ -28,8 +28,9 @@ It is not responsible for Agent task API, Agent Runners API, Context Store, File
 
 - Do not move product contracts, AgentSmith gates, AgentSmith product tests, AgentSmith adoption locks, or release readiness authority during P5 focused runner work.
 - Keep image smoke no-push and local-only; it must consume an explicit runner contract artifact root and must not log in to registries.
-- Keep GHCR publish in `.github/workflows/runner-image-publish.yml` only; it is `workflow_dispatch` focused evidence and must not create `latest`, legacy aliases, AgentSmith locks, or release readiness claims.
-- Release manifest generation must come from `scripts/write-runner-release-manifest.mjs` after a digest-pinned GHCR push and must remain focused evidence only.
+- Keep GHCR publish in `.github/workflows/runner-image-publish.yml` only; it is `workflow_dispatch` evidence and must not create `latest`, legacy aliases, AgentSmith locks, or final GA verdict claims.
+- Release manifest generation must come from `scripts/write-runner-release-manifest.mjs` after a digest-pinned GHCR push.
+- Runner GA handoff generation must come from `scripts/write-runner-ga-handoff-report.mjs` after release manifest validation; it must not issue `formal_verdict` or update AgentSmith locks.
 - Do not import sibling repo source or rely on sibling repo relative paths for runtime behavior.
 - Do not copy implementation assets from adjacent family repos or retired runner repos.
 - Keep scripts KISS, fail closed, and simple.
