@@ -73,4 +73,4 @@ bash scripts/verify-release.sh --image-smoke --artifact-root <dir>
 
 These commands are not release readiness and must not be described as release gates.
 
-The future full release gate will be repo-local and authoritative only after runtime, image, contract conformance, release evidence, and provenance checks are implemented here.
+Default full release mode remains fail-closed during GA handoff. Runner-side GA evidence is the verified runner release manifest plus `runner-ga-handoff-report.json`; AgentSmith lock adoption, release contract runner digest adoption, and the release-kit final GA verdict stay downstream.

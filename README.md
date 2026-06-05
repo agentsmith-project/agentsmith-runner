@@ -56,7 +56,7 @@ This GA handoff slice keeps image smoke no-push, keeps default push/PR CI on qui
 - Do not import AgentSmith product source or use sibling repo source paths as a runtime dependency.
 - Do not copy implementation assets from adjacent family control-plane repos.
 - AFSCP and ASBCP are bootstrap discipline references only, not dependencies.
-- Do not use mutable tags as release proof; focused publish evidence and future release adoption must be digest-pinned and provenance-backed.
+- Do not use mutable tags as release proof; focused publish evidence and downstream release adoption must be digest-pinned and provenance-backed.
 - Do not store secrets, credentials, tokens, private keys, or placeholder secrets in this repo.
 - Child process env must use the shared request env sanitizer: stale runner request/control env is scrubbed, current request env is injected explicitly, and ambient secret-like parent env is not inherited.
 
@@ -72,7 +72,7 @@ The current quick check validates governance skeleton and boundary claims only:
 bash scripts/verify-release.sh --quick
 ```
 
-Quick mode is not release readiness. The full formal release gate remains out of scope in this repo; use the runner GA handoff command below for runner-side GA evidence.
+Quick mode is not release readiness. Default full mode remains fail-closed during GA handoff; use the runner GA handoff command below for runner-side GA evidence.
 
 Default push/PR CI runs quick verification and the start guard. It does not checkout AgentSmith, build `@mbos/agent-runner-contract`, generate a runner contract artifact root, or run image smoke.
 
@@ -154,7 +154,7 @@ The checker also validates `artifact_provenance.subject_sha256` by hashing the m
 
 `scripts/write-runner-release-manifest.mjs` generates the same shape from a supplied contract artifact root, a safe GHCR image tag ref, and a resolved image digest. The generator is covered by `bash scripts/test-runner-release-manifest.sh` and by the start guard.
 
-This skeleton is not an image build, not runtime evidence, not AgentSmith adoption, not an AgentSmith lock update, and not release readiness. AgentSmith should consume a future provenance-backed manifest plus lock state, not local runner source.
+This skeleton is not an image build, not runtime evidence, not AgentSmith adoption, not an AgentSmith lock update, and not release readiness. AgentSmith consumes the runner release manifest plus lock state and runner GA handoff evidence, not local runner source.
 
 ## P5.0 Contract Consumer Skeleton
 
@@ -177,7 +177,7 @@ When team members enter this repo, first claim non-overlapping workstreams befor
 - `docs`: README, AGENTS, DEVELOPMENT, ADR, readiness evidence, risk register.
 - `contracts`: consumer contract docs, conformance fixture plan, supported protocol version fail-fast notes.
 - `runbooks`: local runner operation, image build/run handoff, release operator notes.
-- `CI gate`: quick governance guard, future release gate design, workflow hardening.
+- `CI gate`: quick governance guard, default full-mode fail-closed behavior, workflow hardening.
 - `implementation`: runner process, skills runtime, runner image, conformance tests.
 
 All workstreams are bound by this README, [AGENTS.md](AGENTS.md), [DEVELOPMENT.md](DEVELOPMENT.md), and [docs/RELEASE_GATES.md](docs/RELEASE_GATES.md). Quick gate, runtime fast gate, and image smoke success only open repo-local focused work; they do not approve release, adoption, or AgentSmith lock updates.

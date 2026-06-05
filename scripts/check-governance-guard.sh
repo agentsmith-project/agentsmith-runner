@@ -304,13 +304,13 @@ check_quick_not_release() {
   require_file docs/RELEASE_GATES.md
   require_file scripts/verify-release.sh
   require_grep "Quick mode is not release readiness" docs/RELEASE_GATES.md "RELEASE_GATES says quick is not release readiness"
-  require_grep "full release mode is intentionally not implemented|full release gate is not implemented" scripts/verify-release.sh "verify entrypoint fails full mode during bootstrap"
+  require_grep "full release mode remains fail-closed|full release mode is fail-closed" scripts/verify-release.sh "verify entrypoint fails default full mode during GA handoff"
   require_grep "bash scripts/verify-release[.]sh --quick" .github/workflows/ci.yml "CI runs quick verification"
 
   if bash scripts/verify-release.sh >/dev/null 2>&1; then
-    fail "full release mode must fail during bootstrap"
+    fail "default full mode must fail during GA handoff"
   else
-    pass "full release mode fails during bootstrap"
+    pass "default full mode fails during GA handoff"
   fi
 }
 

@@ -141,7 +141,7 @@ Before a P5 runtime worker starts implementation:
 - `bash scripts/verify-release.sh --quick` passes, including the contract-consumer/source-boundary guard.
 - `bash scripts/test-runner-runtime-fast.sh` passes for repo-local source and builtin skills.
 - The published `@mbos/agent-runner-contract` artifact is consumable, including required fixtures, package manifest v1, and external provenance descriptor metadata.
-- Future AgentSmith adoption consumes provenance-backed manifest plus lock state, not local source.
+- AgentSmith adoption consumes provenance-backed manifest plus lock state, not local source.
 - Runtime work consumes the contract artifact only; it must not use sibling AgentSmith source paths, local dependency protocols, copied package sources, or removed old runner source.
 - Runtime work does not migrate AgentSmith product semantics into this repo. Product semantics remain in AgentSmith and the published contract artifact.
-- Local, dev, and backend-real diagnostics may help focused debugging, but they are not release proof and must not replace the future full release gate.
+- Local, dev, and backend-real diagnostics may help focused debugging, but they are not release proof and must not replace the default fail-closed full mode or downstream AgentSmith/release-kit GA evidence.

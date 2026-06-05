@@ -67,7 +67,7 @@ Current quick verification:
 bash scripts/verify-release.sh --quick
 ```
 
-Quick verification includes the contract-consumer/source-boundary check. It remains a bootstrap guard only, not release readiness.
+Quick verification includes the contract-consumer/source-boundary check. It remains a governance guard only, not release readiness.
 
 P5.3b runtime fast gate:
 

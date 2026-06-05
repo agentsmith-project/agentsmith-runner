@@ -28,15 +28,15 @@ Quick mode validates only the governance skeleton and boundary guardrails:
 
 Quick mode is not release readiness. Quick mode must not be described as a release gate, production approval, image adoption proof, runtime readiness proof, or AgentSmith lock approval.
 
-## Full Release Gate
+## Default Full Mode
 
-The future full release gate will be the repo-local authority for this runner repository:
+Default full mode is intentionally fail-closed during GA handoff:
 
 ```bash
 bash scripts/verify-release.sh
 ```
 
-During bootstrap, full release mode is intentionally not implemented and must fail closed. It will become authoritative only after this repo contains its own runtime checks, contract conformance tests, image build checks, provenance checks, release evidence validation, and adoption manifest checks.
+The runner repo now emits runner-side GA evidence through the verified runner release manifest and `runner-ga-handoff-report.json`. Default full mode must still fail closed because formal release readiness is not issued here: AgentSmith owns lock adoption and release contract runner digest adoption, and release-kit owns the final GA verdict. A broader repo-local runner release gate can be introduced only after it replaces old ambiguity without adding a third formal GA verdict.
 
 ## P5.3b Runtime Fast Gate
 
@@ -46,7 +46,7 @@ bash scripts/test-runner-runtime-fast.sh
 
 This focused gate is the positive local entrypoint for runner runtime source and builtin skills. It runs `scripts/check-runner-source-boundary.mjs`, TypeScript checking, runner Vitest unit tests, and builtin skill Python unit tests.
 
-Runtime fast gate is not release readiness. It does not build or publish a runner image, validate backend-real behavior, prove contract conformance beyond local unit coverage, update an AgentSmith lock, or replace the future full release gate.
+Runtime fast gate is not release readiness. It does not build or publish a runner image, validate backend-real behavior, prove contract conformance beyond local unit coverage, update an AgentSmith lock, or replace the default fail-closed full mode.
 
 ## P5.0 Contract Consumer Mode
 
@@ -68,7 +68,7 @@ This explicit mode is a focused no-push image build/start smoke for a supplied r
 
 Default push/PR CI must not run image smoke, checkout AgentSmith, install/build AgentSmith dependencies, or generate a runner contract artifact root from AgentSmith source. Manual focused image smoke is available through `.github/workflows/runner-image-smoke.yml` with `workflow_dispatch`; it downloads `agentsmith-runner-contract-artifact` by `agentsmith_contract_run_id` and runs `--contract-consumer` plus no-push `--image-smoke` against `artifacts/runner-contract`.
 
-Image smoke is not release readiness. It does not publish an image, log in to a registry, push to GHCR, generate a release manifest, produce provenance, update AgentSmith adoption, update an AgentSmith lock, or replace the future full release gate.
+Image smoke is not release readiness. It does not publish an image, log in to a registry, push to GHCR, generate a release manifest, produce provenance, update AgentSmith adoption, update an AgentSmith lock, or replace the default fail-closed full mode.
 
 ## P5 Image Task-Execution Smoke Mode
 
@@ -78,7 +78,7 @@ bash scripts/verify-release.sh --image-task-execution-smoke --artifact-root <art
 
 This explicit mode is a manual, focused no-push image task-execution smoke for a supplied runner contract artifact root. It validates the artifact root, builds a local image, and drives one fake-Codex task through a local WebSocket harness. The harness checks task HOME/workspace/artifacts env, projected dependency reading through the seeded `mbos-context` skill CLI, runner/control env scrubbing, Codex CLI argv sentinel leakage, local response frames, and request-scoped sentinel plus obvious credential path leakage under task HOME. Operator steps live in [runbooks/README.md](runbooks/README.md#p5-image-task-execution-smoke).
 
-Image task-execution smoke is not release readiness. It does not call AgentSmith, issue a real ticket, call a real LLM, publish an image, produce provenance, update AgentSmith adoption, update an AgentSmith lock, or replace the future full release gate.
+Image task-execution smoke is not release readiness. It does not call AgentSmith, issue a real ticket, call a real LLM, publish an image, produce provenance, update AgentSmith adoption, update an AgentSmith lock, or replace the default fail-closed full mode.
 
 ## P5 Locked-Image Task-Execution Smoke Mode
 
@@ -133,11 +133,11 @@ Runner GA handoff does not issue formal_verdict, does not update AgentSmith lock
 bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
 ```
 
-This explicit mode validates only the future runner release manifest machine shape. The manifest must use `agentsmith.runner-release-manifest/v1`, contain only the allowed top-level fields, use runner `agentsmith-runner`, bind `git_sha` to a 40-character lowercase commit, keep `runner_contract_version` semver, and keep `supported_protocol_versions` exactly `["1.0"]`.
+This explicit mode validates only the runner release manifest machine shape. The manifest must use `agentsmith.runner-release-manifest/v1`, contain only the allowed top-level fields, use runner `agentsmith-runner`, bind `git_sha` to a 40-character lowercase commit, keep `runner_contract_version` semver, and keep `supported_protocol_versions` exactly `["1.0"]`.
 
 The image field must use logical id `agentsmith-runner` and a digest-pinned GHCR reference for `ghcr.io/agentsmith-project/agentsmith-runner`; tag-only references fail. The `contract_artifact` field must carry P5.2 contract package references: `package_uri`, `package_sha256`, `package_integrity`, and `descriptor_subject_sha256`. The `package_uri` must be a canonical remote CI artifact URI for a `.tgz` package under `gh-artifact://agentsmith-project/agentsmith/runner-contract-artifact/<positive-run-id>/`. The `artifact_provenance` field must be CI artifact provenance for `github.com/agentsmith-project/agentsmith-runner`, subject `runner-release-manifest`, subject URI `runner-release-manifest.json`, and must pass subject hash validation over the manifest with `artifact_provenance` excluded. In P5.3a, `artifact_provenance.artifact_sha256` must equal `subject_sha256`; this is the skeleton manifest subject hash, not remote artifact download proof. Workflow, job, generator command, and generator version are required as non-empty strings only. The `adoption_policy` field must require fail-fast adoption, lock update, and release contract adoption.
 
-Release manifest skeleton mode is not release readiness. It does not build a runner image, publish a GHCR image, prove runtime behavior, prove AgentSmith adoption, update an AgentSmith lock, or replace the future full release gate.
+Release manifest skeleton mode is not release readiness. It does not build a runner image, publish a GHCR image, prove runtime behavior, prove AgentSmith adoption, update an AgentSmith lock, or replace the default fail-closed full mode.
 
 `scripts/write-runner-release-manifest.mjs` is the focused generator for the same manifest shape. It accepts a formal contract artifact root plus a safe GHCR image tag ref without digest and a resolved digest, then writes the manifest artifact JSON. It is covered by `bash scripts/test-runner-release-manifest.sh`.
 
@@ -169,4 +169,4 @@ Start guard is not release readiness. It intentionally excludes runtime fast che
 - Local, dev, or backend-real diagnostics are not release proof.
 - A mutable tag is not release readiness.
 - AgentSmith product readiness is not owned by this repo.
-- Runner image adoption by AgentSmith cannot happen from this skeleton; it requires future provenance-backed manifest evidence and AgentSmith lock state.
+- Runner image adoption by AgentSmith cannot happen from runner source or local diagnostics; it requires the runner release manifest, runner GA handoff evidence, and AgentSmith lock state.

@@ -31,16 +31,16 @@ Current phase: GA runner handoff work.
 | CI quick guard present | present | .github/workflows/ci.yml |
 | CI runner start guard present | present | .github/workflows/ci.yml |
 | Default CI image smoke | not present | image smoke is manual explicit artifact diagnostic |
-| Full release gate | not implemented | docs/RELEASE_GATES.md |
+| Default full mode | fail-closed during GA handoff | scripts/verify-release.sh |
 | Runtime behavior evidence | focused only | scripts/test-runner-runtime-fast.sh |
 | Runner image evidence | focused only | scripts/verify-release.sh --image-smoke --artifact-root <artifact-root> |
-| Contract conformance evidence | not implemented | future contracts and CI gate workstreams |
+| Contract conformance evidence | focused only | contract consumer, runtime fast, image smoke, and handoff checks |
 | Runner release manifest artifact | focused publish evidence only | runner-image-publish workflow artifact `runner-release-manifest` |
 | Local, dev, or backend-real diagnostics as release proof | rejected | docs/RELEASE_GATES.md |
 
 ## Current Verdict
 
-No release readiness is claimed in bootstrap.
+No runner repo formal release verdict is claimed during GA handoff. Runner-side GA evidence is the verified runner release manifest plus `runner-ga-handoff-report.json`; AgentSmith lock adoption, release contract runner digest adoption, and the release-kit final GA verdict are downstream responsibilities.
 
 The quick governance check is:
 

@@ -15,7 +15,7 @@ Usage:
   bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json>
   bash scripts/verify-release.sh
 
-Current bootstrap status:
+Current GA handoff status:
   --quick validates governance skeleton and boundary guardrails only.
   --start-guard validates quick governance plus source-boundary, contract-consumer, and release-manifest startup checks.
     It intentionally excludes runtime fast checks until CI has explicit contract artifact acquisition.
@@ -26,7 +26,7 @@ Current bootstrap status:
   --release-manifest validates an explicit runner release manifest skeleton only.
   --ga-handoff validates an explicit runner release manifest and writes runner-side GA handoff evidence only.
   --ga-handoff-report validates an explicit runner GA handoff report artifact only.
-  Full release mode is intentionally not implemented during bootstrap.
+  Full release mode remains fail-closed during GA handoff; runner-side GA evidence is the verified release manifest plus runner GA handoff report.
 USAGE
 }
 
@@ -210,9 +210,9 @@ if [[ $# -ne 0 ]]; then
 fi
 
 cat >&2 <<'MESSAGE'
-error: full release gate is not implemented in bootstrap.
+error: full release mode is fail-closed during GA handoff.
 
-This repo currently supports only:
+This repo currently supports runner-side focused diagnostics and GA handoff evidence only:
   bash scripts/verify-release.sh --quick
   bash scripts/verify-release.sh --start-guard
   bash scripts/verify-release.sh --contract-consumer --artifact-root <dir>
@@ -233,5 +233,6 @@ Locked image task-execution smoke is not release readiness.
 Release manifest skeleton mode is not release readiness.
 Runner GA handoff is not a formal verdict.
 Runner GA handoff report check is not a formal verdict.
+AgentSmith lock adoption, release contract runner digest adoption, and the release-kit final GA verdict are downstream responsibilities.
 MESSAGE
 exit 2

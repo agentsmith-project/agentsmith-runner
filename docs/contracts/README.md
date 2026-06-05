@@ -59,7 +59,7 @@ bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
 
 The runner release manifest skeleton does not download or unpack contract artifacts. It checks that `contract_artifact` binds to the P5.2 handoff facts that downstream manifests can reference directly: tgz `package_uri`, tgz `package_sha256`, tgz `package_integrity`, and descriptor `descriptor_subject_sha256`. The package URI must be a P5.2 canonical remote CI artifact URI for a `.tgz` file, not a file path, local protocol, workspace path, or non-numeric run id.
 
-This checker fixes the manifest adoption shape only. It is not a contract source of truth, not a runtime conformance test, not image evidence, not AgentSmith adoption, and not release readiness. AgentSmith should consume a future provenance-backed manifest plus lock state rather than local runner source.
+This checker fixes the manifest adoption shape only. It is not a contract source of truth, not a runtime conformance test, not image evidence, not AgentSmith adoption, and not release readiness. AgentSmith consumes the runner release manifest plus lock state and runner GA handoff evidence rather than local runner source.
 
 `scripts/write-runner-release-manifest.mjs` reads only the formal `runner-contract-artifact.json` descriptor from `--artifact-root` for `package_uri`, `package_sha256`, `package_integrity`, `descriptor_subject_sha256`, and `runner_contract_version`. The image facts still come from the focused publish workflow after GHCR push and digest resolution.
 
