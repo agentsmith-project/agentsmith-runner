@@ -544,6 +544,9 @@ check_runner_image_publish_focused_evidence() {
   require_grep "write-runner-release-manifest[.]mjs" docs/contracts/README.md "contracts docs document release manifest generator"
   require_grep "manual focused GHCR publish evidence.*runner release manifest artifact" docs/adr/0001-bootstrap-boundary.md "ADR documents focused publish evidence allowance"
   require_grep "release contract runner digest changes" docs/adr/0001-bootstrap-boundary.md "ADR keeps publish evidence out of release contract runner digest changes"
+  require_grep "runner-side handoff evidence only" docs/adr/0001-bootstrap-boundary.md "ADR keeps current GA boundary to runner-side handoff evidence"
+  require_grep "not a formal verdict" docs/adr/0001-bootstrap-boundary.md "ADR keeps runner GA handoff out of formal verdict"
+  forbid_grep "Full release authority remains future work|must be implemented repo-locally before any runner image release|future repo-local.*formal.*verdict" docs/adr/0001-bootstrap-boundary.md "ADR does not claim future repo-local formal release authority"
   forbid_grep "still does not allow image publish, release manifest generation" docs/adr/0001-bootstrap-boundary.md "ADR does not regress to old publish prohibition wording"
 }
 

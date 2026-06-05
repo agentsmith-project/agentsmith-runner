@@ -37,4 +37,5 @@ Local handoff uses `/home/percy/works/mbos-v1/agentsmith-runner` as a checkout b
 - Team members can enter with a shared boundary and claim non-overlapping workstreams.
 - Quick mode can catch boundary drift early.
 - Quick mode cannot approve release readiness.
-- Full release authority remains future work and must be implemented repo-locally before any runner image release or AgentSmith adoption claim.
+- The active GA boundary is runner-side handoff evidence only: verified runner release manifest plus `runner-ga-handoff-report.json`. Runner GA handoff is not a formal verdict and does not update AgentSmith locks or release contract runner digest adoption.
+- Default full mode stays fail-closed during GA handoff; AgentSmith owns lock adoption and release contract runner digest adoption, and release-kit owns the final GA verdict.
