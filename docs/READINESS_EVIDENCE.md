@@ -116,7 +116,13 @@ The runner GA handoff command is:
 bash scripts/verify-release.sh --ga-handoff --manifest <manifest-path> --output-dir <dir>
 ```
 
-Expected output includes `runner GA handoff report written` and `not a formal verdict`. The command validates the manifest and writes `<dir>/runner-ga-handoff-report.json`. The report binds the manifest input sha256, runner image digest, contract artifact fields, manifest subject sha, and runner CI provenance.
+Expected output includes `runner GA handoff report written`, `runner GA handoff report check passed`, and `not a formal verdict`. The command validates the manifest, writes `<dir>/runner-ga-handoff-report.json`, and validates the report artifact before returning success. The report binds the manifest input sha256, runner image digest, contract artifact fields, manifest subject sha, and runner CI provenance.
+
+To validate a downloaded report artifact without regenerating it:
+
+```bash
+bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json>
+```
 
 The manual publish workflow writes and uploads artifact `runner-ga-handoff` after manifest verification. This report is runner-side handoff evidence only. It is not a formal verdict, does not contain `formal_verdict`, does not update AgentSmith locks, and does not replace AgentSmith product readiness or release-kit final GA verdict.
 
@@ -168,6 +174,6 @@ The P5.1 start guard is:
 bash scripts/verify-release.sh --start-guard
 ```
 
-Expected success output includes `runner start guard passed` and `Start guard is not release readiness`. It runs quick governance, shell syntax checks, source-boundary validation, consumer and manifest syntax checks, and the local consumer and manifest self-tests without an external artifact root or manifest artifact. Coverage for image task-execution smoke is syntax-only; it checks script/harness syntax and does not run the smoke.
+Expected success output includes `runner start guard passed` and `Start guard is not release readiness`. It runs quick governance, shell syntax checks, source-boundary validation, consumer/manifest/handoff report syntax checks, and the local consumer, manifest, and handoff report self-tests without an external artifact root or manifest artifact. Coverage for image task-execution smoke is syntax-only; it checks script/harness syntax and does not run the smoke.
 
 Start guard is not release readiness. It intentionally excludes runtime fast checks and manual image smoke execution.

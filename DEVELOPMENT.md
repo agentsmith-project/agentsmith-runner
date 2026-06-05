@@ -125,7 +125,13 @@ Runner GA handoff:
 bash scripts/verify-release.sh --ga-handoff --manifest <manifest-path> --output-dir <dir>
 ```
 
-This command validates the supplied manifest with `--release-manifest`, then writes `<dir>/runner-ga-handoff-report.json`. The report projects runner release id, git sha, image digest, contract artifact binding, manifest digest, and CI provenance for downstream AgentSmith adoption and release-kit final aggregation. It is not a formal verdict, does not contain `formal_verdict`, does not update AgentSmith locks, and does not replace AgentSmith product readiness or the release-kit final GA verdict.
+This command validates the supplied manifest with `--release-manifest`, writes `<dir>/runner-ga-handoff-report.json`, and validates the handoff report artifact before returning success. The report projects runner release id, git sha, image digest, contract artifact binding, manifest digest, and CI provenance for downstream AgentSmith adoption and release-kit final aggregation. It is not a formal verdict, does not contain `formal_verdict`, does not update AgentSmith locks, and does not replace AgentSmith product readiness or the release-kit final GA verdict.
+
+To validate a downloaded report artifact without regenerating it:
+
+```bash
+bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json>
+```
 
 Script syntax check:
 
@@ -137,11 +143,13 @@ bash -n scripts/test-runner-image-smoke.sh
 bash -n scripts/test-runner-image-task-execution-smoke.sh
 bash -n scripts/test-runner-contract-consumer.sh
 bash -n scripts/test-runner-release-manifest.sh
+bash -n scripts/test-runner-ga-handoff-report.sh
 node --check scripts/check-runner-source-boundary.mjs
 node --check scripts/check-runner-contract-consumer.mjs
 node --check scripts/check-runner-release-manifest.mjs
 node --check scripts/write-runner-release-manifest.mjs
 node --check scripts/write-runner-ga-handoff-report.mjs
+node --check scripts/check-runner-ga-handoff-report.mjs
 node --check scripts/runner-task-execution-smoke.mjs
 ```
 
@@ -151,7 +159,7 @@ P5.1 start guard:
 bash scripts/verify-release.sh --start-guard
 ```
 
-Start guard runs quick governance, shell syntax checks, source-boundary validation, consumer and manifest Node syntax checks, and the local consumer and manifest self-tests with generated temporary fixtures. The consumer and manifest self-tests do not require an external artifact root or manifest artifact. Coverage for image task-execution smoke is syntax-only (`bash -n`/`node --check`); start guard does not run `--image-task-execution-smoke`.
+Start guard runs quick governance, shell syntax checks, source-boundary validation, consumer/manifest/handoff report Node syntax checks, and the local consumer, manifest, and handoff report self-tests with generated temporary fixtures. The self-tests do not require an external artifact root or manifest artifact. Coverage for image task-execution smoke is syntax-only (`bash -n`/`node --check`); start guard does not run `--image-task-execution-smoke`.
 
 Start guard is not release readiness. It intentionally excludes runtime fast checks and manual image smoke execution. Runtime fast checks require repo-local Node dependencies, and image smoke execution requires Docker plus an explicit contract artifact root; neither may introduce generated lockfiles or local dependency protocols. The P5.0 consumer diagnostic uses Node and npm only inside a temporary consumer workspace where needed.
 

@@ -97,7 +97,13 @@ Use this only with a supplied runner release manifest:
 bash scripts/verify-release.sh --ga-handoff --manifest <manifest-path> --output-dir <dir>
 ```
 
-The command validates the manifest, then writes `<dir>/runner-ga-handoff-report.json`. The report is the runner-side GA handoff evidence for downstream AgentSmith adoption and release-kit final aggregation.
+The command validates the manifest, writes `<dir>/runner-ga-handoff-report.json`, and validates the report artifact before returning success. The report is the runner-side GA handoff evidence for downstream AgentSmith adoption and release-kit final aggregation.
+
+To validate a downloaded report artifact without regenerating it:
+
+```bash
+bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json>
+```
 
 Runner GA handoff is not a formal verdict, does not contain `formal_verdict`, does not update AgentSmith locks, and does not replace AgentSmith product readiness or the release-kit final GA verdict.
 

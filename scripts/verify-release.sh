@@ -12,6 +12,7 @@ Usage:
   bash scripts/verify-release.sh --locked-image-task-execution-smoke --artifact-root <dir> --image <digest-pinned-ghcr-image-ref>
   bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
   bash scripts/verify-release.sh --ga-handoff --manifest <manifest-path> --output-dir <dir>
+  bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json>
   bash scripts/verify-release.sh
 
 Current bootstrap status:
@@ -24,6 +25,7 @@ Current bootstrap status:
   --locked-image-task-execution-smoke runs the same fake-Codex task process against an explicit digest-pinned GHCR runner image ref; it skips local build and remains focused/manual only.
   --release-manifest validates an explicit runner release manifest skeleton only.
   --ga-handoff validates an explicit runner release manifest and writes runner-side GA handoff evidence only.
+  --ga-handoff-report validates an explicit runner GA handoff report artifact only.
   Full release mode is intentionally not implemented during bootstrap.
 USAGE
 }
@@ -68,6 +70,7 @@ if [[ "${1:-}" == "--start-guard" ]]; then
   bash -n "$repo_root/scripts/test-runner-image-task-execution-smoke.sh"
   bash -n "$repo_root/scripts/test-runner-runtime-image-prereq-smoke.sh"
   bash -n "$repo_root/scripts/test-runner-release-manifest.sh"
+  bash -n "$repo_root/scripts/test-runner-ga-handoff-report.sh"
 
   echo "start guard: running quick governance guard"
   bash "$repo_root/scripts/verify-release.sh" --quick
@@ -99,6 +102,9 @@ if [[ "${1:-}" == "--start-guard" ]]; then
   echo "start guard: checking runner GA handoff report writer syntax"
   node --check "$repo_root/scripts/write-runner-ga-handoff-report.mjs"
 
+  echo "start guard: checking runner GA handoff report checker syntax"
+  node --check "$repo_root/scripts/check-runner-ga-handoff-report.mjs"
+
   echo "start guard: checking image task-execution smoke harness syntax"
   node --check "$repo_root/scripts/runner-task-execution-smoke.mjs"
 
@@ -107,6 +113,9 @@ if [[ "${1:-}" == "--start-guard" ]]; then
 
   echo "start guard: running release manifest self-test"
   bash "$repo_root/scripts/test-runner-release-manifest.sh"
+
+  echo "start guard: running runner GA handoff report self-test"
+  bash "$repo_root/scripts/test-runner-ga-handoff-report.sh"
 
   echo "runner start guard passed"
   echo "Start guard is not release readiness"
@@ -178,7 +187,19 @@ if [[ "${1:-}" == "--ga-handoff" ]]; then
 
   node "$repo_root/scripts/check-runner-release-manifest.mjs" --manifest "$3"
   node "$repo_root/scripts/write-runner-ga-handoff-report.mjs" --manifest "$3" --output-dir "$5"
+  node "$repo_root/scripts/check-runner-ga-handoff-report.mjs" --report "$5/runner-ga-handoff-report.json"
   echo "Runner GA handoff is not a formal verdict and does not update AgentSmith locks"
+  exit 0
+fi
+
+if [[ "${1:-}" == "--ga-handoff-report" ]]; then
+  if [[ $# -ne 3 || "${2:-}" != "--report" ]]; then
+    echo "error: --ga-handoff-report requires exactly --report <runner-ga-handoff-report.json>" >&2
+    usage >&2
+    exit 2
+  fi
+
+  node "$repo_root/scripts/check-runner-ga-handoff-report.mjs" --report "$3"
   exit 0
 fi
 
@@ -200,6 +221,7 @@ This repo currently supports only:
   bash scripts/verify-release.sh --locked-image-task-execution-smoke --artifact-root <dir> --image <digest-pinned-ghcr-image-ref>
   bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
   bash scripts/verify-release.sh --ga-handoff --manifest <manifest-path> --output-dir <dir>
+  bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json>
 
 Quick mode is not release readiness.
 Start guard is not release readiness.
@@ -210,5 +232,6 @@ Image task-execution smoke is not release readiness.
 Locked image task-execution smoke is not release readiness.
 Release manifest skeleton mode is not release readiness.
 Runner GA handoff is not a formal verdict.
+Runner GA handoff report check is not a formal verdict.
 MESSAGE
 exit 2

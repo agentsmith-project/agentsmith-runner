@@ -32,7 +32,9 @@ bash scripts/verify-release.sh --start-guard
 bash scripts/verify-release.sh --image-smoke --artifact-root <dir>
 bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
 bash scripts/verify-release.sh --ga-handoff --manifest <manifest-path> --output-dir <dir>
+bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json>
 bash scripts/test-runner-release-manifest.sh
+bash scripts/test-runner-ga-handoff-report.sh
 ```
 
 Start guard is not release readiness; use it only as focused startup evidence. Image smoke is not release readiness, GHCR publish, release manifest generation, or AgentSmith adoption. Focused publish evidence is not release readiness, AgentSmith adoption, an AgentSmith lock update, or a release contract runner digest change. Release manifest skeleton mode is also not release readiness; use it only when a manifest JSON file is supplied for shape checking. Runner GA handoff is not a formal verdict.

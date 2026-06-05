@@ -91,9 +91,9 @@ Only after that does the workflow run no-push image smoke, push the runner image
 bash scripts/verify-release.sh --start-guard
 ```
 
-Start guard runs quick governance, shell syntax checks, source-boundary validation, consumer and manifest syntax checks, and both local skeleton self-tests. The consumer self-test builds only temporary fixtures and covers rejection of legacy descriptor fields, artifact filename escape, artifact URI drift, sha256 drift, npm SRI drift, local or non-empty package dependencies, and source/test files inside the tgz. The manifest self-test uses temporary JSON fixtures and covers image digest pinning, producer repo drift, contract artifact metadata, protocol drift, semver drift, subject hash drift, local path or credential-like leakage, and unknown fields.
+Start guard runs quick governance, shell syntax checks, source-boundary validation, consumer/manifest/handoff report syntax checks, and the local skeleton self-tests. The consumer self-test builds only temporary fixtures and covers rejection of legacy descriptor fields, artifact filename escape, artifact URI drift, sha256 drift, npm SRI drift, local or non-empty package dependencies, and source/test files inside the tgz. The manifest self-test uses temporary JSON fixtures and covers image digest pinning, producer repo drift, contract artifact metadata, protocol drift, semver drift, subject hash drift, local path or credential-like leakage, and unknown fields. The handoff report self-test covers non-verdict shape, digest-pinned image projection, manifest URI binding, provenance, contract URI, and required pass checks.
 
-Start guard is not release readiness. It intentionally excludes runtime fast checks and image smoke. It is a CI startup guard for local skeleton checks, not proof of runtime compatibility, image release quality, AgentSmith adoption, publish, release manifest generation, or lock update.
+Start guard is not release readiness. It intentionally excludes runtime fast checks and image smoke. It is a CI startup guard for local skeleton checks, not proof of runtime compatibility, image release quality, AgentSmith adoption, publish, release manifest generation, handoff adoption, or lock update.
 
 ## Future Conformance Areas
 

@@ -341,6 +341,8 @@ check_start_guard_not_release() {
   require_grep "check-runner-release-manifest[.]mjs" scripts/verify-release.sh "start guard checks release manifest syntax"
   require_grep "write-runner-release-manifest[.]mjs" scripts/verify-release.sh "start guard checks release manifest generator syntax"
   require_grep "write-runner-ga-handoff-report[.]mjs" scripts/verify-release.sh "start guard checks runner GA handoff report writer syntax"
+  require_grep "check-runner-ga-handoff-report[.]mjs" scripts/verify-release.sh "start guard checks runner GA handoff report checker syntax"
+  require_grep "test-runner-ga-handoff-report[.]sh" scripts/verify-release.sh "start guard runs runner GA handoff report self-test"
 }
 
 check_release_manifest_skeleton_not_release() {
@@ -393,8 +395,13 @@ check_runner_ga_handoff_evidence() {
   require_grep "not a formal verdict" docs/runbooks/README.md "runbooks keep runner GA handoff non-verdict"
 
   require_grep "write-runner-ga-handoff-report[.]mjs" scripts/verify-release.sh "verify entrypoint delegates runner GA handoff report writing"
+  require_grep "check-runner-ga-handoff-report[.]mjs" scripts/verify-release.sh "verify entrypoint validates runner GA handoff report artifact"
   require_grep "Runner GA handoff is not a formal verdict" scripts/verify-release.sh "verify entrypoint says runner GA handoff is non-verdict"
+  require_grep "verify-release[.]sh --ga-handoff-report --report <runner-ga-handoff-report[.]json>" README.md "README documents runner GA handoff report checker"
+  require_grep "verify-release[.]sh --ga-handoff-report --report <runner-ga-handoff-report[.]json>" docs/RELEASE_GATES.md "RELEASE_GATES documents runner GA handoff report checker"
   require_grep "write-runner-ga-handoff-report[.]mjs" scripts/test-runner-release-manifest.sh "manifest self-test covers runner GA handoff writer"
+  require_grep "test-runner-ga-handoff-report[.]sh" .github/pull_request_template.md "PR template includes runner GA handoff report self-test"
+  require_grep "formal_verdict" scripts/test-runner-ga-handoff-report.sh "handoff report self-test rejects formal verdict field"
   require_grep "formal_verdict" scripts/test-runner-release-manifest.sh "manifest self-test rejects formal verdict field in runner GA handoff"
 
   require_grep "verify-release[.]sh --ga-handoff --manifest artifacts/runner-release/runner-release-manifest[.]json --output-dir artifacts/runner-ga-handoff" "$workflow" "runner image publish writes runner GA handoff report"

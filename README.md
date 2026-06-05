@@ -120,7 +120,13 @@ The runner-side GA handoff command is:
 bash scripts/verify-release.sh --ga-handoff --manifest <manifest-path> --output-dir <dir>
 ```
 
-It validates the supplied runner release manifest, then writes `<dir>/runner-ga-handoff-report.json` with the manifest digest, image digest, contract artifact binding, and runner provenance projected from the manifest. Runner GA handoff is not a formal verdict, does not issue `formal_verdict`, does not update AgentSmith locks, and does not replace AgentSmith product readiness or the release-kit final GA verdict.
+It validates the supplied runner release manifest, writes `<dir>/runner-ga-handoff-report.json`, and validates the report artifact shape before returning success. The report carries the manifest digest, image digest, contract artifact binding, and runner provenance projected from the manifest. Runner GA handoff is not a formal verdict, does not issue `formal_verdict`, does not update AgentSmith locks, and does not replace AgentSmith product readiness or the release-kit final GA verdict.
+
+To validate a downloaded report artifact without regenerating it:
+
+```bash
+bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json>
+```
 
 ## P5.1/P5.3a/P5.3b Start Guard
 
@@ -130,7 +136,7 @@ The start guard is CI-safe startup coverage for source-boundary, contract consum
 bash scripts/verify-release.sh --start-guard
 ```
 
-This runs quick governance, shell syntax checks, source-boundary validation, Node checker syntax checks, `bash scripts/test-runner-contract-consumer.sh`, and `bash scripts/test-runner-release-manifest.sh`. The contract and manifest self-tests use only local temporary fixtures and do not require an external artifact root or manifest artifact. Coverage for the task-execution image smoke is syntax-only (`bash -n`/`node --check`); start guard does not run that smoke.
+This runs quick governance, shell syntax checks, source-boundary validation, Node checker syntax checks, `bash scripts/test-runner-contract-consumer.sh`, `bash scripts/test-runner-release-manifest.sh`, and `bash scripts/test-runner-ga-handoff-report.sh`. The contract, manifest, and handoff report self-tests use only local temporary fixtures and do not require an external artifact root or manifest artifact. Coverage for the task-execution image smoke is syntax-only (`bash -n`/`node --check`); start guard does not run that smoke.
 
 Start guard is not release readiness. It intentionally excludes the runtime fast gate and manual image smoke execution, and it does not replace full release mode, image evidence, runtime evidence, AgentSmith adoption evidence, or an AgentSmith lock update.
 
