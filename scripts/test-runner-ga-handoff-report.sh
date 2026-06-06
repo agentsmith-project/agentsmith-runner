@@ -100,6 +100,8 @@ if (mutation === 'formal-verdict') {
   report.provenance.producer_repo = 'github.com/agentsmith-project/agentsmith';
 } else if (mutation === 'missing-manifest-input') {
   delete report.manifest.input_sha256;
+} else if (mutation === 'manifest-input-sha-drift') {
+  report.manifest.input_sha256 = `sha256:${'0'.repeat(64)}`;
 } else if (mutation === 'local-contract-uri') {
   report.contract_artifact.package_uri = 'file:///tmp/mbos-agent-runner-contract-0.1.0.tgz';
 } else if (mutation === 'checks-drift') {
@@ -160,6 +162,32 @@ expect_failure() {
   pass "$label"
 }
 
+expect_failure_with_manifest() {
+  local label="$1"
+  local pattern="$2"
+  local report_path="$3"
+  local manifest_path="$4"
+  local output
+  local status
+
+  set +e
+  output="$(node "$checker" --report "$report_path" --manifest "$manifest_path" 2>&1)"
+  status=$?
+  set -e
+
+  if [[ $status -eq 0 ]]; then
+    echo "$output"
+    fail "$label should have failed"
+  fi
+
+  if ! grep -Eq "$pattern" <<<"$output"; then
+    echo "$output"
+    fail "$label failed with an unexpected message"
+  fi
+
+  pass "$label"
+}
+
 contract_artifact_root="$tmp_root/contract-artifact"
 manifest_path="$tmp_root/runner-release-manifest.json"
 handoff_dir="$tmp_root/ga-handoff"
@@ -184,6 +212,8 @@ node "$manifest_generator" \
 
 bash "$verify_release" --ga-handoff --manifest "$manifest_path" --output-dir "$handoff_dir" >/dev/null
 expect_success "generated runner GA handoff report" "$handoff_report"
+bash "$verify_release" --ga-handoff-report --report "$handoff_report" --manifest "$manifest_path" >/dev/null
+pass "generated runner GA handoff report cross-checks supplied manifest"
 
 for mutation_and_pattern in \
   "formal-verdict|formal_verdict is not allowed|forbidden content: formal verdict" \
@@ -199,5 +229,13 @@ for mutation_and_pattern in \
   mutate_report "$handoff_report" "$target" "$mutation"
   expect_failure "$mutation rejection" "$pattern" "$target"
 done
+
+target="$tmp_root/manifest-input-sha-drift.json"
+mutate_report "$handoff_report" "$target" "manifest-input-sha-drift"
+expect_failure_with_manifest \
+  "manifest input sha drift rejection" \
+  "manifest[.]input_sha256 must match the supplied runner release manifest" \
+  "$target" \
+  "$manifest_path"
 
 echo "runner GA handoff report self-test passed"

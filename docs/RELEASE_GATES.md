@@ -117,12 +117,12 @@ This locked smoke proves only that the resolved digest-pinned image can run the 
 bash scripts/verify-release.sh --ga-handoff --manifest <manifest-path> --output-dir <dir>
 ```
 
-This explicit mode validates the supplied runner release manifest, writes `<dir>/runner-ga-handoff-report.json`, and validates the handoff report artifact before returning success. The report uses schema `agentsmith.runner-ga-handoff-report/v1`, status `pass`, the raw manifest sha256, the digest-pinned runner image, the contract artifact binding, and runner manifest provenance.
+This explicit mode validates the supplied runner release manifest, writes `<dir>/runner-ga-handoff-report.json`, and cross-checks the report projection against that manifest before returning success. The report uses schema `agentsmith.runner-ga-handoff-report/v1`, status `pass`, the raw manifest sha256, the digest-pinned runner image, the contract artifact binding, and runner manifest provenance.
 
-To validate a downloaded report artifact without regenerating it:
+To validate downloaded artifacts without regenerating the report, pass the manifest when it is available:
 
 ```bash
-bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json>
+bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json> --manifest <manifest-path>
 ```
 
 Runner GA handoff does not issue formal_verdict, does not update AgentSmith locks, does not modify the release contract, and does not replace AgentSmith product readiness or the release-kit final GA verdict. It is the runner-side handoff artifact that downstream GA aggregation can cite after AgentSmith adopts the manifest and lock.

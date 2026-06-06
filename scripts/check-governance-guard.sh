@@ -398,9 +398,13 @@ check_runner_ga_handoff_evidence() {
   require_grep "check-runner-ga-handoff-report[.]mjs" scripts/verify-release.sh "verify entrypoint validates runner GA handoff report artifact"
   require_grep "Runner GA handoff is not a formal verdict" scripts/verify-release.sh "verify entrypoint says runner GA handoff is non-verdict"
   require_grep "verify-release[.]sh --ga-handoff-report --report <runner-ga-handoff-report[.]json>" README.md "README documents runner GA handoff report checker"
+  require_grep "ga-handoff-report --report <runner-ga-handoff-report[.]json> --manifest <manifest-path>" README.md "README documents handoff report manifest cross-check"
   require_grep "verify-release[.]sh --ga-handoff-report --report <runner-ga-handoff-report[.]json>" docs/RELEASE_GATES.md "RELEASE_GATES documents runner GA handoff report checker"
+  require_grep "ga-handoff-report --report <runner-ga-handoff-report[.]json> --manifest <manifest-path>" docs/RELEASE_GATES.md "RELEASE_GATES documents handoff report manifest cross-check"
+  require_grep "check-runner-ga-handoff-report[.]mjs\" --report \"[$]5/runner-ga-handoff-report[.]json\" --manifest \"[$]3\"" scripts/verify-release.sh "verify ga-handoff cross-checks report against supplied manifest"
   require_grep "write-runner-ga-handoff-report[.]mjs" scripts/test-runner-release-manifest.sh "manifest self-test covers runner GA handoff writer"
   require_grep "test-runner-ga-handoff-report[.]sh" .github/pull_request_template.md "PR template includes runner GA handoff report self-test"
+  require_grep "manifest-input-sha-drift" scripts/test-runner-ga-handoff-report.sh "handoff report self-test rejects manifest digest projection drift"
   require_grep "formal_verdict" scripts/test-runner-ga-handoff-report.sh "handoff report self-test rejects formal verdict field"
   require_grep "formal_verdict" scripts/test-runner-release-manifest.sh "manifest self-test rejects formal verdict field in runner GA handoff"
 

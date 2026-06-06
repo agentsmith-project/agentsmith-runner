@@ -116,12 +116,12 @@ The runner GA handoff command is:
 bash scripts/verify-release.sh --ga-handoff --manifest <manifest-path> --output-dir <dir>
 ```
 
-Expected output includes `runner GA handoff report written`, `runner GA handoff report check passed`, and `not a formal verdict`. The command validates the manifest, writes `<dir>/runner-ga-handoff-report.json`, and validates the report artifact before returning success. The report binds the manifest input sha256, runner image digest, contract artifact fields, manifest subject sha, and runner CI provenance.
+Expected output includes `runner GA handoff report written`, `runner GA handoff report check passed`, and `not a formal verdict`. The command validates the manifest, writes `<dir>/runner-ga-handoff-report.json`, and cross-checks the report projection against that manifest before returning success. The report binds the manifest input sha256, runner image digest, contract artifact fields, manifest subject sha, and runner CI provenance.
 
-To validate a downloaded report artifact without regenerating it:
+To validate downloaded artifacts without regenerating the report, pass the manifest when it is available:
 
 ```bash
-bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json>
+bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json> --manifest <manifest-path>
 ```
 
 The manual publish workflow writes and uploads artifact `runner-ga-handoff` after manifest verification. This report is runner-side handoff evidence only. It is not a formal verdict, does not contain `formal_verdict`, does not update AgentSmith locks, and does not replace AgentSmith product readiness or release-kit final GA verdict.

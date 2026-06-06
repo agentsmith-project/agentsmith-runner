@@ -125,12 +125,12 @@ Runner GA handoff:
 bash scripts/verify-release.sh --ga-handoff --manifest <manifest-path> --output-dir <dir>
 ```
 
-This command validates the supplied manifest with `--release-manifest`, writes `<dir>/runner-ga-handoff-report.json`, and validates the handoff report artifact before returning success. The report projects runner release id, git sha, image digest, contract artifact binding, manifest digest, and CI provenance for downstream AgentSmith adoption and release-kit final aggregation. It is not a formal verdict, does not contain `formal_verdict`, does not update AgentSmith locks, and does not replace AgentSmith product readiness or the release-kit final GA verdict.
+This command validates the supplied manifest with `--release-manifest`, writes `<dir>/runner-ga-handoff-report.json`, and cross-checks the report projection against that manifest before returning success. The report projects runner release id, git sha, image digest, contract artifact binding, manifest digest, and CI provenance for downstream AgentSmith adoption and release-kit final aggregation. It is not a formal verdict, does not contain `formal_verdict`, does not update AgentSmith locks, and does not replace AgentSmith product readiness or the release-kit final GA verdict.
 
-To validate a downloaded report artifact without regenerating it:
+To validate downloaded artifacts without regenerating the report, pass the manifest when it is available:
 
 ```bash
-bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json>
+bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json> --manifest <manifest-path>
 ```
 
 Script syntax check:

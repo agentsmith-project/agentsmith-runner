@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -88,7 +89,10 @@ const FORBIDDEN_STRING_PATTERNS = Object.freeze([
 const errors = [];
 
 function usage() {
-  console.error('Usage: node scripts/check-runner-ga-handoff-report.mjs --report <runner-ga-handoff-report.json>');
+  console.error(
+    'Usage: node scripts/check-runner-ga-handoff-report.mjs ' +
+      '--report <runner-ga-handoff-report.json> [--manifest <runner-release-manifest.json>]',
+  );
 }
 
 function addError(message) {
@@ -171,28 +175,63 @@ function parseArgs(argv) {
     process.exit(0);
   }
 
-  if (argv.length !== 2 || argv[0] !== '--report') {
+  if (argv.length !== 2 && argv.length !== 4) {
     usage();
-    addError('expected exactly --report <runner-ga-handoff-report.json>');
+    addError('expected --report <runner-ga-handoff-report.json> and optional --manifest <runner-release-manifest.json>');
     return null;
   }
 
-  return resolve(argv[1]);
+  const args = new Map();
+  for (let index = 0; index < argv.length; index += 2) {
+    const flag = argv[index];
+    const value = argv[index + 1];
+    if (flag !== '--report' && flag !== '--manifest') {
+      usage();
+      addError(`unknown argument: ${flag}`);
+      return null;
+    }
+    if (args.has(flag)) {
+      usage();
+      addError(`duplicate argument: ${flag}`);
+      return null;
+    }
+    if (typeof value !== 'string' || value.trim() === '') {
+      usage();
+      addError(`${flag} requires a non-empty value`);
+      return null;
+    }
+    args.set(flag, value);
+  }
+
+  if (!args.has('--report')) {
+    usage();
+    addError('missing required argument: --report');
+    return null;
+  }
+
+  return {
+    reportPath: resolve(args.get('--report')),
+    manifestPath: args.has('--manifest') ? resolve(args.get('--manifest')) : null,
+  };
 }
 
-function readJsonFile(path) {
+function readJsonFile(path, label) {
   let raw;
   try {
-    raw = readFileSync(path, 'utf8');
+    raw = readFileSync(path);
   } catch (error) {
-    addError(`failed to read runner GA handoff report: ${error.message}`);
+    addError(`failed to read ${label}: ${error.message}`);
     return null;
   }
 
   try {
-    return JSON.parse(raw);
+    return {
+      raw,
+      value: JSON.parse(raw.toString('utf8')),
+      sha256: `sha256:${createHash('sha256').update(raw).digest('hex')}`,
+    };
   } catch (error) {
-    addError(`failed to parse runner GA handoff report as JSON: ${error.message}`);
+    addError(`failed to parse ${label} as JSON: ${error.message}`);
     return null;
   }
 }
@@ -312,6 +351,63 @@ function validateManifestProjection(value, provenance) {
   }
 }
 
+function validateManifestCrossCheck(report, manifestRead) {
+  if (manifestRead === null) {
+    return;
+  }
+
+  const manifest = requireObject(manifestRead.value, 'manifest input');
+  if (manifest === null) {
+    return;
+  }
+
+  const reportManifest = requireObject(report.manifest, 'manifest');
+  const reportImage = isPlainObject(report.image) ? report.image : {};
+  const reportContract = isPlainObject(report.contract_artifact) ? report.contract_artifact : {};
+  const reportProvenance = isPlainObject(report.provenance) ? report.provenance : {};
+  const manifestImage = isPlainObject(manifest.image) ? manifest.image : {};
+  const manifestContract = isPlainObject(manifest.contract_artifact) ? manifest.contract_artifact : {};
+  const manifestProvenance = isPlainObject(manifest.artifact_provenance) ? manifest.artifact_provenance : {};
+
+  const comparisons = [
+    ['manifest.input_sha256', reportManifest?.input_sha256, manifestRead.sha256],
+    ['runner', report.runner, manifest.runner],
+    ['release_id', report.release_id, manifest.release_id],
+    ['git_sha', report.git_sha, manifest.git_sha],
+    ['runner_contract_version', report.runner_contract_version, manifest.runner_contract_version],
+    ['image.id', reportImage.id, manifestImage.id],
+    ['image.image', reportImage.image, manifestImage.image],
+    ['image.digest', reportImage.digest, manifestImage.digest],
+    ['contract_artifact.package_uri', reportContract.package_uri, manifestContract.package_uri],
+    ['contract_artifact.package_sha256', reportContract.package_sha256, manifestContract.package_sha256],
+    [
+      'contract_artifact.descriptor_subject_sha256',
+      reportContract.descriptor_subject_sha256,
+      manifestContract.descriptor_subject_sha256,
+    ],
+    ['manifest.artifact_uri', reportManifest?.artifact_uri, manifestProvenance.artifact_uri],
+    ['manifest.subject_sha256', reportManifest?.subject_sha256, manifestProvenance.subject_sha256],
+    ['manifest.artifact_sha256', reportManifest?.artifact_sha256, manifestProvenance.artifact_sha256],
+    ['provenance.producer_repo', reportProvenance.producer_repo, manifestProvenance.producer_repo],
+    ['provenance.normalized_remote', reportProvenance.normalized_remote, manifestProvenance.normalized_remote],
+    ['provenance.workflow_name', reportProvenance.workflow_name, manifestProvenance.workflow_name],
+    ['provenance.job', reportProvenance.job, manifestProvenance.job],
+    ['provenance.run_id', reportProvenance.run_id, manifestProvenance.run_id],
+    ['provenance.run_attempt', reportProvenance.run_attempt, manifestProvenance.run_attempt],
+    ['provenance.commit_sha', reportProvenance.commit_sha, manifestProvenance.commit_sha],
+  ];
+
+  for (const [fieldPath, reportValue, manifestValue] of comparisons) {
+    if (reportValue !== manifestValue) {
+      addError(`${fieldPath} must match the supplied runner release manifest`);
+    }
+  }
+
+  if (JSON.stringify(report.supported_protocol_versions) !== JSON.stringify(manifest.supported_protocol_versions)) {
+    addError('supported_protocol_versions must match the supplied runner release manifest');
+  }
+}
+
 function validateProvenance(value, report) {
   const provenance = requireObject(value, 'provenance');
   if (provenance === null) {
@@ -411,17 +507,21 @@ function validateReport(report) {
   validateNotes(root.notes);
 }
 
-const reportPath = parseArgs(process.argv.slice(2));
-if (reportPath === null) {
+const paths = parseArgs(process.argv.slice(2));
+if (paths === null) {
   for (const error of errors) {
     console.error(`error: ${error}`);
   }
   process.exit(2);
 }
 
-const report = readJsonFile(reportPath);
-if (report !== null) {
-  validateReport(report);
+const reportRead = readJsonFile(paths.reportPath, 'runner GA handoff report');
+const manifestRead = paths.manifestPath === null ? null : readJsonFile(paths.manifestPath, 'runner release manifest');
+if (reportRead !== null) {
+  validateReport(reportRead.value);
+  if (isPlainObject(reportRead.value)) {
+    validateManifestCrossCheck(reportRead.value, manifestRead);
+  }
 }
 
 if (errors.length > 0) {

@@ -120,12 +120,12 @@ The runner-side GA handoff command is:
 bash scripts/verify-release.sh --ga-handoff --manifest <manifest-path> --output-dir <dir>
 ```
 
-It validates the supplied runner release manifest, writes `<dir>/runner-ga-handoff-report.json`, and validates the report artifact shape before returning success. The report carries the manifest digest, image digest, contract artifact binding, and runner provenance projected from the manifest. Runner GA handoff is not a formal verdict, does not issue `formal_verdict`, does not update AgentSmith locks, and does not replace AgentSmith product readiness or the release-kit final GA verdict.
+It validates the supplied runner release manifest, writes `<dir>/runner-ga-handoff-report.json`, and cross-checks the report projection against that manifest before returning success. The report carries the manifest digest, image digest, contract artifact binding, and runner provenance projected from the manifest. Runner GA handoff is not a formal verdict, does not issue `formal_verdict`, does not update AgentSmith locks, and does not replace AgentSmith product readiness or the release-kit final GA verdict.
 
-To validate a downloaded report artifact without regenerating it:
+To validate downloaded artifacts without regenerating the report, pass the manifest when it is available:
 
 ```bash
-bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json>
+bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json> --manifest <manifest-path>
 ```
 
 ## P5.1/P5.3a/P5.3b Start Guard

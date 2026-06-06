@@ -12,7 +12,7 @@ Usage:
   bash scripts/verify-release.sh --locked-image-task-execution-smoke --artifact-root <dir> --image <digest-pinned-ghcr-image-ref>
   bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
   bash scripts/verify-release.sh --ga-handoff --manifest <manifest-path> --output-dir <dir>
-  bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json>
+  bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json> [--manifest <manifest-path>]
   bash scripts/verify-release.sh
 
 Current GA handoff status:
@@ -25,7 +25,7 @@ Current GA handoff status:
   --locked-image-task-execution-smoke runs the same fake-Codex task process against an explicit digest-pinned GHCR runner image ref; it skips local build and remains focused/manual only.
   --release-manifest validates an explicit runner release manifest skeleton only.
   --ga-handoff validates an explicit runner release manifest and writes runner-side GA handoff evidence only.
-  --ga-handoff-report validates an explicit runner GA handoff report artifact only.
+  --ga-handoff-report validates an explicit runner GA handoff report artifact, optionally cross-checking the supplied runner release manifest.
   Full release mode remains fail-closed during GA handoff; runner-side GA evidence is the verified release manifest plus runner GA handoff report.
 USAGE
 }
@@ -187,19 +187,35 @@ if [[ "${1:-}" == "--ga-handoff" ]]; then
 
   node "$repo_root/scripts/check-runner-release-manifest.mjs" --manifest "$3"
   node "$repo_root/scripts/write-runner-ga-handoff-report.mjs" --manifest "$3" --output-dir "$5"
-  node "$repo_root/scripts/check-runner-ga-handoff-report.mjs" --report "$5/runner-ga-handoff-report.json"
+  node "$repo_root/scripts/check-runner-ga-handoff-report.mjs" --report "$5/runner-ga-handoff-report.json" --manifest "$3"
   echo "Runner GA handoff is not a formal verdict and does not update AgentSmith locks"
   exit 0
 fi
 
 if [[ "${1:-}" == "--ga-handoff-report" ]]; then
-  if [[ $# -ne 3 || "${2:-}" != "--report" ]]; then
-    echo "error: --ga-handoff-report requires exactly --report <runner-ga-handoff-report.json>" >&2
+  if [[ $# -ne 3 && $# -ne 5 ]]; then
+    echo "error: --ga-handoff-report requires --report <runner-ga-handoff-report.json> and optional --manifest <manifest-path>" >&2
     usage >&2
     exit 2
   fi
 
-  node "$repo_root/scripts/check-runner-ga-handoff-report.mjs" --report "$3"
+  if [[ "${2:-}" != "--report" ]]; then
+    echo "error: --ga-handoff-report requires --report <runner-ga-handoff-report.json>" >&2
+    usage >&2
+    exit 2
+  fi
+
+  if [[ $# -eq 5 && "${4:-}" != "--manifest" ]]; then
+    echo "error: --ga-handoff-report optional argument must be --manifest <manifest-path>" >&2
+    usage >&2
+    exit 2
+  fi
+
+  if [[ $# -eq 5 ]]; then
+    node "$repo_root/scripts/check-runner-ga-handoff-report.mjs" --report "$3" --manifest "$5"
+  else
+    node "$repo_root/scripts/check-runner-ga-handoff-report.mjs" --report "$3"
+  fi
   exit 0
 fi
 
@@ -221,7 +237,7 @@ This repo currently supports runner-side focused diagnostics and GA handoff evid
   bash scripts/verify-release.sh --locked-image-task-execution-smoke --artifact-root <dir> --image <digest-pinned-ghcr-image-ref>
   bash scripts/verify-release.sh --release-manifest --manifest <manifest-path>
   bash scripts/verify-release.sh --ga-handoff --manifest <manifest-path> --output-dir <dir>
-  bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json>
+  bash scripts/verify-release.sh --ga-handoff-report --report <runner-ga-handoff-report.json> [--manifest <manifest-path>]
 
 Quick mode is not release readiness.
 Start guard is not release readiness.
