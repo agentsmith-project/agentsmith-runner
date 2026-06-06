@@ -28,7 +28,7 @@ The repository will include:
 
 At bootstrap creation, the repository did not include runtime code, Dockerfile, copied contracts, copied gates, image publication, release readiness claims, or AgentSmith adoption lock changes.
 
-ADR 0001 is the historical record of the bootstrap boundary. Current P5 focused runner work allows repo-local runtime source, a no-push Dockerfile/image smoke, and a manual focused GHCR publish evidence path that produces a digest-pinned image plus a runner release manifest artifact. This allowance is focused evidence only; it does not allow release readiness claims, AgentSmith adoption, AgentSmith lock updates, release contract runner digest changes, or AgentSmith product semantics to move into this repo.
+ADR 0001 is the historical record of the bootstrap boundary. Current P5 focused runner work allows repo-local runtime source, a no-push Dockerfile/image smoke, and a manual focused GHCR publish evidence path that produces a digest-pinned image, a runner release manifest artifact, and a runner GA handoff artifact. This allowance is focused evidence only; the artifacts are downstream inputs for AgentSmith lock/release-contract adoption and release-kit final aggregation, but this repo still does not issue release readiness claims, AgentSmith adoption, AgentSmith lock updates, release contract runner digest changes, or AgentSmith product semantics.
 
 Local handoff uses `/home/percy/works/mbos-v1/agentsmith-runner` as a checkout beside AgentSmith. That path is a workspace convention only; no runtime behavior, scripts, CI, release evidence, or source path dependency may rely on it. Release provenance remains the canonical GitHub repository.
 

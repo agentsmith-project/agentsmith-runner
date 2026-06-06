@@ -237,6 +237,6 @@ jobs:
 
       - name: Focused evidence notice
         run: |
-          echo "Focused publish evidence only: digest-pinned GHCR image plus runner-release-manifest artifact."
+          echo "Focused publish evidence only: digest-pinned GHCR image plus runner-release-manifest and runner-ga-handoff artifacts."
           echo "Runner GA handoff is evidence only, not a formal verdict."
           echo "This is not release readiness, not AgentSmith adoption, and not an AgentSmith lock update."

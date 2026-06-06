@@ -36,6 +36,7 @@ Current phase: GA runner handoff work.
 | Runner image evidence | focused only | scripts/verify-release.sh --image-smoke --artifact-root <artifact-root> |
 | Contract conformance evidence | focused only | contract consumer, runtime fast, image smoke, and handoff checks |
 | Runner release manifest artifact | focused publish evidence only | runner-image-publish workflow artifact `runner-release-manifest` |
+| Runner GA handoff artifact | runner-side GA handoff evidence, not a formal verdict | runner-image-publish workflow artifact `runner-ga-handoff` |
 | Local, dev, or backend-real diagnostics as release proof | rejected | docs/RELEASE_GATES.md |
 
 ## Current Verdict
@@ -106,7 +107,7 @@ It then writes `artifacts/runner-release/runner-release-manifest.json` and verif
 bash scripts/verify-release.sh --release-manifest --manifest artifacts/runner-release/runner-release-manifest.json
 ```
 
-It uploads artifact `runner-release-manifest`. This is focused publish evidence only: digest-pinned GHCR image plus manifest artifact, with one fake-Codex safety smoke against the resolved digest. It is not release readiness, not AgentSmith adoption evidence, not an AgentSmith lock update, not an AgentSmith repo change, and not a release contract runner digest change.
+It uploads artifacts `runner-release-manifest` and `runner-ga-handoff`. This is focused publish evidence only: digest-pinned GHCR image plus manifest and handoff artifacts, with one fake-Codex safety smoke against the resolved digest. The artifacts are downstream inputs for AgentSmith lock/release-contract adoption and release-kit final aggregation. They are not release readiness, not AgentSmith adoption evidence by themselves, not an AgentSmith lock update, not an AgentSmith repo change, and not a release contract runner digest change.
 
 ## Runner GA Handoff Evidence
 
