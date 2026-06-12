@@ -1907,9 +1907,78 @@ describe('agentsmith-runner entry lifecycle', () => {
       }));
       expect(buildTaskCodexConfigMock).toHaveBeenCalledWith(expect.objectContaining({
         wireApi: 'responses',
+        codexDisableMultiAgent: true,
       }));
       expect(buildCodexExecArgsMock).toHaveBeenCalledWith(expect.objectContaining({
         wireApi: 'responses',
+        codexDisableMultiAgent: true,
+      }));
+      expect(readSentFrames(socket)).toContainEqual(expect.objectContaining({
+        type: 'agent.response.event',
+        payload: expect.objectContaining({
+          name: 'codex.exec',
+          details: expect.objectContaining({
+            codex_multi_agent_disabled: true,
+          }),
+        }),
+      }));
+    });
+
+    closeCodexChild(child, 0);
+  });
+
+  it('disables Codex multi-agent mode for anthropic execution wire_api', async () => {
+    await import('./index.js');
+    const socket = websocketInstances.at(-1);
+    if (!socket) {
+      throw new Error('websocket_instance_missing');
+    }
+
+    socket.emit('open');
+    const child = await startCodexRun(socket, 'req_anthropic_wire_api_multi_agent', {
+      wire_api: 'anthropic_messages',
+    });
+
+    await vi.waitFor(() => {
+      expect(ensureCodexSessionStateCompatibleMock).toHaveBeenCalledWith(expect.objectContaining({
+        wireApi: 'anthropic_messages',
+      }));
+      expect(buildTaskCodexConfigMock).toHaveBeenCalledWith(expect.objectContaining({
+        wireApi: 'responses',
+        codexDisableMultiAgent: true,
+      }));
+      expect(buildCodexExecArgsMock).toHaveBeenCalledWith(expect.objectContaining({
+        wireApi: 'responses',
+        codexDisableMultiAgent: true,
+      }));
+    });
+
+    closeCodexChild(child, 0);
+  });
+
+  it('keeps Codex multi-agent mode enabled for native openai_responses execution wire_api', async () => {
+    await import('./index.js');
+    const socket = websocketInstances.at(-1);
+    if (!socket) {
+      throw new Error('websocket_instance_missing');
+    }
+
+    socket.emit('open');
+    const child = await startCodexRun(socket, 'req_responses_wire_api_multi_agent', {
+      wire_api: 'openai_responses',
+    });
+
+    await vi.waitFor(() => {
+      expect(ensureCodexSessionStateCompatibleMock).toHaveBeenCalledWith(expect.objectContaining({
+        wireApi: 'openai_responses',
+      }));
+      expect(buildTaskCodexConfigMock).toHaveBeenCalledWith(expect.objectContaining({
+        wireApi: 'responses',
+        codexDisableMultiAgent: false,
+      }));
+      expect(buildCodexExecArgsMock).toHaveBeenCalledWith(expect.objectContaining({
+        wireApi: 'responses',
+        codexDisableMultiAgent: false,
       }));
     });
 

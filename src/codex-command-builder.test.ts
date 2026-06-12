@@ -37,6 +37,27 @@ describe('codex-command-builder', () => {
     expect(config).not.toContain('env_http_headers');
   });
 
+  it('disables Codex multi-agent mode in task config when requested', () => {
+    const config = buildTaskCodexConfig({
+      model: 'placeholder-model',
+      endpointProxyBase: 'http://proxy.local',
+      wireApi: 'responses',
+      codexDisableMultiAgent: true,
+    });
+
+    expect(config).toContain('features.multi_agent = false');
+  });
+
+  it('leaves Codex multi-agent mode unset in task config by default', () => {
+    const config = buildTaskCodexConfig({
+      model: 'placeholder-model',
+      endpointProxyBase: 'http://proxy.local',
+      wireApi: 'responses',
+    });
+
+    expect(config).not.toContain('features.multi_agent');
+  });
+
   it('builds yolo exec args without persisting auth in argv', () => {
     const args = buildCodexExecArgs({
       model: 'placeholder-model',
@@ -74,6 +95,32 @@ describe('codex-command-builder', () => {
     expect(args.slice(0, 4)).toEqual(['exec', '--dangerously-bypass-approvals-and-sandbox', '--skip-git-repo-check', '--json']);
     expect(args).not.toContain('resume');
     expect(args).not.toContain('--last');
+  });
+
+  it('passes Codex multi-agent disable override through argv when requested', () => {
+    const args = buildCodexExecArgs({
+      model: 'placeholder-model',
+      prompt: 'hello',
+      cwd: '/tmp/task',
+      endpointProxyBase: 'http://proxy.local',
+      wireApi: 'responses',
+      codexDisableMultiAgent: true,
+    });
+
+    expect(args).toContain('features.multi_agent=false');
+  });
+
+  it('does not pass Codex multi-agent override through argv for native responses', () => {
+    const args = buildCodexExecArgs({
+      model: 'placeholder-model',
+      prompt: 'hello',
+      cwd: '/tmp/task',
+      endpointProxyBase: 'http://proxy.local',
+      wireApi: 'responses',
+      codexDisableMultiAgent: false,
+    });
+
+    expect(args).not.toContain('features.multi_agent=false');
   });
 
   it('derives config and exec compact limits from max output tokens without passing raw output limits', () => {

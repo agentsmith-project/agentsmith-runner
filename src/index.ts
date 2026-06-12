@@ -1859,6 +1859,7 @@ async function runCodexRequest(requestId: string, payload: ServerStartPayload): 
   const resumeSession = sessionStateResult.resumeAllowed;
   // codex-cli >=0.104 no longer accepts wire_api=chat in provider config.
   const codexProviderWireApi = 'responses';
+  const codexDisableMultiAgent = executionWireApi !== 'openai_responses';
 
   const model = executionContext.model ?? payload.model ?? 'gpt-5-codex';
   const codexConfigDir = taskPaths.codexDir;
@@ -1896,6 +1897,7 @@ async function runCodexRequest(requestId: string, payload: ServerStartPayload): 
       executionTicketHeaderEnvName: executionContext.execution_ticket
         ? proxyExecutionTicketHeaderEnvName
         : undefined,
+      codexDisableMultiAgent,
     }),
     'utf-8',
   );
@@ -1906,6 +1908,7 @@ async function runCodexRequest(requestId: string, payload: ServerStartPayload): 
     model,
     wire_api: executionWireApi,
     codex_provider_wire_api: codexProviderWireApi,
+    codex_multi_agent_disabled: codexDisableMultiAgent,
     resource_proxy_base: endpointProxyBase,
     proxy_source: 'request_execution_context',
     model_context_window: modelContextWindow ?? null,
@@ -1937,6 +1940,7 @@ async function runCodexRequest(requestId: string, payload: ServerStartPayload): 
     modelAutoCompactTokenLimit,
     modelCatalogPath,
     resumeSession,
+    codexDisableMultiAgent,
   });
 
   const childCommand = await prepareLaunchCommand({
@@ -1974,6 +1978,7 @@ async function runCodexRequest(requestId: string, payload: ServerStartPayload): 
       if (arg === prompt) return '<prompt>';
       return arg;
     }),
+    codex_multi_agent_disabled: codexDisableMultiAgent,
   });
   runningByRequestId.set(requestId, child);
   cancelRequestedByRequestId.delete(requestId);
@@ -1981,6 +1986,7 @@ async function runCodexRequest(requestId: string, payload: ServerStartPayload): 
     model,
     wire_api: executionWireApi,
     codex_provider_wire_api: codexProviderWireApi,
+    codex_multi_agent_disabled: codexDisableMultiAgent,
   });
   sendRunLifecycleEvent(requestId, 'running', 'running', 'Agent run in progress');
   sendTraceEvent(requestId, {
@@ -1993,6 +1999,7 @@ async function runCodexRequest(requestId: string, payload: ServerStartPayload): 
       model,
       wire_api: executionWireApi,
       codex_provider_wire_api: codexProviderWireApi,
+      codex_multi_agent_disabled: codexDisableMultiAgent,
       model_context_window: modelContextWindow ?? null,
       model_max_output_tokens: modelMaxOutputTokens ?? null,
       model_auto_compact_token_limit: modelAutoCompactTokenLimit ?? null,

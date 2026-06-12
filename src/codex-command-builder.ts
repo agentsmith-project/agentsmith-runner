@@ -59,6 +59,7 @@ export function buildTaskCodexConfig(args: {
   modelAutoCompactTokenLimit?: number;
   modelCatalogPath?: string;
   executionTicketHeaderEnvName?: string;
+  codexDisableMultiAgent?: boolean;
 }): string {
   const modelAutoCompactTokenLimit = resolveModelAutoCompactTokenLimit({
     modelContextWindow: args.modelContextWindow,
@@ -76,6 +77,9 @@ export function buildTaskCodexConfig(args: {
     '# Keep task output compact; reasoning is still available in tool/provider responses when needed.',
     'hide_agent_reasoning = true',
   ];
+  if (args.codexDisableMultiAgent) {
+    lines.push('features.multi_agent = false');
+  }
   if (typeof args.modelContextWindow === 'number') {
     lines.push(`model_context_window = ${tomlNumber(args.modelContextWindow)}`);
   }
@@ -109,6 +113,7 @@ export function buildCodexExecArgs(args: {
   modelAutoCompactTokenLimit?: number;
   modelCatalogPath?: string;
   resumeSession?: boolean;
+  codexDisableMultiAgent?: boolean;
 }): string[] {
   const modelAutoCompactTokenLimit = resolveModelAutoCompactTokenLimit({
     modelContextWindow: args.modelContextWindow,
@@ -138,6 +143,12 @@ export function buildCodexExecArgs(args: {
     '-c',
     'hide_agent_reasoning=true',
   ];
+  if (args.codexDisableMultiAgent) {
+    cliArgs.push(
+      '-c',
+      'features.multi_agent=false',
+    );
+  }
   if (typeof args.modelContextWindow === 'number') {
     cliArgs.push(
       '-c',
